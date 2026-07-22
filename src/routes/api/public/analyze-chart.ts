@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODELS = [
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-5-mini",
+];
+
 
 type AnalyzeBody = {
   imageBase64?: string | null;
