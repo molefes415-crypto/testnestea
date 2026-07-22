@@ -265,11 +265,13 @@
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
     // ==========================================================================
-    // MT5 API — MetaApi Cloud (metaapi.cloud) via server proxy /api/public/metaapi-trade
-    // The auth token stays server-side. Every method returns { ok, data, error }.
+    // ==========================================================================
+    // MT5 API — MTAPI (mtapi.io) via server proxy /api/public/mtapi-trade
+    // The session token from /ConnectEx stays server-side and is used as accountId.
+    // Every method returns { ok, data, error }.
     // ==========================================================================
     window.MT5API = (function(){
-      const ENDPOINT = '/api/public/metaapi-trade';
+      const ENDPOINT = '/api/public/mtapi-trade';
 
       const post = async (payload) => {
         try {
@@ -280,7 +282,7 @@
           });
           const data = await resp.json().catch(() => ({}));
           if (!resp.ok || data.ok === false) {
-            return { ok: false, data: data?.data ?? data, error: data?.error || `MetaApi ${resp.status}` };
+            return { ok: false, data: data?.data ?? data, error: data?.error || `MTAPI ${resp.status}` };
           }
           return { ok: true, data: data.data ?? data, error: '' };
         } catch (e) {
@@ -288,19 +290,20 @@
         }
       };
 
-      // Provision (or reuse) a MetaApi cloud account for the given broker creds,
-      // then wait until it's DEPLOYED + CONNECTED. Returns { ok, data:{ id }, error }.
+      // Open (or reuse) an MTAPI session for the given broker creds and return
+      // { ok, data:{ id }, error }.
       const connect = async ({ login, password, server }) => {
-        const r = await post({ action: 'provision', login, password, server, wait: true });
+        const r = await post({ action: 'provision', login, password, server });
         if (!r.ok) return { ok: false, data: null, error: r.error };
         const id = r.data?.accountId || r.data?.id;
-        if (!id) return { ok: false, data: null, error: 'MetaApi did not return an accountId.' };
+        if (!id) return { ok: false, data: null, error: 'MTAPI did not return a session id.' };
         return { ok: true, data: { id, account: r.data?.account }, error: '' };
       };
 
       const account    = (accountId) => post({ action: 'account',   accountId });
       const positions  = (accountId) => post({ action: 'positions', accountId });
       const status     = (accountId) => post({ action: 'status',    accountId });
+      const disconnect = (accountId) => post({ action: 'disconnect',accountId });
 
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
         const r = await post({
@@ -309,19 +312,18 @@
         });
         if (!r.ok) return r;
         const t = r.data || {};
-        const ticket = t.orderId || t.positionId || t.ticket || 'META';
+        const ticket = t.ticket || t.orderId || t.positionId || 'MT';
         return { ok: true, data: { ticket, raw: t }, error: '' };
       };
 
-      // Legacy no-ops (mtapi.io compatibility surface)
-      const disconnect = async () => ({ ok: true, data: null, error: '' });
       const openOrders = (accountId) => positions(accountId);
 
       return {
-        BASE: ENDPOINT, PROVIDER: 'metaapi',
+        BASE: ENDPOINT, PROVIDER: 'mtapi',
         connect, disconnect, account, openOrders, positions, status, orderSend,
       };
     })();
+
 
 
     // ====== SVG Icons (clean, consistent stroke width) ======
