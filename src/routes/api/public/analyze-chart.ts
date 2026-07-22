@@ -129,44 +129,57 @@ async function callGateway(body: AnalyzeBody) {
     content.push({ type: "image_url", image_url: { url } });
   }
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: "You are TradeNest EA, an elite sniper trading RAG analyst. Return strict JSON only." },
-        { role: "user", content },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
+  let lastErr = "";
+  for (const model of MODELS) {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: "You are TradeNest EA, an elite sniper trading RAG analyst. Return strict JSON only." },
+          { role: "user", content },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
 
-  if (!resp.ok) {
-    const t = await resp.text().catch(() => "");
-    throw new Error(`Gateway ${resp.status}: ${t.slice(0, 200)}`);
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      lastErr = `Gateway ${resp.status}: ${t.slice(0, 200)}`;
+      // Retry next model on rate-limit / model errors; abort on auth issues.
+      if (resp.status === 401 || resp.status === 403) throw new Error(lastErr);
+      continue;
+    }
+
+    const data = await resp.json();
+    const text: string = data?.choices?.[0]?.message?.content ?? "{}";
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      const m = text.match(/\{[\s\S]*\}/);
+      parsed = m ? JSON.parse(m[0]) : {};
+    }
+    if (!parsed || Object.keys(parsed).length === 0) {
+      lastErr = "Empty model output";
+      continue;
+    }
+    // Normalise: mirror stopLoss/takeProfit into sl/tp so the UI (which reads .tp and .sl) works
+    const tps = Array.isArray((parsed as any).takeProfit) ? (parsed as any).takeProfit : [];
+    if ((parsed as any).sl == null && (parsed as any).stopLoss != null) (parsed as any).sl = (parsed as any).stopLoss;
+    if ((parsed as any).tp == null && tps.length) (parsed as any).tp = tps[0];
+    if ((parsed as any).stopLoss == null && (parsed as any).sl != null) (parsed as any).stopLoss = (parsed as any).sl;
+    if (!(parsed as any).lotSize) (parsed as any).lotSize = 0.01;
+    if (!(parsed as any).orderType) (parsed as any).orderType = body.orderType || "instant";
+    return parsed;
   }
-  const data = await resp.json();
-  const text: string = data?.choices?.[0]?.message?.content ?? "{}";
-  let parsed: Record<string, unknown> = {};
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    const m = text.match(/\{[\s\S]*\}/);
-    parsed = m ? JSON.parse(m[0]) : { error: "Could not parse model output" };
-  }
-  // Normalise: mirror stopLoss/takeProfit into sl/tp so the UI (which reads .tp and .sl) works
-  const tps = Array.isArray((parsed as any).takeProfit) ? (parsed as any).takeProfit : [];
-  if ((parsed as any).sl == null && (parsed as any).stopLoss != null) (parsed as any).sl = (parsed as any).stopLoss;
-  if ((parsed as any).tp == null && tps.length) (parsed as any).tp = tps[0];
-  if ((parsed as any).stopLoss == null && (parsed as any).sl != null) (parsed as any).stopLoss = (parsed as any).sl;
-  if (!(parsed as any).lotSize) (parsed as any).lotSize = 0.01;
-  if (!(parsed as any).orderType) (parsed as any).orderType = body.orderType || "instant";
-  return parsed;
+  throw new Error(lastErr || "All models failed");
 }
+
 
 export const Route = createFileRoute("/api/public/analyze-chart")({
   server: {
