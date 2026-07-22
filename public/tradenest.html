@@ -3105,13 +3105,13 @@ const HomeView = ({
         try {
           let aid = '';
 
-          // Step 1: Provision (or reuse) MetaApi cloud account for these creds
-          toast({ title: 'Provisioning…', description: 'Setting up MetaApi cloud account (this can take up to 90s the first time)…' });
+          // Step 1: Open (or reuse) an MTAPI session for these creds
+          toast({ title: 'Connecting…', description: 'Opening MTAPI session to your broker…' });
           const provResult = await callMetaAPI('provision', {
             login: form.login, password: form.password, server: form.server, platform: activeTab
           });
           aid = provResult.id || provResult._id;
-          if (!aid) throw new Error('MetaApi did not return an accountId.');
+          if (!aid) throw new Error('MTAPI did not return a session id.');
 
           setAccountId(aid);
           setConnected(true);
@@ -3121,7 +3121,8 @@ const HomeView = ({
           localStorage.setItem(`mt_platform_for_${aid}`, activeTab);
           localStorage.setItem(`mt_login_${activeTab}`, form.login);
           localStorage.setItem(`mt_login_for_${aid}`, form.login);
-          toast({ title: 'Account Linked!', description: `${activeTab.toUpperCase()} account connected via MetaApi Cloud.` });
+          toast({ title: 'Account Linked!', description: `${activeTab.toUpperCase()} account connected via MTAPI.` });
+
 
           // Try to fetch account info
           try {
