@@ -1,0 +1,196 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+const MODEL = "google/gemini-2.5-flash";
+
+type AnalyzeBody = {
+  imageBase64?: string | null;
+  symbol?: string;
+  strategy?: string;
+  vaultStrategies?: string[];
+  tradeStyle?: string; // scalp | day | swing
+  session?: string;
+  timeframe?: string;
+  userPrompt?: string;
+  dataSource?: string;
+  confidenceThreshold?: number;
+  orderType?: string; // instant | buy_limit | sell_limit | buy_stop | sell_stop
+  trailStop?: boolean;
+  licenseKey?: string | null;
+};
+
+const FOCUS_ASSETS = ["XAUUSD (Gold)", "US30 (Dow)", "NAS100 (Nasdaq)", "BTCUSD (Bitcoin)"];
+
+function styleRules(style: string | undefined) {
+  const s = (style || "day").toLowerCase();
+  if (s === "scalp") {
+    return `SCALP MODE — DIRECT SNIPER + REVERSAL HUNTER on M1–M5. Prioritise catching the EXACT reversal candle after a liquidity sweep (stop-hunt) into an HTF POI (FVG / OB / equilibrium). Fire the moment CHoCH + displacement confirms — do not wait for retest if momentum is explosive.
+    Also catch DIRECT SNIPERS: instant continuation entries at unmitigated OB / breaker after BOS with volume expansion.
+    Use TIGHT stops (5–15 pips gold / 20–80 pts indices / 60–200$ BTC) placed just beyond the sweep wick. TP1 = 1R, TP2 = 2R, TP3 = 3R. Confidence >= 78 or return NEUTRAL.`;
+  }
+  if (s === "swing") {
+    return `SWING MODE — Multi-day reversal + continuation sniper on H4/D1 structure. Catch major reversals at weekly/daily liquidity + HTF OB mitigation. Return "tp": null and "takeProfit": [] — swing uses stop-loss ONLY.
+    Provide a "closeSignal" describing the exact market condition that means CLOSE (e.g. "Close on H4 CHoCH against position" or "Close when price closes below 21EMA on D1"). Wider SL (2–4% of price). Confidence >= 70.`;
+  }
+  return `DAY MODE — Full session bias from London/NY open with DIRECT SNIPER + REVERSAL detection. Identify the day's manipulation leg (Asia sweep / London judas) and fire the reversal at the distribution/accumulation POI. Also flag direct continuation snipers off unmitigated intraday OB after BOS. ONE clear directional call with sniper entry, SL and 3 TPs (1R/2R/3R). Confidence >= 72.`;
+}
+
+
+function buildPrompt(b: AnalyzeBody) {
+  const focused = FOCUS_ASSETS.includes(b.symbol || "") || /XAU|GOLD|US30|NAS100|BTC/i.test(b.symbol || "");
+  return `You are TradeNest EA — an elite multi-strategy sniper analyst optimised for South African retail brokers (JustMarkets, Exness, HFM, FBS). Low drawdown, high R:R, big-profit setups only. NEVER blow the account.
+
+PRIMARY FOCUS ASSETS: ${FOCUS_ASSETS.join(", ")}.
+${focused ? "This symbol IS a focus asset — apply maximum sniper filtering." : "This is a secondary symbol — only trade if setup is textbook."}
+
+CONTEXT:
+- Symbol: ${b.symbol || "XAUUSD"}
+- Strategy fusion: ${b.strategy || "all"} (fuse SMC + ICT + CRT + Wyckoff + Price Action + Math)
+- Vault strategies: ${(b.vaultStrategies || []).join(", ") || "(none)"}
+- Trade style: ${b.tradeStyle || "day"}
+- Session: ${b.session || "any"}
+- Timeframe: ${b.timeframe || "auto"}
+- Order type requested: ${b.orderType || "instant"} (instant | buy_limit | sell_limit | buy_stop | sell_stop)
+- Trailing stop: ${b.trailStop ? "YES — include trailStart & trailStep" : "no"}
+- User note: ${b.userPrompt || "(none)"}
+
+${styleRules(b.tradeStyle)}
+
+RULES:
+1. Low drawdown mandate: SL distance must be smaller than TP1 distance (R:R >= 1.5).
+2. HUNT BOTH: (a) DIRECT SNIPERS — continuation entries at unmitigated OB / breaker after BOS + displacement; (b) REVERSALS — entries at HTF POI right after a liquidity sweep + CHoCH on LTF. Never miss a clean reversal candle.
+3. Classify the setup in "reason": start with "[REVERSAL]" or "[DIRECT SNIPER]" so the client knows the play type.
+4. If no valid setup, return direction: "NEUTRAL" with reason — never force a trade.
+5. Numbers must be realistic current-price-adjacent quotes.
+
+
+Return STRICT JSON only, no prose, matching this schema:
+{
+  "direction": "BUY" | "SELL" | "NEUTRAL",
+  "confidence": 0-100,
+  "entry": number,
+  "sl": number,
+  "tp": number,
+  "stopLoss": number,
+  "takeProfit": [number, number, number],
+  "orderType": "instant"|"buy_limit"|"sell_limit"|"buy_stop"|"sell_stop",
+  "trailStart": number|null,
+  "trailStep": number|null,
+  "closeSignal": string|null,
+  "riskReward": number,
+  "timeframe": string,
+  "symbol": string,
+  "lotSize": number,
+  "reason": string,
+  "analysis": string,
+  "reasoning": string,
+  "volatility": "Low"|"Medium"|"High",
+  "structure": string,
+  "momentum": string,
+  "sources": [
+    { "name": "SMC", "signal": "BUY|SELL|NEUTRAL", "confidence": 0-100, "note": string },
+    { "name": "ICT", "signal": "BUY|SELL|NEUTRAL", "confidence": 0-100, "note": string },
+    { "name": "CRT", "signal": "BUY|SELL|NEUTRAL", "confidence": 0-100, "note": string },
+    { "name": "Price Action", "signal": "BUY|SELL|NEUTRAL", "confidence": 0-100, "note": string },
+    { "name": "Mathematical", "signal": "BUY|SELL|NEUTRAL", "confidence": 0-100, "note": string }
+  ],
+  "keyLevels": { "support": [number], "resistance": [number] },
+  "invalidations": [string],
+  "voiceSummary": string,
+  "annotations": {
+    "trendLine": { "x1": 0-1, "y1": 0-1, "x2": 0-1, "y2": 0-1, "label": string } | null,
+    "fvgs": [ { "x": 0-1, "y": 0-1, "w": 0-1, "h": 0-1, "type": "bullish"|"bearish", "label": string } ],
+    "orderBlocks": [ { "x": 0-1, "y": 0-1, "w": 0-1, "h": 0-1, "type": "bullish"|"bearish", "label": string } ],
+    "liquidityZones": [ { "y": 0-1, "label": string, "side": "buy"|"sell" } ],
+    "entryLine": 0-1,
+    "slLine": 0-1,
+    "tpLines": [0-1, 0-1, 0-1]
+  }
+}
+ANNOTATIONS: All coords are NORMALIZED 0..1 relative to the uploaded chart image (x from left, y from top). If no chart image was uploaded, still return best-effort normalized positions using recent price structure so the client can overlay a schematic. Keep 0-4 FVGs, 0-3 order blocks, 0-3 liquidity zones. "voiceSummary" is ONE crisp spoken sentence (<= 220 chars) that names the direction, entry, SL and TP naturally (e.g. say "gold" for XAUUSD) — this is read aloud by a voice assistant.
+"tp" MUST equal takeProfit[0]. "sl" MUST equal stopLoss. For swing mode set tp=null and takeProfit=[]. Only emit JSON.`;
+}
+
+async function callGateway(body: AnalyzeBody) {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("AI gateway not configured");
+
+  const content: Array<Record<string, unknown>> = [
+    { type: "text", text: buildPrompt(body) },
+  ];
+  if (body.imageBase64) {
+    const url = body.imageBase64.startsWith("data:")
+      ? body.imageBase64
+      : `data:image/png;base64,${body.imageBase64}`;
+    content.push({ type: "image_url", image_url: { url } });
+  }
+
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: "You are TradeNest EA, an elite sniper trading RAG analyst. Return strict JSON only." },
+        { role: "user", content },
+      ],
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    throw new Error(`Gateway ${resp.status}: ${t.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  const text: string = data?.choices?.[0]?.message?.content ?? "{}";
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    const m = text.match(/\{[\s\S]*\}/);
+    parsed = m ? JSON.parse(m[0]) : { error: "Could not parse model output" };
+  }
+  // Normalise: mirror stopLoss/takeProfit into sl/tp so the UI (which reads .tp and .sl) works
+  const tps = Array.isArray((parsed as any).takeProfit) ? (parsed as any).takeProfit : [];
+  if ((parsed as any).sl == null && (parsed as any).stopLoss != null) (parsed as any).sl = (parsed as any).stopLoss;
+  if ((parsed as any).tp == null && tps.length) (parsed as any).tp = tps[0];
+  if ((parsed as any).stopLoss == null && (parsed as any).sl != null) (parsed as any).stopLoss = (parsed as any).sl;
+  if (!(parsed as any).lotSize) (parsed as any).lotSize = 0.01;
+  if (!(parsed as any).orderType) (parsed as any).orderType = body.orderType || "instant";
+  return parsed;
+}
+
+export const Route = createFileRoute("/api/public/analyze-chart")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        try {
+          const body = (await request.json()) as AnalyzeBody;
+          const result = await callGateway(body);
+          return new Response(JSON.stringify(result), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ error: msg, fallback: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+      },
+      OPTIONS: async () =>
+        new Response(null, {
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "content-type",
+          },
+        }),
+    },
+  },
+});
