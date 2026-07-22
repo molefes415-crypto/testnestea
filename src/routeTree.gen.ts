@@ -10,18 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicMetaapiTradeRouteImport } from './routes/api/public/metaapi-trade'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicMetaapiTradeRoute = ApiPublicMetaapiTradeRouteImport.update({
-  id: '/api/public/metaapi-trade',
-  path: '/api/public/metaapi-trade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCheckSubscriptionRoute =
@@ -40,20 +34,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/metaapi-trade': typeof ApiPublicMetaapiTradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/metaapi-trade': typeof ApiPublicMetaapiTradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/metaapi-trade': typeof ApiPublicMetaapiTradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -61,26 +52,19 @@ export interface FileRouteTypes {
     | '/'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
-    | '/api/public/metaapi-trade'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/api/public/analyze-chart'
-    | '/api/public/check-subscription'
-    | '/api/public/metaapi-trade'
+  to: '/' | '/api/public/analyze-chart' | '/api/public/check-subscription'
   id:
     | '__root__'
     | '/'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
-    | '/api/public/metaapi-trade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
-  ApiPublicMetaapiTradeRoute: typeof ApiPublicMetaapiTradeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -90,13 +74,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/metaapi-trade': {
-      id: '/api/public/metaapi-trade'
-      path: '/api/public/metaapi-trade'
-      fullPath: '/api/public/metaapi-trade'
-      preLoaderRoute: typeof ApiPublicMetaapiTradeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/check-subscription': {
@@ -120,18 +97,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,
-  ApiPublicMetaapiTradeRoute: ApiPublicMetaapiTradeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
