@@ -1,0 +1,9 @@
+# TradeNest EA
+
+> Automated trading control suite for MetaTrader — manage robots, signals, and market analysis from one interface.
+
+TradeNest EA connects to MT4/MT5 accounts to run automated strategies, deliver trading signals, and analyze charts from a single web dashboard.
+
+## Pages
+
+- [Home](/): Overview of the TradeNest EA trading suite.
