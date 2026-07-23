@@ -51,16 +51,49 @@ function extractError(data: any, status: number) {
   return data?.message || data?.error || data?.Message || data?.ErrorMessage || `MTAPI ${status}`
 }
 
+function extractId(data: any): string | undefined {
+  if (typeof data === 'string') return data.trim().replace(/^"|"$/g, '')
+  return data?.id || data?.Id || data?._id || data?.token || data?.Token
+}
+
 async function connect(login: string, password: string, server: string) {
+  // MTAPI has two connect endpoints:
+  //   /Connect   → user, password, server (broker server name, e.g. "ICMarketsSC-Demo")
+  //   /ConnectEx → user, password, host, port  (raw MT5 gateway)
+  // Try /Connect first (server name). If the input looks like host:port, try /ConnectEx.
+  const looksHostPort = /:\d{2,5}$/.test(server)
+
+  if (!looksHostPort) {
+    const r = await mtGet('/Connect', {
+      user: login, password, server,
+      connectTimeoutSeconds: 30,
+    })
+    if (r.ok) {
+      const id = extractId(r.data)
+      if (id && id.length >= 8) return { ok: true as const, id }
+    }
+    // Fall through to ConnectEx if /Connect didn't yield a usable id
+    const errFromConnect = r.ok ? 'MTAPI did not return a session id.' : extractError(r.data, r.status)
+
+    // Some MTAPI deployments expose only /ConnectEx; retry with server split as host/port if possible
+    const rex = await mtGet('/ConnectEx', {
+      user: login, password, host: server, port: 443,
+      connectTimeoutSeconds: 30,
+    })
+    if (rex.ok) {
+      const id = extractId(rex.data)
+      if (id && id.length >= 8) return { ok: true as const, id }
+    }
+    return { ok: false as const, error: errFromConnect }
+  }
+
+  const [host, portStr] = server.split(':')
   const r = await mtGet('/ConnectEx', {
-    user: login, password, server,
+    user: login, password, host, port: Number(portStr),
     connectTimeoutSeconds: 30,
   })
   if (!r.ok) return { ok: false as const, error: extractError(r.data, r.status) }
-  // ConnectEx returns the session id as a bare string (sometimes JSON-quoted).
-  let id: string | undefined
-  if (typeof r.data === 'string') id = r.data.trim().replace(/^"|"$/g, '')
-  else id = r.data?.id || r.data?.Id || r.data?._id
+  const id = extractId(r.data)
   if (!id || id.length < 8) return { ok: false as const, error: 'MTAPI did not return a session id.' }
   return { ok: true as const, id }
 }
