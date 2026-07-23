@@ -4661,7 +4661,7 @@ const HomeView = ({
     // On successful subscription, we mark the device activated and hand back to onPaid()
     // so the login flow resumes and the app opens.
     const PAYPAL_CLIENT_ID = 'AUaBN6ANlGIQJkzv73KnTF3fz9mAkegOocwJujCREpcGIo8Sm5WJi5whDV4kR1RsHLRS4kj8Y9JtKDua';
-    const PAYPAL_PLAN_ID = 'P-83P59715GY913282LNJPCP2I';
+    const PAYPAL_PLAN_ID = 'P-09N26554H48057201NJQ7TII';
     const loadPayPalSdk = () => new Promise((resolve, reject) => {
       if (typeof window === 'undefined') return reject(new Error('no window'));
       if (window.paypal && window.paypal.Buttons) return resolve(window.paypal);
