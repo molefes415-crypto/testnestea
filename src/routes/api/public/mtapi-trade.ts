@@ -20,7 +20,7 @@ const OP_MAP: Record<string, number> = {
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'content-type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
 }
 
 const json = (status: number, body: unknown) =>
@@ -33,7 +33,9 @@ function mtHeaders(): Record<string, string> {
   return h
 }
 
-async function mtGet(path: string, params: Record<string, string | number | undefined>) {
+type MtParam = string | number | boolean | undefined
+
+async function mtGet(path: string, params: Record<string, MtParam>) {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
@@ -43,12 +45,14 @@ async function mtGet(path: string, params: Record<string, string | number | unde
   const txt = await resp.text()
   let data: any = txt
   try { data = JSON.parse(txt) } catch {}
-  return { ok: resp.ok, status: resp.status, data, raw: txt }
+  // MTAPI returns HTTP 201 for application-level exceptions, so only 2xx
+  // success codes other than 201 should be treated as a usable API result.
+  return { ok: resp.ok && resp.status !== 201, status: resp.status, data, raw: txt }
 }
 
 function extractError(data: any, status: number) {
   if (typeof data === 'string') return data || `MTAPI ${status}`
-  return data?.message || data?.error || data?.Message || data?.ErrorMessage || `MTAPI ${status}`
+  return data?.message || data?.error || data?.Message || data?.ErrorMessage || data?.exceptionMessage || data?.ExceptionMessage || `MTAPI ${status}`
 }
 
 function extractId(data: any): string | undefined {
@@ -56,46 +60,107 @@ function extractId(data: any): string | undefined {
   return data?.id || data?.Id || data?._id || data?.token || data?.Token
 }
 
-async function connect(login: string, password: string, server: string) {
-  // MTAPI has two connect endpoints:
-  //   /Connect   → user, password, server (broker server name, e.g. "ICMarketsSC-Demo")
-  //   /ConnectEx → user, password, host, port  (raw MT5 gateway)
-  // Try /Connect first (server name). If the input looks like host:port, try /ConnectEx.
-  const looksHostPort = /:\d{2,5}$/.test(server)
+function splitHostPort(value: string): { host: string, port: number } | null {
+  const trimmed = value.trim()
+  const ipv6 = trimmed.match(/^\[([^\]]+)\]:(\d{2,5})$/)
+  if (ipv6) return { host: ipv6[1], port: Number(ipv6[2]) }
+  const simple = trimmed.match(/^([^:]+):(\d{2,5})$/)
+  if (simple) return { host: simple[1], port: Number(simple[2]) }
+  return null
+}
 
-  if (!looksHostPort) {
-    const r = await mtGet('/Connect', {
-      user: login, password, server,
-      connectTimeoutSeconds: 30,
-    })
-    if (r.ok) {
-      const id = extractId(r.data)
-      if (id && id.length >= 8) return { ok: true as const, id }
-    }
-    // Fall through to ConnectEx if /Connect didn't yield a usable id
-    const errFromConnect = r.ok ? 'MTAPI did not return a session id.' : extractError(r.data, r.status)
+function brokerSearchTerms(server: string) {
+  const clean = server.trim()
+  const compact = clean.replace(/\s+/g, '')
+  const root = compact.split('-')[0]
+  return Array.from(new Set([compact, root].filter((term) => term.length >= 3))).slice(0, 3)
+}
 
-    // Some MTAPI deployments expose only /ConnectEx; retry with server split as host/port if possible
-    const rex = await mtGet('/ConnectEx', {
-      user: login, password, host: server, port: 443,
-      connectTimeoutSeconds: 30,
-    })
-    if (rex.ok) {
-      const id = extractId(rex.data)
-      if (id && id.length >= 8) return { ok: true as const, id }
-    }
-    return { ok: false as const, error: errFromConnect }
+function accessForServer(searchData: any, server: string): string[] {
+  if (!Array.isArray(searchData)) return []
+  const wanted = server.trim().toLowerCase()
+  for (const company of searchData) {
+    const results = Array.isArray(company?.results) ? company.results : []
+    const exact = results.find((result: any) => String(result?.name || '').toLowerCase() === wanted)
+    if (exact && Array.isArray(exact.access)) return exact.access.filter((entry: unknown) => typeof entry === 'string')
   }
+  for (const company of searchData) {
+    const results = Array.isArray(company?.results) ? company.results : []
+    const partial = results.find((result: any) => String(result?.name || '').toLowerCase().includes(wanted))
+    if (partial && Array.isArray(partial.access)) return partial.access.filter((entry: unknown) => typeof entry === 'string')
+  }
+  return []
+}
 
-  const [host, portStr] = server.split(':')
-  const r = await mtGet('/ConnectEx', {
-    user: login, password, host, port: Number(portStr),
-    connectTimeoutSeconds: 30,
+async function connectWithHost(login: string, password: string, host: string, port: number) {
+  const r = await mtGet('/Connect', {
+    user: login,
+    password,
+    host,
+    port,
+    connectTimeoutSeconds: 45,
+    downloadOrderHistory: false,
   })
   if (!r.ok) return { ok: false as const, error: extractError(r.data, r.status) }
   const id = extractId(r.data)
-  if (!id || id.length < 8) return { ok: false as const, error: 'MTAPI did not return a session id.' }
+  if (!id || id.length < 8) return { ok: false as const, error: extractError(r.data, r.status) || 'MTAPI did not return a session id.' }
   return { ok: true as const, id }
+}
+
+async function connect(login: string, password: string, server: string) {
+  // MTAPI has two connect endpoints:
+  //   /ConnectEx → user, password, server (broker server name, e.g. "ICMarketsSC-Demo")
+  //   /Connect   → user, password, host, port (raw MT5 gateway)
+  // Use /ConnectEx for broker server names, and /Connect for host:port or Search results.
+  const normalizedServer = server.trim()
+  const hostPort = splitHostPort(normalizedServer)
+  const errors: string[] = []
+
+  if (hostPort) {
+    const direct = await connectWithHost(login, password, hostPort.host, hostPort.port)
+    if (direct.ok) return direct
+    errors.push(direct.error)
+  } else {
+    const byServer = await mtGet('/ConnectEx', {
+      user: login,
+      password,
+      server: normalizedServer,
+      connectTimeoutSeconds: 45,
+      downloadOrderHistory: false,
+    })
+    if (byServer.ok) {
+      const id = extractId(byServer.data)
+      if (id && id.length >= 8) return { ok: true as const, id }
+      errors.push(extractError(byServer.data, byServer.status) || 'MTAPI did not return a session id.')
+    } else {
+      errors.push(extractError(byServer.data, byServer.status))
+    }
+  }
+
+  if (!hostPort) {
+    for (const term of brokerSearchTerms(normalizedServer)) {
+      const search = await mtGet('/Search', { company: term })
+      if (!search.ok) {
+        errors.push(extractError(search.data, search.status))
+        continue
+      }
+
+      const access = accessForServer(search.data, normalizedServer).slice(0, 8)
+      for (const entry of access) {
+        const gateway = splitHostPort(entry)
+        if (!gateway) continue
+        const viaGateway = await connectWithHost(login, password, gateway.host, gateway.port)
+        if (viaGateway.ok) return viaGateway
+        errors.push(viaGateway.error)
+      }
+    }
+  }
+
+  const uniqueErrors = Array.from(new Set(errors.filter(Boolean)))
+  return {
+    ok: false as const,
+    error: uniqueErrors[0] || 'MTAPI could not connect. Check the login, password, and exact broker server name.',
+  }
 }
 
 export const Route = createFileRoute('/api/public/mtapi-trade')({
