@@ -277,6 +277,20 @@
         try { return (localStorage.getItem(`mt_platform_for_${accountId}`) || 'mt5').toLowerCase(); } catch { return 'mt5'; }
       };
 
+      const isMTAPIException = (payload) => {
+        return payload && typeof payload === 'object' && !Array.isArray(payload) &&
+          (payload.message || payload.code) && !payload.ticket && !payload.result;
+      };
+
+      const formatMTAPIError = (payload, fallback) => {
+        if (payload && typeof payload === 'object') {
+          const msg = payload.message || payload.error || payload.description || fallback;
+          const code = payload.code ? ` (${payload.code})` : '';
+          return `${msg || fallback}${code}`;
+        }
+        return String(payload || fallback || 'MTAPI request failed');
+      };
+
       const mtFetch = async (platform, path, qs) => {
         const url = new URL(`${baseFor(platform)}${path}`);
         Object.entries(qs || {}).forEach(([k, v]) => {
@@ -284,8 +298,12 @@
         });
         const resp = await fetch(url.toString(), { method: 'GET' });
         const txt = await resp.text();
-        if (!resp.ok) throw new Error(txt || `MTAPI ${resp.status}`);
-        try { return JSON.parse(txt); } catch { return txt; }
+        let data = txt;
+        try { data = JSON.parse(txt); } catch {}
+        if (!resp.ok || resp.status === 201 || isMTAPIException(data)) {
+          throw new Error(formatMTAPIError(data, `MTAPI ${resp.status}`));
+        }
+        return data;
       };
 
       const wrap = async (fn) => {
@@ -313,23 +331,89 @@
       const status     = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/ConnectionStatus', { id: accountId }));
       const disconnect = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/Disconnect',    { id: accountId }));
 
-      // Direct MTAPI OrderSend — mirrors the reference EA POWER app exactly.
-      // No symbol resolution, no stop normalization — pass through as received.
-      const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
+      const asArray = (value) => Array.isArray(value) ? value : (value && typeof value === 'object' ? Object.values(value) : []);
+      const symbolName = (value) => {
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object') return value.symbol || value.name || value.Symbol || value.Name || '';
+        return '';
+      };
+      const baseSymbol = (value) => String(value || '').trim().replace(/[^A-Za-z0-9].*$/, '').replace(/m$/i, '').toUpperCase();
+      const resolveSymbol = async (plat, id, requested) => {
+        const raw = String(requested || '').trim();
+        if (!raw) throw new Error('No symbol was provided for the trade.');
+        const base = baseSymbol(raw);
+        const suffixes = ['', '.m', '.M', 'm', 'M', '.a', '.A', '+', '.pro', '.raw', '.ecn', '.micro', '_i', '.stp', '.c'];
+        const candidates = [raw, raw.toUpperCase(), raw.toLowerCase(), ...suffixes.map((suffix) => `${base}${suffix}`)];
+        const seen = new Set();
+        for (const candidate of candidates) {
+          if (!candidate || seen.has(candidate)) continue;
+          seen.add(candidate);
+          try {
+            await mtFetch(plat, '/GetQuote', { id, symbol: candidate, msNotOlder: 30000 });
+            return candidate;
+          } catch {}
+        }
+        try {
+          const symbols = asArray(await mtFetch(plat, '/Symbols', { id })).map(symbolName).filter(Boolean);
+          const exact = symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
+          if (exact) return exact;
+          const prefixed = symbols.find((s) => baseSymbol(s) === base || s.toUpperCase().startsWith(base));
+          if (prefixed) return prefixed;
+        } catch {}
+        return raw;
+      };
+
+      const extractTicket = (result) => {
+        const data = result && typeof result === 'object' && result.result ? result.result : result;
+        if (typeof data === 'string' || typeof data === 'number') return String(data).replace(/"/g, '').trim();
+        if (!data || typeof data !== 'object') return '';
+        const ticket = data.ticket || data.Ticket || data.orderId || data.OrderId || data.order || data.OrderTicket || data.requestId || data.RequestId || data.id;
+        return ticket ? String(ticket).trim() : '';
+      };
+
+      const sendOrderOnce = (plat, payload) => {
+        if (plat === 'mt4') {
+          return mtFetch(plat, '/OrderSend', {
+            ...payload,
+            placedType: 'Client',
+            slippage: 20,
+          });
+        }
+        const operation = String(payload.operation || '').toLowerCase().includes('sell') ? 1 : 0;
+        return mtFetch(plat, '/OrderSendSafe', {
+          ...payload,
+          operation,
+          placedType: 0,
+          slippage: 20,
+        });
+      };
+
+      // Direct MTAPI execution with platform-correct endpoint/parameters.
+      const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, platform, comment = 'BOT' }) => {
         try {
           const dir = String(direction || '').toUpperCase();
           const op = dir.includes('SELL') ? 'Sell' : 'Buy';
-          const plat = platformFor(id);
-          const result = await mtFetch(plat, '/OrderSend', {
-            id, symbol, operation: op,
+          const plat = String(platform || platformFor(id) || 'mt5').toLowerCase() === 'mt4' ? 'mt4' : 'mt5';
+          const resolvedSymbol = await resolveSymbol(plat, id, symbol);
+          const payload = {
+            id, symbol: resolvedSymbol, operation: op,
             volume: parseFloat(volume) || 0.01,
-            stoploss: stopLoss, takeprofit: takeProfit,
-            placedType: 'Manual',
+            stoploss: stopLoss || 0, takeprofit: takeProfit || 0,
             comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
-          });
-          const t = (result && typeof result === 'object') ? result : {};
-          const ticket = t.ticket || t.Ticket || t.orderId || t.OrderId || t.order || t.orderTicket || t.OrderTicket || t.id || (typeof result === 'string' ? result : 'MT');
-          return { ok: true, data: { ticket, symbol, raw: result }, error: '' };
+          };
+          let result;
+          try {
+            result = await sendOrderOnce(plat, payload);
+          } catch (firstError) {
+            if (/stop|sl|tp|invalid_s/i.test(firstError.message || '')) {
+              result = await sendOrderOnce(plat, { ...payload, stoploss: 0, takeprofit: 0 });
+            } else {
+              throw firstError;
+            }
+          }
+          const ticket = extractTicket(result);
+          if (!ticket) throw new Error('Broker did not return a trade ticket. Check the MT terminal journal for rejection details.');
+          return { ok: true, data: { ticket, symbol: resolvedSymbol, raw: result }, error: '' };
         } catch (e) {
           return { ok: false, data: null, error: e.message || String(e) };
         }
