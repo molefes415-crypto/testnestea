@@ -5,7 +5,10 @@ import { createFileRoute } from '@tanstack/react-router'
 // The session token returned by /ConnectEx is what we call `accountId` on the wire,
 // so the front-end interface stays identical to the previous MetaApi proxy.
 
-const MT_BASE = 'https://mt5.mtapi.io'
+const MT5_BASE = 'https://mt5.mtapi.io'
+const MT4_BASE = 'https://mt4.mtapi.io'
+type Platform = 'mt4' | 'mt5'
+const baseFor = (p?: string): string => (String(p || '').toLowerCase() === 'mt4' ? MT4_BASE : MT5_BASE)
 
 // MT5 EnOperationType (integer) — from the MTAPI swagger.
 const OP_MAP: Record<string, number> = {
