@@ -1421,8 +1421,8 @@
       const displayImage = botSettings.image || null;
       const handleRemove = (id) => { onRemoveEA(id); toast({ title:"Robot Removed", description:"Removed.", variant:"destructive" }); };
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={false} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
-      // Cyan neon palette per spec
-      const r = '#22d3ee';
+      // Theme-aware neon color (side rails, glow, button)
+      const r = themeColor?.accent || '#22d3ee';
       const aStyle = getActionStyle(buttonStyle, r);
       const mentorName = selectedEA?.mentorName || botSettings.name || 'SNIPER AI PRIMEX';
       const mentorLogo = selectedEA?.mentorLogo || displayImage;
