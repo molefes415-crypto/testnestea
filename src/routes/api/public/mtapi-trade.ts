@@ -5,7 +5,10 @@ import { createFileRoute } from '@tanstack/react-router'
 // The session token returned by /ConnectEx is what we call `accountId` on the wire,
 // so the front-end interface stays identical to the previous MetaApi proxy.
 
-const MT_BASE = 'https://mt5.mtapi.io'
+const MT5_BASE = 'https://mt5.mtapi.io'
+const MT4_BASE = 'https://mt4.mtapi.io'
+type Platform = 'mt4' | 'mt5'
+const baseFor = (p?: string): string => (String(p || '').toLowerCase() === 'mt4' ? MT4_BASE : MT5_BASE)
 
 // MT5 EnOperationType (integer) — from the MTAPI swagger.
 const OP_MAP: Record<string, number> = {
@@ -35,12 +38,12 @@ function mtHeaders(): Record<string, string> {
 
 type MtParam = string | number | boolean | undefined
 
-async function mtGet(path: string, params: Record<string, MtParam>) {
+async function mtGet(path: string, params: Record<string, MtParam>, platform?: Platform | string) {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
   }
-  const url = `${MT_BASE}${path}?${qs.toString()}`
+  const url = `${baseFor(platform)}${path}?${qs.toString()}`
   const resp = await fetch(url, { headers: mtHeaders() })
   const txt = await resp.text()
   let data: any = txt
@@ -92,7 +95,7 @@ function accessForServer(searchData: any, server: string): string[] {
   return []
 }
 
-async function connectWithHost(login: string, password: string, host: string, port: number) {
+async function connectWithHost(login: string, password: string, host: string, port: number, platform?: string) {
   const r = await mtGet('/Connect', {
     user: login,
     password,
@@ -100,24 +103,20 @@ async function connectWithHost(login: string, password: string, host: string, po
     port,
     connectTimeoutSeconds: 45,
     downloadOrderHistory: false,
-  })
+  }, platform)
   if (!r.ok) return { ok: false as const, error: extractError(r.data, r.status) }
   const id = extractId(r.data)
   if (!id || id.length < 8) return { ok: false as const, error: extractError(r.data, r.status) || 'MTAPI did not return a session id.' }
   return { ok: true as const, id }
 }
 
-async function connect(login: string, password: string, server: string) {
-  // MTAPI has two connect endpoints:
-  //   /ConnectEx → user, password, server (broker server name, e.g. "ICMarketsSC-Demo")
-  //   /Connect   → user, password, host, port (raw MT5 gateway)
-  // Use /ConnectEx for broker server names, and /Connect for host:port or Search results.
+async function connect(login: string, password: string, server: string, platform?: string) {
   const normalizedServer = server.trim()
   const hostPort = splitHostPort(normalizedServer)
   const errors: string[] = []
 
   if (hostPort) {
-    const direct = await connectWithHost(login, password, hostPort.host, hostPort.port)
+    const direct = await connectWithHost(login, password, hostPort.host, hostPort.port, platform)
     if (direct.ok) return direct
     errors.push(direct.error)
   } else {
@@ -127,7 +126,7 @@ async function connect(login: string, password: string, server: string) {
       server: normalizedServer,
       connectTimeoutSeconds: 45,
       downloadOrderHistory: false,
-    })
+    }, platform)
     if (byServer.ok) {
       const id = extractId(byServer.data)
       if (id && id.length >= 8) return { ok: true as const, id }
@@ -139,7 +138,7 @@ async function connect(login: string, password: string, server: string) {
 
   if (!hostPort) {
     for (const term of brokerSearchTerms(normalizedServer)) {
-      const search = await mtGet('/Search', { company: term })
+      const search = await mtGet('/Search', { company: term }, platform)
       if (!search.ok) {
         errors.push(extractError(search.data, search.status))
         continue
@@ -149,7 +148,7 @@ async function connect(login: string, password: string, server: string) {
       for (const entry of access) {
         const gateway = splitHostPort(entry)
         if (!gateway) continue
-        const viaGateway = await connectWithHost(login, password, gateway.host, gateway.port)
+        const viaGateway = await connectWithHost(login, password, gateway.host, gateway.port, platform)
         if (viaGateway.ok) return viaGateway
         errors.push(viaGateway.error)
       }
@@ -172,24 +171,23 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         let body: any
         try { body = await request.json() } catch { return json(400, { ok: false, error: 'Invalid JSON' }) }
 
-        const { action } = body || {}
+        const { action, platform } = body || {}
 
         if (action === 'provision') {
           const { login, password, server } = body
           if (!login || !password || !server) return json(400, { ok: false, error: 'login, password, server required' })
-          const r = await connect(String(login), String(password), String(server))
+          const r = await connect(String(login), String(password), String(server), platform)
           if (!r.ok) return json(502, { ok: false, error: r.error })
 
-          // Optionally fetch account summary so the client can display balance immediately.
-          const acc = await mtGet('/AccountSummary', { id: r.id })
-          return json(200, { ok: true, accountId: r.id, account: acc.ok ? acc.data : null })
+          const acc = await mtGet('/AccountSummary', { id: r.id }, platform)
+          return json(200, { ok: true, accountId: r.id, platform: (String(platform || '').toLowerCase() === 'mt4' ? 'mt4' : 'mt5'), account: acc.ok ? acc.data : null })
         }
 
         const { accountId } = body || {}
         if (!accountId) return json(400, { ok: false, error: 'accountId required' })
 
         if (action === 'account') {
-          const r = await mtGet('/AccountSummary', { id: accountId })
+          const r = await mtGet('/AccountSummary', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -197,7 +195,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'positions') {
-          const r = await mtGet('/OpenedOrders', { id: accountId })
+          const r = await mtGet('/OpenedOrders', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -205,7 +203,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'status') {
-          const r = await mtGet('/ConnectionStatus', { id: accountId })
+          const r = await mtGet('/ConnectionStatus', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -213,7 +211,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'disconnect') {
-          const r = await mtGet('/Disconnect', { id: accountId })
+          const r = await mtGet('/Disconnect', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, { ok: r.ok, data: r.data })
         }
 
@@ -238,7 +236,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
             placedType: 0,
           }
 
-          const r = await mtGet('/OrderSendSafe', params)
+          const r = await mtGet('/OrderSendSafe', params, platform)
           if (!r.ok) {
             return json(502, { ok: false, data: r.data, error: extractError(r.data, r.status) })
           }
