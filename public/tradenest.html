@@ -273,6 +273,11 @@
     window.MT5API = (function(){
       const ENDPOINT = '/api/public/mtapi-trade';
 
+      // Track platform (mt4/mt5) per accountId so account/trade calls hit the right host.
+      const platformFor = (accountId) => {
+        try { return (localStorage.getItem(`mt_platform_for_${accountId}`) || 'mt5').toLowerCase(); } catch { return 'mt5'; }
+      };
+
       const post = async (payload) => {
         try {
           const resp = await fetch(ENDPOINT, {
@@ -291,24 +296,26 @@
       };
 
       // Open (or reuse) an MTAPI session for the given broker creds and return
-      // { ok, data:{ id }, error }.
-      const connect = async ({ login, password, server }) => {
-        const r = await post({ action: 'provision', login, password, server });
+      // { ok, data:{ id, platform }, error }.
+      const connect = async ({ login, password, server, platform }) => {
+        const plat = (String(platform || 'mt5').toLowerCase() === 'mt4') ? 'mt4' : 'mt5';
+        const r = await post({ action: 'provision', login, password, server, platform: plat });
         if (!r.ok) return { ok: false, data: null, error: r.error };
         const id = r.data?.accountId || r.data?.id;
         if (!id) return { ok: false, data: null, error: 'MTAPI did not return a session id.' };
-        return { ok: true, data: { id, account: r.data?.account }, error: '' };
+        try { localStorage.setItem(`mt_platform_for_${id}`, plat); } catch {}
+        return { ok: true, data: { id, platform: plat, account: r.data?.account }, error: '' };
       };
 
-      const account    = (accountId) => post({ action: 'account',   accountId });
-      const positions  = (accountId) => post({ action: 'positions', accountId });
-      const status     = (accountId) => post({ action: 'status',    accountId });
-      const disconnect = (accountId) => post({ action: 'disconnect',accountId });
+      const account    = (accountId) => post({ action: 'account',   accountId, platform: platformFor(accountId) });
+      const positions  = (accountId) => post({ action: 'positions', accountId, platform: platformFor(accountId) });
+      const status     = (accountId) => post({ action: 'status',    accountId, platform: platformFor(accountId) });
+      const disconnect = (accountId) => post({ action: 'disconnect',accountId, platform: platformFor(accountId) });
 
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
         const r = await post({
           action: 'trade', accountId: id, symbol, direction, volume,
-          stopLoss, takeProfit, comment,
+          stopLoss, takeProfit, comment, platform: platformFor(id),
         });
         if (!r.ok) return r;
         const t = r.data || {};
