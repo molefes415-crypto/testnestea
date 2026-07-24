@@ -284,19 +284,8 @@
         });
         const resp = await fetch(url.toString(), { method: 'GET' });
         const txt = await resp.text();
-        let data = txt;
-        try { data = JSON.parse(txt); } catch {}
-        const errorText = (() => {
-          if (data && typeof data === 'object') {
-            return data.message || data.Message || data.error || data.Error || data.exceptionMessage || data.ExceptionMessage || data.description || data.Description || '';
-          }
-          return typeof data === 'string' ? data : '';
-        })();
-        // MTAPI returns HTTP 201 for some application-level exceptions, so treat it as failed.
-        if (!resp.ok || resp.status === 201 || /error|invalid|exception|failed|fail|denied|not found|off quotes|market closed/i.test(errorText)) {
-          throw new Error(errorText || txt || `MTAPI ${resp.status}`);
-        }
-        return data;
+        if (!resp.ok) throw new Error(txt || `MTAPI ${resp.status}`);
+        try { return JSON.parse(txt); } catch { return txt; }
       };
 
       const wrap = async (fn) => {
