@@ -284,8 +284,19 @@
         });
         const resp = await fetch(url.toString(), { method: 'GET' });
         const txt = await resp.text();
-        if (!resp.ok) throw new Error(txt || `MTAPI ${resp.status}`);
-        try { return JSON.parse(txt); } catch { return txt; }
+        let data = txt;
+        try { data = JSON.parse(txt); } catch {}
+        const errorText = (() => {
+          if (data && typeof data === 'object') {
+            return data.message || data.Message || data.error || data.Error || data.exceptionMessage || data.ExceptionMessage || data.description || data.Description || '';
+          }
+          return typeof data === 'string' ? data : '';
+        })();
+        // MTAPI returns HTTP 201 for some application-level exceptions, so treat it as failed.
+        if (!resp.ok || resp.status === 201 || /error|invalid|exception|failed|fail|denied|not found|off quotes|market closed/i.test(errorText)) {
+          throw new Error(errorText || txt || `MTAPI ${resp.status}`);
+        }
+        return data;
       };
 
       const wrap = async (fn) => {
@@ -320,12 +331,12 @@
           const op = dir.includes('SELL') ? 1 : 0;
           const result = await mtFetch(platformFor(id), '/OrderSendSafe', {
             id, symbol, operation: op,
-            volume, slippage: 20,
+            volume: parseFloat(volume) || 0.01, slippage: 20,
             stoploss: stopLoss, takeprofit: takeProfit,
             comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
           });
           const t = (result && typeof result === 'object') ? result : {};
-          const ticket = t.ticket || t.Ticket || t.orderId || t.OrderId || t.order || t.id || (typeof result === 'string' ? result : 'MT');
+          const ticket = t.ticket || t.Ticket || t.orderId || t.OrderId || t.order || t.orderTicket || t.OrderTicket || t.id || (typeof result === 'string' ? result : 'MT');
           return { ok: true, data: { ticket, raw: result }, error: '' };
         } catch (e) {
           return { ok: false, data: null, error: e.message || String(e) };
@@ -5628,30 +5639,45 @@ const HomeView = ({
         setTradeData(null);
       };
 
+      const resolveExecutionSymbol = (symbol, platform) => {
+        const raw = String(symbol || '').trim();
+        if (!raw) return raw;
+        // If the signal already includes a broker suffix/prefix, keep it exactly as received.
+        if (/^\./.test(raw) || /[._+-][a-z0-9]{1,8}$/i.test(raw) || /m$/i.test(raw)) return raw;
+        try {
+          const key = String(platform || 'MT5').toLowerCase() === 'mt4' ? 'mt_credentials_mt4' : 'mt_credentials_mt5';
+          const creds = JSON.parse(localStorage.getItem(key) || '{}');
+          return applyBrokerSuffix(raw, creds?.server || detectConnectedBroker());
+        } catch { return applyBrokerSuffix(raw, detectConnectedBroker()); }
+      };
+
       const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
+        const targetPlatform = String(platform || 'MT5').toUpperCase() === 'MT4' ? 'MT4' : 'MT5';
         const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
         const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
-        const accountId = platform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
+        const accountId = targetPlatform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
         const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || '') : '';
         if (accountId) {
           try {
-            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${platform}...` });
+            const tradeSymbol = resolveExecutionSymbol(symbol, targetPlatform);
+            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${tradeSymbol} via ${targetPlatform}...` });
             const actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
             await callMetaAPIFromApp('trade', {
-              accountId, login, actionType, symbol,
+              accountId, login, actionType, symbol: tradeSymbol,
               volume: parseFloat(lotSize) || 0.01,
               stopLoss: sl || undefined,
               takeProfit: tp || undefined,
-              platform,
+              platform: targetPlatform,
             });
-            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${platform}` });
+            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${tradeSymbol} on ${targetPlatform}` });
             return true;
           } catch (err) {
             toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
+            setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), step: `MTAPI rejected trade: ${err.message}` }]);
             return false;
           }
         } else {
-          toast({ title: 'No Account Linked', description: `Link a ${platform} account in MetaTrader tab.`, variant: 'destructive' });
+          toast({ title: 'No Account Linked', description: `Link a ${targetPlatform} account in MetaTrader tab.`, variant: 'destructive' });
           return false;
         }
       };
@@ -5785,8 +5811,8 @@ const HomeView = ({
             for (let i=1;i<=count;i++) {
               const steps = [`Trade ${i}/${count}: Accepting disclaimer...`,'Linking account...',`Selecting symbol ${sym}`,`${r.direction} ${sym==='XAUUSD'?'GOLD':sym}`,`TP ${r.tp}`,`SL ${r.sl}`];
               for (const s of steps) { pushStepLog(s); await new Promise(res=>setTimeout(res,200)); }
-              await executeTrade({symbol:sym,direction:r.direction,tp:r.tp,sl:r.sl,lotSize:r.lotSize,platform:r.platform||'MT5'});
-              setExecutionLogs(prev => [...prev, { id: Date.now()+i, time: new Date().toLocaleTimeString(), pair: sym, action: r.direction, tp: r.tp, sl: r.sl, lot: r.lotSize, order: '#' + (309304330 + prev.length) }]);
+              const placed = await executeTrade({symbol:sym,direction:r.direction,tp:r.tp,sl:r.sl,lotSize:r.lotSize,platform:r.platform||'MT5'});
+              if (placed) setExecutionLogs(prev => [...prev, { id: Date.now()+i, time: new Date().toLocaleTimeString(), pair: sym, action: r.direction, tp: r.tp, sl: r.sl, lot: r.lotSize, order: '#' + (309304330 + prev.length) }]);
               triggerIconPulse();
             }
           }}/>
