@@ -3187,6 +3187,7 @@ const HomeView = ({
             id: params.accountId, symbol: params.symbol,
             direction: params.actionType, volume: params.volume,
             stopLoss: params.stopLoss, takeProfit: params.takeProfit,
+            platform: params.platform || activeTab,
             comment: params.botName || 'BOT',
           });
           if (!r.ok) throw new Error(r.error || 'OrderSend failed.');
@@ -5689,6 +5690,7 @@ const HomeView = ({
             id: params.accountId, symbol: params.symbol,
             direction: params.actionType, volume: params.volume,
             stopLoss: params.stopLoss, takeProfit: params.takeProfit,
+            platform: params.platform,
             comment: botSettings?.name || 'BOT',
           });
           if (!r.ok) throw new Error(r.error || 'OrderSend failed.');
@@ -5723,7 +5725,7 @@ const HomeView = ({
         if (accountId) {
           try {
             toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
-            const actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
+            const actionType = String(direction || '').toUpperCase().includes('BUY') ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
             await callMetaAPIFromApp('trade', {
               accountId, actionType, symbol,
               volume: parseFloat(lotSize) || 0.01,
