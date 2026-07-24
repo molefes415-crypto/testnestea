@@ -316,11 +316,12 @@
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
         try {
           const dir = String(direction || '').toUpperCase();
-          const op = dir.includes('SELL') ? 'Sell' : 'Buy';
-          const result = await mtFetch(platformFor(id), '/OrderSend', {
+          // MTAPI /OrderSendSafe operation enum: 0=Buy, 1=Sell (market orders)
+          const op = dir.includes('SELL') ? 1 : 0;
+          const result = await mtFetch(platformFor(id), '/OrderSendSafe', {
             id, symbol, operation: op,
-            volume, stoploss: stopLoss, takeprofit: takeProfit,
-            placedType: 'Manual',
+            volume, slippage: 20,
+            stoploss: stopLoss, takeprofit: takeProfit,
             comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
           });
           const t = (result && typeof result === 'object') ? result : {};
