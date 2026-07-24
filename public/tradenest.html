@@ -1432,12 +1432,7 @@
           {/* EA Image Card — full neon glow border */}
           <div style={{position:'relative',borderRadius:28,overflow:'hidden',marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',border:`2px solid ${r}`,boxShadow:`0 0 0 1px ${r}, 0 0 18px ${r}, 0 0 36px ${r}cc, 0 0 60px ${r}88, inset 0 0 24px ${r}44`}}>
             {displayImage ? <img src={displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:140,color:r,opacity:0.2}}>EA</div>}
-            {/* Hamburger top-left */}
-            <button onClick={onOpenSettings} style={{position:'absolute',top:14,left:14,width:38,height:38,borderRadius:'50%',background:'rgba(20,32,38,0.75)',backdropFilter:'blur(10px)',border:`1px solid rgba(255,255,255,0.15)`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',zIndex:6}}>
-              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
-              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
-              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
-            </button>
+            {/* Hamburger removed per request */}
             {/* Mentor pill centered at top */}
             <div style={{position:'absolute',top:16,left:0,right:0,display:'flex',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
               <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(8,16,20,0.85)',backdropFilter:'blur(12px)',border:`1px solid rgba(255,255,255,0.08)`,borderRadius:40,padding:'5px 16px 5px 5px'}}>
