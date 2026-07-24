@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const CANONICAL = "https://testnestea.lovable.app/";
+const TITLE = "TradeNest EA Trading Dashboard";
+const DESCRIPTION =
+  "Control TradeNest EA robots, trading signals, chart scanning, and MetaTrader account execution from one dashboard.";
 
 const JSON_LD = {
   "@context": "https://schema.org",
@@ -17,7 +20,15 @@ const JSON_LD = {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
+      { title: TITLE },
+      { name: "description", content: DESCRIPTION },
       { property: "og:url", content: CANONICAL },
+      { property: "og:title", content: TITLE },
+      { property: "og:description", content: DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: TITLE },
+      { name: "twitter:description", content: DESCRIPTION },
     ],
     links: [{ rel: "canonical", href: CANONICAL }],
     scripts: [
