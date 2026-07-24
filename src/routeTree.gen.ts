@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicMtapiTradeRouteImport } from './routes/api/public/mtapi-trade'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
 
@@ -23,11 +22,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicMtapiTradeRoute = ApiPublicMtapiTradeRouteImport.update({
-  id: '/api/public/mtapi-trade',
-  path: '/api/public/mtapi-trade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCheckSubscriptionRoute =
@@ -47,14 +41,12 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/mtapi-trade': typeof ApiPublicMtapiTradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/mtapi-trade': typeof ApiPublicMtapiTradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,7 +54,6 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
-  '/api/public/mtapi-trade': typeof ApiPublicMtapiTradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,21 +62,18 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
-    | '/api/public/mtapi-trade'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/sitemap.xml'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
-    | '/api/public/mtapi-trade'
   id:
     | '__root__'
     | '/'
     | '/sitemap.xml'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
-    | '/api/public/mtapi-trade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -93,7 +81,6 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
-  ApiPublicMtapiTradeRoute: typeof ApiPublicMtapiTradeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -110,13 +97,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/mtapi-trade': {
-      id: '/api/public/mtapi-trade'
-      path: '/api/public/mtapi-trade'
-      fullPath: '/api/public/mtapi-trade'
-      preLoaderRoute: typeof ApiPublicMtapiTradeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/check-subscription': {
@@ -141,7 +121,6 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,
-  ApiPublicMtapiTradeRoute: ApiPublicMtapiTradeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

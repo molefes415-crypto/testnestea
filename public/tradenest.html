@@ -265,68 +265,76 @@
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
     // ==========================================================================
-    // ==========================================================================
-    // MT5 API — MTAPI (mtapi.io) via server proxy /api/public/mtapi-trade
-    // The session token from /ConnectEx stays server-side and is used as accountId.
+    // MTAPI (mtapi.io) — direct browser integration.
+    // Single base URL per platform. Connect → receive session token (id) →
+    // use that id for AccountSummary, OpenedOrders, OrderSend.
     // Every method returns { ok, data, error }.
     // ==========================================================================
     window.MT5API = (function(){
-      const ENDPOINT = '/api/public/mtapi-trade';
+      const baseFor = (plat) => (String(plat || 'mt5').toLowerCase() === 'mt4' ? 'https://mt4.mtapi.io' : 'https://mt5.mtapi.io');
 
-      // Track platform (mt4/mt5) per accountId so account/trade calls hit the right host.
       const platformFor = (accountId) => {
         try { return (localStorage.getItem(`mt_platform_for_${accountId}`) || 'mt5').toLowerCase(); } catch { return 'mt5'; }
       };
 
-      const post = async (payload) => {
+      const mtFetch = async (platform, path, qs) => {
+        const url = new URL(`${baseFor(platform)}${path}`);
+        Object.entries(qs || {}).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
+        });
+        const resp = await fetch(url.toString(), { method: 'GET' });
+        const txt = await resp.text();
+        if (!resp.ok) throw new Error(txt || `MTAPI ${resp.status}`);
+        try { return JSON.parse(txt); } catch { return txt; }
+      };
+
+      const wrap = async (fn) => {
+        try { return { ok: true, data: await fn(), error: '' }; }
+        catch (e) { return { ok: false, data: null, error: e.message || String(e) }; }
+      };
+
+      const connect = async ({ login, password, server, platform }) => {
+        const plat = String(platform || 'mt5').toLowerCase() === 'mt4' ? 'mt4' : 'mt5';
         try {
-          const resp = await fetch(ENDPOINT, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok || data.ok === false) {
-            return { ok: false, data: data?.data ?? data, error: data?.error || `MTAPI ${resp.status}` };
-          }
-          return { ok: true, data: data.data ?? data, error: '' };
+          const token = await mtFetch(plat, '/ConnectEx', { user: login, password, server });
+          const raw = typeof token === 'string' ? token.replace(/"/g, '').trim() : (token && (token.id || token._id || ''));
+          const id = String(raw || '').trim();
+          if (!id) return { ok: false, data: null, error: 'Broker did not return a session token. Check login, password and server name.' };
+          if (/error|invalid|fail|denied/i.test(id) && id.length < 80) return { ok: false, data: null, error: id };
+          try { localStorage.setItem(`mt_platform_for_${id}`, plat); } catch {}
+          return { ok: true, data: { id, platform: plat }, error: '' };
         } catch (e) {
           return { ok: false, data: null, error: e.message || String(e) };
         }
       };
 
-      // Open (or reuse) an MTAPI session for the given broker creds and return
-      // { ok, data:{ id, platform }, error }.
-      const connect = async ({ login, password, server, platform }) => {
-        const plat = (String(platform || 'mt5').toLowerCase() === 'mt4') ? 'mt4' : 'mt5';
-        const r = await post({ action: 'provision', login, password, server, platform: plat });
-        if (!r.ok) return { ok: false, data: null, error: r.error };
-        const id = r.data?.accountId || r.data?.id;
-        if (!id) return { ok: false, data: null, error: 'MTAPI did not return a session id.' };
-        try { localStorage.setItem(`mt_platform_for_${id}`, plat); } catch {}
-        return { ok: true, data: { id, platform: plat, account: r.data?.account }, error: '' };
-      };
-
-      const account    = (accountId) => post({ action: 'account',   accountId, platform: platformFor(accountId) });
-      const positions  = (accountId) => post({ action: 'positions', accountId, platform: platformFor(accountId) });
-      const status     = (accountId) => post({ action: 'status',    accountId, platform: platformFor(accountId) });
-      const disconnect = (accountId) => post({ action: 'disconnect',accountId, platform: platformFor(accountId) });
+      const account    = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/AccountSummary', { id: accountId }));
+      const positions  = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/OpenedOrders',   { id: accountId }));
+      const status     = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/ConnectionStatus', { id: accountId }));
+      const disconnect = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/Disconnect',    { id: accountId }));
 
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
-        const r = await post({
-          action: 'trade', accountId: id, symbol, direction, volume,
-          stopLoss, takeProfit, comment, platform: platformFor(id),
-        });
-        if (!r.ok) return r;
-        const t = r.data || {};
-        const ticket = t.ticket || t.orderId || t.positionId || 'MT';
-        return { ok: true, data: { ticket, raw: t }, error: '' };
+        try {
+          const dir = String(direction || '').toUpperCase();
+          const op = dir.includes('SELL') ? 'Sell' : 'Buy';
+          const result = await mtFetch(platformFor(id), '/OrderSend', {
+            id, symbol, operation: op,
+            volume, stoploss: stopLoss, takeprofit: takeProfit,
+            placedType: 'Manual',
+            comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
+          });
+          const t = (result && typeof result === 'object') ? result : {};
+          const ticket = t.ticket || t.Ticket || t.orderId || t.OrderId || t.order || t.id || (typeof result === 'string' ? result : 'MT');
+          return { ok: true, data: { ticket, raw: result }, error: '' };
+        } catch (e) {
+          return { ok: false, data: null, error: e.message || String(e) };
+        }
       };
 
       const openOrders = (accountId) => positions(accountId);
 
       return {
-        BASE: ENDPOINT, PROVIDER: 'mtapi',
+        BASE: 'https://mt5.mtapi.io', PROVIDER: 'mtapi',
         connect, disconnect, account, openOrders, positions, status, orderSend,
       };
     })();
@@ -5621,9 +5629,10 @@ const HomeView = ({
       };
 
       const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
-        platform = 'MT5';
-        const accountId = localStorage.getItem('mt_accountId_mt5') || '';
-        const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || localStorage.getItem('mt_login_mt5') || '') : '';
+        const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
+        const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
+        const accountId = platform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
+        const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || '') : '';
         if (accountId) {
           try {
             toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${platform}...` });
