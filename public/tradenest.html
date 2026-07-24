@@ -106,6 +106,17 @@
     }
     @keyframes iconAlert { 0%,100% { box-shadow: 0 0 18px #fff, 0 0 38px #00E5FF, 0 0 60px #FF1F8F; transform: scale(1); } 50% { box-shadow: 0 0 28px #fff, 0 0 60px #00E5FF, 0 0 90px #FF1F8F; transform: scale(1.08); } }
     .icon-alert { animation: iconAlert 0.9s ease-in-out infinite !important; }
+    @keyframes tnFloatRail { 0% { --tn-ang: 0deg; } 100% { --tn-ang: 360deg; } }
+    @property --tn-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+    .tn-floating-card { position: relative; }
+    .tn-floating-card::before {
+      content:''; position:absolute; inset:-2px; border-radius:inherit; padding:2px; pointer-events:none;
+      background: conic-gradient(from var(--tn-ang), transparent 0deg, var(--tn-rail,#22d3ee) 40deg, transparent 90deg, transparent 180deg, var(--tn-rail,#22d3ee) 220deg, transparent 270deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      animation: tnFloatRail 4s linear infinite;
+      filter: drop-shadow(0 0 6px var(--tn-rail,#22d3ee)) drop-shadow(0 0 14px var(--tn-rail,#22d3ee));
+    }
 
     @keyframes splashTextIn { 0% { opacity: 0; transform: translateY(8px); letter-spacing: 10px; } 100% { opacity: 1; transform: translateY(0); letter-spacing: 8px; } }
     @keyframes splashBarFill { 0% { width: 0%; } 100% { width: 100%; } }
