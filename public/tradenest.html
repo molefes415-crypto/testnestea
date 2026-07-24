@@ -5250,51 +5250,75 @@ const HomeView = ({
                 }
                 if (d?.status === 'expired' || d?.expired === true) expired = true;
                 if (expired) return { ...ea, expired: true, expiredMessage: 'Key expired — contact mentor', expires_at: d?.expires_at || ea.expires_at };
-                if (d?.status === 'valid' && d?.success) {
-                  return {
-                    ...ea,
-                    name: d.bot?.name || d.ea_name || d.robot_name || ea.name,
-                    image: d.bot?.image || d.ea_logo || d.robot_logo || d.robot_image || ea.image,
-                    mentorName: d.mentor?.display_name || ea.mentorName,
-                    mentorLogo: d.mentor?.profile_pic || ea.mentorLogo,
-                    symbols: Array.isArray(d.symbols) ? d.symbols : ea.symbols,
-                    expires_at: d.expires_at || ea.expires_at,
-                    expired: false,
-                  };
-                }
-                return ea;
-              } catch(_) { return ea; }
-            }));
-            if (cancelled) return;
-            const changed = JSON.stringify(updated) !== JSON.stringify(saved);
-            if (changed) {
-              setEas(updated);
-              const cur = selectedEA;
-              const primary = (cur && updated.find(x => x.licenseKey === cur.licenseKey)) || updated[0];
-              if (cur) {
-                const match = updated.find(x => x.licenseKey === cur.licenseKey);
-                if (match) setSelectedEA(match);
-              }
-              // Propagate refreshed bot logo/name/symbols to home screen botSettings
-              try {
-                if (primary && !primary.expired) {
-                  const prev = JSON.parse(localStorage.getItem('botSettings') || '{}') || {};
-                  const nextName = primary.name || prev.name || '';
-                  const nextImg  = primary.image || prev.image || null;
-                  if (nextName !== prev.name || nextImg !== prev.image || nextImg !== prev.iconImage) {
-                    const merged = { ...prev, name: nextName, image: nextImg, iconImage: nextImg };
-                    localStorage.setItem('botSettings', JSON.stringify(merged));
-                    setBotSettings(merged);
-                  }
-                }
-              } catch(_) {}
-              // Notify expired licences
-              const nowExpired = updated.filter(x => x.expired);
-              if (nowExpired.length) {
-                try { toast({ title:'Licence expired', description:`${nowExpired.map(x=>x.name).join(', ')} — contact mentor.`, variant:'destructive' }); } catch(_){}
-              }
-            }
-          } catch(_) {}
+                 if (d?.status === 'valid' && d?.success) {
+                   // Cache-bust image URLs so an updated logo at the same URL is refetched
+                   const bust = (u) => {
+                     if (!u || typeof u !== 'string') return u;
+                     if (u.startsWith('data:')) return u;
+                     const sep = u.includes('?') ? '&' : '?';
+                     // Strip any existing _v param and append a fresh one keyed to server-provided
+                     // updated_at when present so browser caches invalidate on portal changes.
+                     const stamp = d.bot?.updated_at || d.updated_at || d.mentor?.updated_at || Date.now();
+                     const stripped = u.replace(/([?&])_v=[^&]*(&|$)/, (m,a,b)=>b?a:'').replace(/[?&]$/,'');
+                     return stripped + (stripped.includes('?') ? '&' : '?') + '_v=' + encodeURIComponent(stamp);
+                   };
+                   return {
+                     ...ea,
+                     name: d.bot?.name || d.ea_name || d.robot_name || ea.name,
+                     image: bust(d.bot?.image || d.ea_logo || d.robot_logo || d.robot_image) || ea.image,
+                     mentorName: d.mentor?.display_name || ea.mentorName,
+                     mentorLogo: bust(d.mentor?.profile_pic) || ea.mentorLogo,
+                     symbols: Array.isArray(d.symbols) ? d.symbols : ea.symbols,
+                     expires_at: d.expires_at || ea.expires_at,
+                     expired: false,
+                   };
+                 }
+                 return ea;
+               } catch(_) { return ea; }
+             }));
+             if (cancelled) return;
+             const changed = JSON.stringify(updated) !== JSON.stringify(saved);
+             if (changed) setEas(updated);
+             const cur = selectedEA;
+             const primary = (cur && updated.find(x => x.licenseKey === cur.licenseKey)) || updated[0];
+             if (cur) {
+               const match = updated.find(x => x.licenseKey === cur.licenseKey);
+               if (match && changed) setSelectedEA(match);
+             }
+             // Always propagate refreshed bot logo/name to home screen botSettings so an
+             // updated logo/name from the portal appears after a refresh/reopen.
+             try {
+               if (primary && !primary.expired) {
+                 const prev = JSON.parse(localStorage.getItem('botSettings') || '{}') || {};
+                 const nextName = primary.name || prev.name || '';
+                 const nextImg  = primary.image || prev.image || null;
+                 if (nextName !== prev.name || nextImg !== prev.image || nextImg !== prev.iconImage) {
+                   const merged = { ...prev, name: nextName, image: nextImg, iconImage: nextImg };
+                   localStorage.setItem('botSettings', JSON.stringify(merged));
+                   setBotSettings(merged);
+                 }
+               }
+             } catch(_) {}
+             // Prune allowedSymbols that are no longer in any license and add new ones as defaults
+             try {
+               const allLicenseSyms = new Set();
+               updated.forEach(e => { (e.symbols || []).forEach(s => allLicenseSyms.add(s)); });
+               if (allLicenseSyms.size) {
+                 const prevAllowed = JSON.parse(localStorage.getItem('allowedSymbols') || '{}') || {};
+                 const nextAllowed = {};
+                 Object.keys(prevAllowed).forEach(k => { if (allLicenseSyms.has(k)) nextAllowed[k] = prevAllowed[k]; });
+                 if (JSON.stringify(nextAllowed) !== JSON.stringify(prevAllowed)) {
+                   localStorage.setItem('allowedSymbols', JSON.stringify(nextAllowed));
+                   setAllowedSymbols(nextAllowed);
+                 }
+               }
+             } catch(_) {}
+             // Notify expired licences
+             const nowExpired = updated.filter(x => x.expired);
+             if (changed && nowExpired.length) {
+               try { toast({ title:'Licence expired', description:`${nowExpired.map(x=>x.name).join(', ')} — contact mentor.`, variant:'destructive' }); } catch(_){}
+             }
+           } catch(_) {}
         };
         syncAll();
         // Refresh on app resume (tab focus, iOS PWA reopen) so a new logo/robot image or symbols
