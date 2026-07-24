@@ -1417,78 +1417,82 @@
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
-      const displayName = botSettings.name || "Specter X pro+";
+      const displayName = botSettings.name || "SNIPER AI PRIMEX";
       const displayImage = botSettings.image || null;
       const handleRemove = (id) => { onRemoveEA(id); toast({ title:"Robot Removed", description:"Removed.", variant:"destructive" }); };
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={false} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
-      const r = themeColor?.accent || NEON_RED;
+      // Cyan neon palette per spec
+      const r = '#22d3ee';
       const aStyle = getActionStyle(buttonStyle, r);
-      const mentorName = selectedEA?.mentorName || botSettings.name || 'TRADENEST EA';
+      const mentorName = selectedEA?.mentorName || botSettings.name || 'SNIPER AI PRIMEX';
       const mentorLogo = selectedEA?.mentorLogo || displayImage;
       return (
-        <div style={{background:'#000',padding:'16px 18px 24px',position:'relative',overflow:'hidden'}}>
-          {displayImage && <img src={displayImage} alt="" style={{position:'fixed',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.28,zIndex:0,pointerEvents:'none'}}/>}
-          {displayImage && <div style={{position:'fixed',inset:0,background:'linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.65) 60%,rgba(0,0,0,0.92) 100%)',zIndex:1,pointerEvents:'none'}}/>}
+        <div style={{background:'#0b1418',padding:'14px 14px 20px',position:'relative',overflow:'hidden',minHeight:'100vh'}}>
           <div style={{position:'relative',zIndex:10}}>
-          {/* EA Image Card */}
-          <div style={{position:'relative',borderRadius:32,overflow:'hidden',marginBottom:18,aspectRatio:'4/5',background:'#0a0000',border:`1.5px solid ${r}55`,boxShadow:`0 0 0 1px ${r}33, 0 0 28px ${r}88, 0 0 60px ${r}44`}}>
+          {/* EA Image Card — vertical neon side rails */}
+          <div style={{position:'relative',borderRadius:28,overflow:'hidden',marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',boxShadow:`0 0 0 1px ${r}44, 0 0 30px ${r}55`}}>
             {displayImage ? <img src={displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:140,color:r,opacity:0.2}}>EA</div>}
-            {/* Corner accent lines */}
-            <div style={{position:'absolute',top:0,left:0,width:40,height:40,borderTop:`2.5px solid ${r}`,borderLeft:`2.5px solid ${r}`,borderRadius:'32px 0 0 0',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',top:0,right:0,width:40,height:40,borderTop:`2.5px solid ${r}`,borderRight:`2.5px solid ${r}`,borderRadius:'0 32px 0 0',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',bottom:0,left:0,width:40,height:40,borderBottom:`2.5px solid ${r}`,borderLeft:`2.5px solid ${r}`,borderRadius:'0 0 0 32px',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',bottom:0,right:0,width:40,height:40,borderBottom:`2.5px solid ${r}`,borderRight:`2.5px solid ${r}`,borderRadius:'0 0 32px 0',pointerEvents:'none'}}/>
-            {/* Mentor pill centered at top of card */}
-            <div style={{position:'absolute',top:14,left:0,right:0,display:'flex',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(10px)',border:`1px solid ${r}88`,boxShadow:`0 0 14px ${r}88`,borderRadius:30,padding:'6px 14px 6px 6px'}}>
-                <div style={{width:28,height:28,borderRadius:'50%',overflow:'hidden',background:'#1a0000',border:`1.5px solid ${r}`,flexShrink:0}}>
-                  {mentorLogo ? <img src={mentorLogo} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:r}}>M</div>}
+            {/* Vertical neon side rails */}
+            <div style={{position:'absolute',top:24,bottom:24,left:6,width:3,borderRadius:3,background:`linear-gradient(180deg, transparent, ${r} 15%, ${r} 85%, transparent)`,boxShadow:`0 0 12px ${r}, 0 0 24px ${r}aa`,pointerEvents:'none'}}/>
+            <div style={{position:'absolute',top:24,bottom:24,right:6,width:3,borderRadius:3,background:`linear-gradient(180deg, transparent, ${r} 15%, ${r} 85%, transparent)`,boxShadow:`0 0 12px ${r}, 0 0 24px ${r}aa`,pointerEvents:'none'}}/>
+            {/* Hamburger top-left */}
+            <button onClick={onOpenSettings} style={{position:'absolute',top:14,left:14,width:38,height:38,borderRadius:'50%',background:'rgba(20,32,38,0.75)',backdropFilter:'blur(10px)',border:`1px solid rgba(255,255,255,0.15)`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',zIndex:6}}>
+              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
+              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
+              <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
+            </button>
+            {/* Mentor pill centered at top */}
+            <div style={{position:'absolute',top:16,left:0,right:0,display:'flex',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(8,16,20,0.85)',backdropFilter:'blur(12px)',border:`1px solid rgba(255,255,255,0.08)`,borderRadius:40,padding:'5px 16px 5px 5px'}}>
+                <div style={{width:34,height:34,borderRadius:'50%',overflow:'hidden',background:'#132228',flexShrink:0}}>
+                  {mentorLogo ? <img src={mentorLogo} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:r}}>M</div>}
                 </div>
-                <div>
-                  <p style={{color:'white',fontSize:11,fontWeight:700,letterSpacing:0.5}}>{mentorName}</p>
-                  <p style={{color:r,fontSize:9,fontWeight:600,letterSpacing:2,lineHeight:1}}>TRADING</p>
+                <div style={{paddingRight:4}}>
+                  <p style={{color:'white',fontSize:12,fontWeight:800,letterSpacing:0.6,lineHeight:1.1,margin:0}}>{mentorName.toUpperCase()}</p>
+                  <p style={{color:r,fontSize:9,fontWeight:700,letterSpacing:3,lineHeight:1.2,margin:0}}>TRADING</p>
                 </div>
               </div>
             </div>
-            <FadeOverlay/>
-            <div style={{position:'absolute',bottom:30,left:0,right:0,textAlign:'center'}}>
-              <h1 style={{color:'white',fontWeight:800,fontSize:34,textShadow:'0 4px 20px rgba(0,0,0,0.9)'}}>{displayName}</h1>
+            {/* Bottom gradient + title */}
+            <div style={{position:'absolute',left:0,right:0,bottom:0,height:'42%',background:'linear-gradient(180deg, transparent, rgba(6,12,15,0.85) 55%, rgba(6,12,15,0.95))',pointerEvents:'none'}}/>
+            <div style={{position:'absolute',bottom:36,left:0,right:0,textAlign:'center',padding:'0 20px'}}>
+              <h1 style={{color:'white',fontWeight:900,fontSize:38,lineHeight:1.05,letterSpacing:0.5,textShadow:'0 4px 24px rgba(0,0,0,0.9)',margin:0}}>{displayName.toUpperCase()}</h1>
             </div>
           </div>
-          {/* Button frame with neon border */}
-          <div style={{position:'relative',borderRadius:28,padding:'18px 10px',marginBottom:18,background:'rgba(10,0,0,0.7)',border:`1.5px solid ${r}55`,boxShadow:`0 0 0 1px ${r}22, 0 0 20px ${r}55`}}>
-            <div style={{position:'absolute',top:0,left:0,width:28,height:28,borderTop:`2px solid ${r}`,borderLeft:`2px solid ${r}`,borderRadius:'28px 0 0 0',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',top:0,right:0,width:28,height:28,borderTop:`2px solid ${r}`,borderRight:`2px solid ${r}`,borderRadius:'0 28px 0 0',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',bottom:0,left:0,width:28,height:28,borderBottom:`2px solid ${r}`,borderLeft:`2px solid ${r}`,borderRadius:'0 0 0 28px',pointerEvents:'none'}}/>
-            <div style={{position:'absolute',bottom:0,right:0,width:28,height:28,borderBottom:`2px solid ${r}`,borderRight:`2px solid ${r}`,borderRadius:'0 0 28px 0',pointerEvents:'none'}}/>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
-              <button onClick={()=>selectedEA&&setQuotesEA(selectedEA)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,color:'white'}}>
-                <div style={{width:44,height:44,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:r,...aStyle}}><ChartIcon/></div>
-                <span style={{fontSize:11,fontWeight:700,letterSpacing:2}}>QUOTES</span>
+          {/* Glassy button bar */}
+          <div style={{position:'relative',borderRadius:26,padding:'16px 14px 18px',marginBottom:18,background:`linear-gradient(180deg, rgba(34,211,238,0.22), rgba(34,211,238,0.08))`,backdropFilter:'blur(14px)',border:`1px solid ${r}55`,boxShadow:`0 0 0 1px ${r}22, 0 8px 30px rgba(34,211,238,0.18)`,overflow:'hidden'}}>
+            {/* subtle bubble decorations */}
+            <div style={{position:'absolute',top:8,right:60,width:6,height:6,borderRadius:'50%',background:'rgba(255,255,255,0.35)'}}/>
+            <div style={{position:'absolute',top:22,right:38,width:4,height:4,borderRadius:'50%',background:'rgba(255,255,255,0.25)'}}/>
+            <div style={{position:'absolute',top:36,right:80,width:3,height:3,borderRadius:'50%',background:'rgba(255,255,255,0.2)'}}/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center',position:'relative'}}>
+              <button onClick={()=>selectedEA&&setQuotesEA(selectedEA)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:8,color:'white'}}>
+                <div style={{width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',background:'rgba(255,255,255,0.10)',border:'1px solid rgba(255,255,255,0.15)'}}><ChartIcon/></div>
+                <span style={{fontSize:12,fontWeight:700,letterSpacing:2,color:'rgba(255,255,255,0.9)'}}>QUOTES</span>
               </button>
-              <button onClick={()=>selectedEA&&onStartTrading(selectedEA)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,color:'white'}}>
-                <div style={{width:62,height:62,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:r,...(buttonStyle?aStyle:{background:`${r}33`,boxShadow:`0 0 24px ${r}99`})}}>{showDraggableIcon?<SquareIcon size={26} color="#FFFFFF"/>:<PlayIcon size={26} color="#FFFFFF"/>}</div>
-                <span style={{fontSize:11,fontWeight:700,letterSpacing:2}}>{showDraggableIcon?'STOP':'START'}</span>
+              <button onClick={()=>selectedEA&&onStartTrading(selectedEA)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:8,color:'white'}}>
+                <div style={{width:62,height:62,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',background:`radial-gradient(circle at 30% 30%, #4be4f6, ${r} 60%, #0891b2)`,boxShadow:`0 0 24px ${r}cc, 0 0 44px ${r}66, inset 0 2px 8px rgba(255,255,255,0.3)`}}>{showDraggableIcon?<SquareIcon size={22} color="#FFFFFF"/>:<PlayIcon size={22} color="#FFFFFF"/>}</div>
+                <span style={{fontSize:12,fontWeight:700,letterSpacing:2,color:'white'}}>{showDraggableIcon?'STOP':'START'}</span>
               </button>
-              <button onClick={()=>selectedEA&&handleRemove(selectedEA.id)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,color:'white'}}>
-                <div style={{width:44,height:44,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:r,...aStyle}}><TrashIcon/></div>
-                <span style={{fontSize:11,fontWeight:700,letterSpacing:2}}>REMOVE</span>
+              <button onClick={()=>selectedEA&&handleRemove(selectedEA.id)} style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:8,color:'white'}}>
+                <div style={{width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',background:'rgba(255,255,255,0.10)',border:'1px solid rgba(255,255,255,0.15)'}}><TrashIcon/></div>
+                <span style={{fontSize:12,fontWeight:700,letterSpacing:2,color:'rgba(255,255,255,0.9)'}}>REMOVE</span>
               </button>
             </div>
           </div>
-          <p style={{textAlign:'center',color:'rgba(255,255,255,0.55)',fontSize:14,marginBottom:18}}>Powered by <span style={{color:r,fontWeight:600}}>TRADENEST EA</span></p><ChartScannerBlock onClick={onOpenChartAnalyzer}/>
-          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <ChartScannerBlock onClick={onOpenChartAnalyzer}/>
+          <div style={{display:'flex',flexDirection:'column',gap:12,marginTop:14}}>
             {eas.map(ea=>(
-              <div key={ea.id} onClick={()=>setSelectedEA(ea)} style={{borderRadius:60,padding:'14px 22px',cursor:'pointer',boxShadow:neonGlow(r),background:`${r}0a`,display:'flex',alignItems:'center',gap:14}}>
-                <div style={{width:44,height:44,borderRadius:'50%',overflow:'hidden',background:'#1a0000',boxShadow:`0 0 0 1px ${r}`}}>
-                  {displayImage?<img src={displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🤖</div>}
+              <div key={ea.id} onClick={()=>setSelectedEA(ea)} style={{borderRadius:60,padding:'12px 20px',cursor:'pointer',background:'rgba(34,211,238,0.06)',border:`1px solid ${r}44`,display:'flex',alignItems:'center',gap:14}}>
+                <div style={{width:40,height:40,borderRadius:'50%',overflow:'hidden',background:'#0d1a1f',boxShadow:`0 0 0 1px ${r}88`}}>
+                  {(ea.mentorLogo||displayImage)?<img src={ea.mentorLogo||displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🤖</div>}
                 </div>
-                <p style={{color:'white',fontWeight:700,fontSize:15,flex:1}}>{botSettings.name||ea.name}</p>
+                <p style={{color:'white',fontWeight:700,fontSize:14,flex:1,margin:0}}>{ea.mentorName||ea.name}</p>
               </div>
             ))}
-            <div onClick={()=>setIsLicenseModalOpen(true)} style={{borderRadius:60,padding:'14px 22px',cursor:'pointer',boxShadow:neonGlow(r),background:`${r}0a`,display:'flex',alignItems:'center',gap:14}}>
-              <div style={{width:32,height:32,borderRadius:'50%',background:r,display:'flex',alignItems:'center',justifyContent:'center',color:'white'}}><PlusIcon/></div>
-              <p style={{color:'white',fontWeight:700,fontSize:14,letterSpacing:1}}>CONNECT NEW ROBOT</p>
+            <div onClick={()=>setIsLicenseModalOpen(true)} style={{borderRadius:60,padding:'12px 20px',cursor:'pointer',background:'rgba(34,211,238,0.08)',border:`1px solid ${r}66`,display:'flex',alignItems:'center',gap:14}}>
+              <div style={{width:32,height:32,borderRadius:'50%',background:r,display:'flex',alignItems:'center',justifyContent:'center',color:'#0b1418'}}><PlusIcon/></div>
+              <p style={{color:'white',fontWeight:700,fontSize:14,letterSpacing:1,margin:0}}>CONNECT NEW ROBOT</p>
             </div>
           </div>
           <LicenseKeyModal isOpen={isLicenseModalOpen} onClose={()=>setIsLicenseModalOpen(false)} onSuccess={onAddEA} tc={themeColor}/>
