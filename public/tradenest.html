@@ -5231,6 +5231,17 @@ const HomeView = ({
       // On every app boot (and every 5 min) re-fetch each saved EA's licence so mentor
       // name, EA logo, allowed symbols, and expires_at stay in sync with the portal
       // without the user re-entering the key. Expired licences flip the EA to expired=true.
+      const licenseSymbolsFrom = (d) => {
+        const raw = Array.isArray(d?.symbols) ? d.symbols : (Array.isArray(d?.bot?.symbols) ? d.bot.symbols : []);
+        return raw.map(s => String(s || '').trim()).filter(Boolean);
+      };
+      const freshAssetUrl = (u, stamp = Date.now()) => {
+        if (!u || typeof u !== 'string') return '';
+        if (u.startsWith('data:')) return u;
+        const stripped = u.replace(/([?&])_v=[^&]*(&|$)/, (m,a,b)=>b?a:'').replace(/[?&]$/,'');
+        return stripped + (stripped.includes('?') ? '&' : '?') + '_v=' + encodeURIComponent(stamp || Date.now());
+      };
+      const firstFilled = (...vals) => vals.find(v => typeof v === 'string' && v.trim()) || '';
       useEffect(() => {
         let cancelled = false;
         const syncAll = async () => {
@@ -5250,25 +5261,17 @@ const HomeView = ({
                 }
                 if (d?.status === 'expired' || d?.expired === true) expired = true;
                 if (expired) return { ...ea, expired: true, expiredMessage: 'Key expired — contact mentor', expires_at: d?.expires_at || ea.expires_at };
-                 if (d?.status === 'valid' && d?.success) {
-                   // Cache-bust image URLs so an updated logo at the same URL is refetched
-                   const bust = (u) => {
-                     if (!u || typeof u !== 'string') return u;
-                     if (u.startsWith('data:')) return u;
-                     const sep = u.includes('?') ? '&' : '?';
-                     // Strip any existing _v param and append a fresh one keyed to server-provided
-                     // updated_at when present so browser caches invalidate on portal changes.
-                     const stamp = d.bot?.updated_at || d.updated_at || d.mentor?.updated_at || Date.now();
-                     const stripped = u.replace(/([?&])_v=[^&]*(&|$)/, (m,a,b)=>b?a:'').replace(/[?&]$/,'');
-                     return stripped + (stripped.includes('?') ? '&' : '?') + '_v=' + encodeURIComponent(stamp);
-                   };
+                  if (d?.status === 'valid' && d?.success) {
+                    const stamp = Date.now();
+                    const botImage = firstFilled(d.bot?.image, d.bot?.logo, d.bot?.ea_logo, d.bot?.robot_logo, d.bot?.robot_image, d.ea_logo, d.robot_logo, d.robot_image);
+                    const mentorLogo = firstFilled(d.mentor?.profile_pic, d.mentor?.logo, d.mentor?.avatar, d.mentor?.image);
                    return {
                      ...ea,
-                     name: d.bot?.name || d.ea_name || d.robot_name || ea.name,
-                     image: bust(d.bot?.image || d.ea_logo || d.robot_logo || d.robot_image) || ea.image,
-                     mentorName: d.mentor?.display_name || ea.mentorName,
-                     mentorLogo: bust(d.mentor?.profile_pic) || ea.mentorLogo,
-                     symbols: Array.isArray(d.symbols) ? d.symbols : ea.symbols,
+                      name: d.bot?.name || d.ea_name || d.robot_name || ea.name,
+                      image: botImage ? freshAssetUrl(botImage, stamp) : '',
+                      mentorName: d.mentor?.display_name || d.mentor?.full_name || '',
+                      mentorLogo: mentorLogo ? freshAssetUrl(mentorLogo, stamp) : '',
+                      symbols: licenseSymbolsFrom(d),
                      expires_at: d.expires_at || ea.expires_at,
                      expired: false,
                    };
@@ -5277,21 +5280,24 @@ const HomeView = ({
                } catch(_) { return ea; }
              }));
              if (cancelled) return;
-             const changed = JSON.stringify(updated) !== JSON.stringify(saved);
-             if (changed) setEas(updated);
-             const cur = selectedEA;
-             const primary = (cur && updated.find(x => x.licenseKey === cur.licenseKey)) || updated[0];
-             if (cur) {
-               const match = updated.find(x => x.licenseKey === cur.licenseKey);
-               if (match && changed) setSelectedEA(match);
-             }
+              const changed = JSON.stringify(updated) !== JSON.stringify(saved);
+              if (changed) {
+                localStorage.setItem('savedEAs', JSON.stringify(updated));
+                setEas(updated);
+              }
+              let primary = updated[0];
+              setSelectedEA(prev => {
+                const match = prev ? updated.find(x => x.licenseKey === prev.licenseKey || x.id === prev.id) : updated[0];
+                primary = match || updated[0];
+                return match || prev;
+              });
              // Always propagate refreshed bot logo/name to home screen botSettings so an
              // updated logo/name from the portal appears after a refresh/reopen.
              try {
                if (primary && !primary.expired) {
                  const prev = JSON.parse(localStorage.getItem('botSettings') || '{}') || {};
-                 const nextName = primary.name || prev.name || '';
-                 const nextImg  = primary.image || prev.image || null;
+                  const nextName = primary.name || '';
+                  const nextImg  = primary.image || primary.mentorLogo || null;
                  if (nextName !== prev.name || nextImg !== prev.image || nextImg !== prev.iconImage) {
                    const merged = { ...prev, name: nextName, image: nextImg, iconImage: nextImg };
                    localStorage.setItem('botSettings', JSON.stringify(merged));
@@ -5299,18 +5305,16 @@ const HomeView = ({
                  }
                }
              } catch(_) {}
-             // Prune allowedSymbols that are no longer in any license and add new ones as defaults
+              // Prune allowedSymbols that are no longer in any license, including when the portal has deleted every symbol.
              try {
                const allLicenseSyms = new Set();
                updated.forEach(e => { (e.symbols || []).forEach(s => allLicenseSyms.add(s)); });
-               if (allLicenseSyms.size) {
-                 const prevAllowed = JSON.parse(localStorage.getItem('allowedSymbols') || '{}') || {};
-                 const nextAllowed = {};
-                 Object.keys(prevAllowed).forEach(k => { if (allLicenseSyms.has(k)) nextAllowed[k] = prevAllowed[k]; });
-                 if (JSON.stringify(nextAllowed) !== JSON.stringify(prevAllowed)) {
-                   localStorage.setItem('allowedSymbols', JSON.stringify(nextAllowed));
-                   setAllowedSymbols(nextAllowed);
-                 }
+                const prevAllowed = JSON.parse(localStorage.getItem('allowedSymbols') || '{}') || {};
+                const nextAllowed = {};
+                Object.keys(prevAllowed).forEach(k => { if (allLicenseSyms.has(k)) nextAllowed[k] = prevAllowed[k]; });
+                if (JSON.stringify(nextAllowed) !== JSON.stringify(prevAllowed)) {
+                  localStorage.setItem('allowedSymbols', JSON.stringify(nextAllowed));
+                  setAllowedSymbols(nextAllowed);
                }
              } catch(_) {}
              // Notify expired licences
