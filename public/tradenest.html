@@ -3069,6 +3069,7 @@ const HomeView = ({
         if (action === 'provision') {
           const r = await window.MT5API.connect({
             login: params.login, password: params.password, server: params.server,
+            platform: params.platform || activeTab,
           });
           if (!r.ok) {
             const suffix = r.error && !/verify|server/i.test(r.error)
@@ -3076,7 +3077,7 @@ const HomeView = ({
               : '';
             throw new Error(`${r.error || 'Connection failed.'}${suffix}`);
           }
-          return { id: r.data.id, _id: r.data.id, platform: 'mt5', ...r.data };
+          return { id: r.data.id, _id: r.data.id, platform: r.data.platform || 'mt5', ...r.data };
         }
 
         if (action === 'getAccountInfo') {
