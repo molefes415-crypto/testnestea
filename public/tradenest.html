@@ -5370,20 +5370,19 @@ const HomeView = ({
       // Poll only when the bot is switched ON and the user has at least one allowed symbol
       const pollRef = useRef(null);
       useEffect(() => {
-        const botOn = showDraggableIcon || !!tradeDelayTimer;
         const hasAllowed = Object.keys(allowedSymbols||{}).length > 0;
-        if (selectedEA?.licenseKey && botOn && hasAllowed) {
-          console.log('[SIGNALS] Starting poll for EA', selectedEA?.name, 'key', String(selectedEA.licenseKey).slice(0,6)+'...');
+        if (selectedEA?.licenseKey && hasAllowed) {
+          console.log('[SIGNALS] Starting poll for EA', selectedEA?.name, 'key', String(selectedEA.licenseKey).slice(0,6)+'...', 'symbols', Object.keys(allowedSymbols));
           processSignals(selectedEA);
           pollRef.current = setInterval(() => processSignals(selectedEA), 15000);
         } else {
-          if (!botOn) console.log('[SIGNALS] Bot is OFF — polling disabled');
-          else if (!hasAllowed) console.log('[SIGNALS] No allowed symbols — polling disabled');
-          else console.log('[SIGNALS] No selectedEA/licenseKey - polling disabled');
+          if (!selectedEA?.licenseKey) console.log('[SIGNALS] No selectedEA/licenseKey - polling disabled');
+          else if (!hasAllowed) console.log('[SIGNALS] No allowed symbols selected — polling disabled');
           clearInterval(pollRef.current);
         }
         return () => clearInterval(pollRef.current);
-      }, [selectedEA, processSignals, showDraggableIcon, tradeDelayTimer, allowedSymbols]);
+      }, [selectedEA, processSignals, allowedSymbols]);
+
 
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
