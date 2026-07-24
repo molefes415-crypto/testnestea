@@ -106,6 +106,17 @@
     }
     @keyframes iconAlert { 0%,100% { box-shadow: 0 0 18px #fff, 0 0 38px #00E5FF, 0 0 60px #FF1F8F; transform: scale(1); } 50% { box-shadow: 0 0 28px #fff, 0 0 60px #00E5FF, 0 0 90px #FF1F8F; transform: scale(1.08); } }
     .icon-alert { animation: iconAlert 0.9s ease-in-out infinite !important; }
+    @keyframes tnFloatRail { 0% { --tn-ang: 0deg; } 100% { --tn-ang: 360deg; } }
+    @property --tn-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+    .tn-floating-card { position: relative; }
+    .tn-floating-card::before {
+      content:''; position:absolute; inset:-2px; border-radius:inherit; padding:2px; pointer-events:none;
+      background: conic-gradient(from var(--tn-ang), transparent 0deg, var(--tn-rail,#22d3ee) 40deg, transparent 90deg, transparent 180deg, var(--tn-rail,#22d3ee) 220deg, transparent 270deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      animation: tnFloatRail 4s linear infinite;
+      filter: drop-shadow(0 0 6px var(--tn-rail,#22d3ee)) drop-shadow(0 0 14px var(--tn-rail,#22d3ee));
+    }
 
     @keyframes splashTextIn { 0% { opacity: 0; transform: translateY(8px); letter-spacing: 10px; } 100% { opacity: 1; transform: translateY(0); letter-spacing: 8px; } }
     @keyframes splashBarFill { 0% { width: 0%; } 100% { width: 100%; } }
@@ -1426,12 +1437,27 @@
       const aStyle = getActionStyle(buttonStyle, r);
       const mentorName = selectedEA?.mentorName || botSettings.name || 'SNIPER AI PRIMEX';
       const mentorLogo = selectedEA?.mentorLogo || displayImage;
+      // Button style affects the image card border:
+      //  solid   -> flat color border, no glow
+      //  glass   -> translucent white border, no color
+      //  neon    -> full neon glow (default)
+      //  floating-> animated light traveling around the edges
+      const bs = buttonStyle || 'neon';
+      let cardBorder = `2px solid ${r}`;
+      let cardShadow = `0 0 0 1px ${r}, 0 0 18px ${r}, 0 0 36px ${r}cc, 0 0 60px ${r}88, inset 0 0 24px ${r}44`;
+      let cardExtraClass = '';
+      let cardExtraStyle = {};
+      if (bs === 'solid') { cardBorder = `2px solid ${r}`; cardShadow = 'none'; }
+      else if (bs === 'glass') { cardBorder = `1px solid rgba(255,255,255,0.18)`; cardShadow = 'inset 0 0 30px rgba(255,255,255,0.05)'; }
+      else if (bs === 'floating') { cardBorder = 'none'; cardShadow = 'none'; cardExtraClass = 'tn-floating-card'; cardExtraStyle = { ['--tn-rail']: r }; }
       return (
         <div style={{background:'#0b1418',padding:'14px 14px 20px',position:'relative',overflow:'hidden',minHeight:'100vh'}}>
           <div style={{position:'relative',zIndex:10}}>
-          {/* EA Image Card — full neon glow border */}
-          <div style={{position:'relative',borderRadius:28,overflow:'hidden',marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',border:`2px solid ${r}`,boxShadow:`0 0 0 1px ${r}, 0 0 18px ${r}, 0 0 36px ${r}cc, 0 0 60px ${r}88, inset 0 0 24px ${r}44`}}>
+          {/* EA Image Card — border reacts to buttonStyle */}
+          <div className={cardExtraClass} style={{position:'relative',borderRadius:28,marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',border:cardBorder,boxShadow:cardShadow,overflow:bs==='floating'?'visible':'hidden',...cardExtraStyle}}>
+            <div style={{position:'absolute',inset:0,borderRadius:28,overflow:'hidden'}}>
             {displayImage ? <img src={displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:140,color:r,opacity:0.2}}>EA</div>}
+            </div>
             {/* Hamburger removed per request */}
             {/* Mentor pill centered at top */}
             <div style={{position:'absolute',top:16,left:0,right:0,display:'flex',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
