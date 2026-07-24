@@ -95,7 +95,7 @@ function accessForServer(searchData: any, server: string): string[] {
   return []
 }
 
-async function connectWithHost(login: string, password: string, host: string, port: number) {
+async function connectWithHost(login: string, password: string, host: string, port: number, platform?: string) {
   const r = await mtGet('/Connect', {
     user: login,
     password,
@@ -103,24 +103,20 @@ async function connectWithHost(login: string, password: string, host: string, po
     port,
     connectTimeoutSeconds: 45,
     downloadOrderHistory: false,
-  })
+  }, platform)
   if (!r.ok) return { ok: false as const, error: extractError(r.data, r.status) }
   const id = extractId(r.data)
   if (!id || id.length < 8) return { ok: false as const, error: extractError(r.data, r.status) || 'MTAPI did not return a session id.' }
   return { ok: true as const, id }
 }
 
-async function connect(login: string, password: string, server: string) {
-  // MTAPI has two connect endpoints:
-  //   /ConnectEx → user, password, server (broker server name, e.g. "ICMarketsSC-Demo")
-  //   /Connect   → user, password, host, port (raw MT5 gateway)
-  // Use /ConnectEx for broker server names, and /Connect for host:port or Search results.
+async function connect(login: string, password: string, server: string, platform?: string) {
   const normalizedServer = server.trim()
   const hostPort = splitHostPort(normalizedServer)
   const errors: string[] = []
 
   if (hostPort) {
-    const direct = await connectWithHost(login, password, hostPort.host, hostPort.port)
+    const direct = await connectWithHost(login, password, hostPort.host, hostPort.port, platform)
     if (direct.ok) return direct
     errors.push(direct.error)
   } else {
@@ -130,7 +126,7 @@ async function connect(login: string, password: string, server: string) {
       server: normalizedServer,
       connectTimeoutSeconds: 45,
       downloadOrderHistory: false,
-    })
+    }, platform)
     if (byServer.ok) {
       const id = extractId(byServer.data)
       if (id && id.length >= 8) return { ok: true as const, id }
@@ -142,7 +138,7 @@ async function connect(login: string, password: string, server: string) {
 
   if (!hostPort) {
     for (const term of brokerSearchTerms(normalizedServer)) {
-      const search = await mtGet('/Search', { company: term })
+      const search = await mtGet('/Search', { company: term }, platform)
       if (!search.ok) {
         errors.push(extractError(search.data, search.status))
         continue
@@ -152,7 +148,7 @@ async function connect(login: string, password: string, server: string) {
       for (const entry of access) {
         const gateway = splitHostPort(entry)
         if (!gateway) continue
-        const viaGateway = await connectWithHost(login, password, gateway.host, gateway.port)
+        const viaGateway = await connectWithHost(login, password, gateway.host, gateway.port, platform)
         if (viaGateway.ok) return viaGateway
         errors.push(viaGateway.error)
       }
