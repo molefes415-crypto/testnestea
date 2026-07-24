@@ -38,12 +38,12 @@ function mtHeaders(): Record<string, string> {
 
 type MtParam = string | number | boolean | undefined
 
-async function mtGet(path: string, params: Record<string, MtParam>) {
+async function mtGet(path: string, params: Record<string, MtParam>, platform?: Platform | string) {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
   }
-  const url = `${MT_BASE}${path}?${qs.toString()}`
+  const url = `${baseFor(platform)}${path}?${qs.toString()}`
   const resp = await fetch(url, { headers: mtHeaders() })
   const txt = await resp.text()
   let data: any = txt
