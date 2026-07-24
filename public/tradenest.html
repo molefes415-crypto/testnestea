@@ -324,124 +324,23 @@
       const status     = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/ConnectionStatus', { id: accountId }));
       const disconnect = (accountId) => wrap(() => mtFetch(platformFor(accountId), '/Disconnect',    { id: accountId }));
 
-      // --- Symbol + stops helpers ----------------------------------------------
-      const _symbolCache = new Map();
-      const _digitsFromQuote = (q) => {
-        const s = String(q ?? '');
-        const i = s.indexOf('.');
-        return i >= 0 ? Math.min(s.length - i - 1, 8) : 0;
-      };
-      const _extractQuote = (raw) => {
-        if (!raw || typeof raw !== 'object') return null;
-        const bid = Number(raw.bid ?? raw.Bid ?? raw.BID);
-        const ask = Number(raw.ask ?? raw.Ask ?? raw.ASK);
-        if (!isFinite(bid) || !isFinite(ask) || bid <= 0 || ask <= 0) return null;
-        return { bid, ask };
-      };
-      const resolveSymbol = async (plat, id, base) => {
-        const key = `${plat}|${id}|${base}`;
-        if (_symbolCache.has(key)) return _symbolCache.get(key);
-        const raw = String(base || '').trim();
-        if (!raw) throw new Error('Symbol is required.');
-        const stripped = raw.replace(/(\.[a-z0-9]{1,6}|[+_-][a-z0-9]{1,6}|m)$/i, '');
-        const seeds = Array.from(new Set([
-          raw, stripped,
-          `${stripped}.m`, `${stripped}m`, `${stripped}.a`, `${stripped}+`,
-          `${stripped}.micro`, `${stripped}.pro`, `${stripped}.raw`,
-          `${stripped}.ecn`, `${stripped}_i`, `${stripped}.stp`, `${stripped}.c`,
-        ])).filter(Boolean);
-        let resolved = null;
-        for (const s of seeds) {
-          try {
-            const q = _extractQuote(await mtFetch(plat, '/GetQuote', { id, symbol: s }));
-            if (q) { resolved = { symbol: s, ...q }; break; }
-          } catch (_) {}
-        }
-        if (!resolved) {
-          try {
-            const list = await mtFetch(plat, '/Symbols', { id });
-            const arr = Array.isArray(list) ? list : (Array.isArray(list?.symbols) ? list.symbols : []);
-            const norm = (x) => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            const target = norm(stripped);
-            const hit = arr.map(x => (typeof x === 'string' ? x : (x?.name || x?.Name || x?.symbol || x?.Symbol)))
-                           .filter(Boolean)
-                           .find(n => norm(n).startsWith(target) || norm(n).includes(target));
-            if (hit) {
-              try {
-                const q = _extractQuote(await mtFetch(plat, '/GetQuote', { id, symbol: hit }));
-                if (q) resolved = { symbol: hit, ...q };
-              } catch (_) {}
-            }
-          } catch (_) {}
-        }
-        if (!resolved) throw new Error(`Symbol ${raw} not found on this broker.`);
-        let digits = _digitsFromQuote(resolved.bid);
-        let stopLevelPts = 0;
-        try {
-          const p = await mtFetch(plat, '/SymbolParams', { id, symbol: resolved.symbol });
-          const pd = (typeof p === 'object' && p) ? p : {};
-          const d = Number(pd.digits ?? pd.Digits);
-          const sl = Number(pd.stops_level ?? pd.stopsLevel ?? pd.trade_stops_level ?? pd.stopLevel);
-          if (isFinite(d) && d >= 0) digits = d;
-          if (isFinite(sl) && sl > 0) stopLevelPts = sl;
-        } catch (_) {}
-        const point = Math.pow(10, -digits);
-        const info = { ...resolved, digits, point, stopLevelPts };
-        _symbolCache.set(key, info);
-        return info;
-      };
-      const normalizeStops = (info, direction, sl, tp) => {
-        const { bid, ask, digits, point, stopLevelPts } = info;
-        const dir = String(direction || '').toUpperCase().includes('SELL') ? 'SELL' : 'BUY';
-        const entry = dir === 'BUY' ? ask : bid;
-        const spread = Math.max(0, ask - bid);
-        const minDist = Math.max((stopLevelPts || 0) * point, spread * 2, 10 * point);
-        const round = (x) => Number(x.toFixed(digits));
-        let SL = (sl === '' || sl == null) ? null : Number(sl);
-        let TP = (tp === '' || tp == null) ? null : Number(tp);
-        if (SL != null && !isFinite(SL)) SL = null;
-        if (TP != null && !isFinite(TP)) TP = null;
-        if (dir === 'BUY') {
-          if (SL != null) {
-            if (SL >= entry) SL = entry - Math.abs(entry - SL);
-            if (entry - SL < minDist) SL = entry - minDist;
-          }
-          if (TP != null) {
-            if (TP <= entry) TP = entry + Math.abs(entry - TP);
-            if (TP - entry < minDist) TP = entry + minDist;
-          }
-        } else {
-          if (SL != null) {
-            if (SL <= entry) SL = entry + Math.abs(entry - SL);
-            if (SL - entry < minDist) SL = entry + minDist;
-          }
-          if (TP != null) {
-            if (TP >= entry) TP = entry - Math.abs(entry - TP);
-            if (entry - TP < minDist) TP = entry - minDist;
-          }
-        }
-        return {
-          sl: SL == null ? undefined : round(SL),
-          tp: TP == null ? undefined : round(TP),
-        };
-      };
-
+      // Direct MTAPI OrderSend — mirrors the reference EA POWER app exactly.
+      // No symbol resolution, no stop normalization — pass through as received.
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, comment = 'BOT' }) => {
         try {
           const dir = String(direction || '').toUpperCase();
-          const op = dir.includes('SELL') ? 1 : 0;
+          const op = dir.includes('SELL') ? 'Sell' : 'Buy';
           const plat = platformFor(id);
-          const info = await resolveSymbol(plat, id, symbol);
-          const { sl: nSL, tp: nTP } = normalizeStops(info, dir, stopLoss, takeProfit);
-          const result = await mtFetch(plat, '/OrderSendSafe', {
-            id, symbol: info.symbol, operation: op,
-            volume: parseFloat(volume) || 0.01, slippage: 20,
-            stoploss: nSL, takeprofit: nTP,
+          const result = await mtFetch(plat, '/OrderSend', {
+            id, symbol, operation: op,
+            volume: parseFloat(volume) || 0.01,
+            stoploss: stopLoss, takeprofit: takeProfit,
+            placedType: 'Manual',
             comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
           });
           const t = (result && typeof result === 'object') ? result : {};
           const ticket = t.ticket || t.Ticket || t.orderId || t.OrderId || t.order || t.orderTicket || t.OrderTicket || t.id || (typeof result === 'string' ? result : 'MT');
-          return { ok: true, data: { ticket, symbol: info.symbol, sl: nSL, tp: nTP, raw: result }, error: '' };
+          return { ok: true, data: { ticket, symbol, raw: result }, error: '' };
         } catch (e) {
           return { ok: false, data: null, error: e.message || String(e) };
         }
