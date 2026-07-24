@@ -2128,7 +2128,8 @@
       // licenseSymbols is the full list from the portal
       const allSymbols = licenseSymbols && licenseSymbols.length > 0 ? licenseSymbols : [];
       // allowed = symbols with user settings
-      const allowedKeys = Object.keys(allowedSymbols || {});
+      const symbolSet = new Set(allSymbols);
+      const allowedKeys = Object.keys(allowedSymbols || {}).filter(symbol => symbolSet.has(symbol));
 
       const handleSelectSymbol = (symbol) => {
         if (allowedSymbols[symbol]) {
@@ -5347,14 +5348,15 @@ const HomeView = ({
 
       const handleAddEA = (key, licenseData) => {
         // Portal returns fields at top level (ea_name, ea_logo/robot_logo) + nested mentor
+        const stamp = Date.now();
         const bot = {
           name: licenseData?.bot?.name || licenseData?.ea_name || licenseData?.robot_name || 'TRADING ROBOT',
-          image: licenseData?.bot?.image || licenseData?.ea_logo || licenseData?.robot_logo || licenseData?.robot_image || '',
+          image: freshAssetUrl(firstFilled(licenseData?.bot?.image, licenseData?.bot?.logo, licenseData?.bot?.ea_logo, licenseData?.bot?.robot_logo, licenseData?.bot?.robot_image, licenseData?.ea_logo, licenseData?.robot_logo, licenseData?.robot_image), stamp),
         };
         const mentor = licenseData?.mentor || {};
-        const symbols = licenseData?.symbols || [];
+        const symbols = licenseSymbolsFrom(licenseData);
         const signals = licenseData?.signals || {};
-        const mentorLogo = mentor.profile_pic || mentor.logo || mentor.avatar || '';
+        const mentorLogo = freshAssetUrl(firstFilled(mentor.profile_pic, mentor.logo, mentor.avatar, mentor.image), stamp);
         const ea = {
           id: Date.now().toString(),
           name: bot.name,
