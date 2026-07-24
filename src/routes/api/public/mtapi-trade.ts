@@ -171,24 +171,23 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         let body: any
         try { body = await request.json() } catch { return json(400, { ok: false, error: 'Invalid JSON' }) }
 
-        const { action } = body || {}
+        const { action, platform } = body || {}
 
         if (action === 'provision') {
           const { login, password, server } = body
           if (!login || !password || !server) return json(400, { ok: false, error: 'login, password, server required' })
-          const r = await connect(String(login), String(password), String(server))
+          const r = await connect(String(login), String(password), String(server), platform)
           if (!r.ok) return json(502, { ok: false, error: r.error })
 
-          // Optionally fetch account summary so the client can display balance immediately.
-          const acc = await mtGet('/AccountSummary', { id: r.id })
-          return json(200, { ok: true, accountId: r.id, account: acc.ok ? acc.data : null })
+          const acc = await mtGet('/AccountSummary', { id: r.id }, platform)
+          return json(200, { ok: true, accountId: r.id, platform: (String(platform || '').toLowerCase() === 'mt4' ? 'mt4' : 'mt5'), account: acc.ok ? acc.data : null })
         }
 
         const { accountId } = body || {}
         if (!accountId) return json(400, { ok: false, error: 'accountId required' })
 
         if (action === 'account') {
-          const r = await mtGet('/AccountSummary', { id: accountId })
+          const r = await mtGet('/AccountSummary', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -196,7 +195,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'positions') {
-          const r = await mtGet('/OpenedOrders', { id: accountId })
+          const r = await mtGet('/OpenedOrders', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -204,7 +203,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'status') {
-          const r = await mtGet('/ConnectionStatus', { id: accountId })
+          const r = await mtGet('/ConnectionStatus', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, {
             ok: r.ok, data: r.data,
             error: r.ok ? undefined : extractError(r.data, r.status),
@@ -212,7 +211,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
         }
 
         if (action === 'disconnect') {
-          const r = await mtGet('/Disconnect', { id: accountId })
+          const r = await mtGet('/Disconnect', { id: accountId }, platform)
           return json(r.ok ? 200 : 502, { ok: r.ok, data: r.data })
         }
 
@@ -237,7 +236,7 @@ export const Route = createFileRoute('/api/public/mtapi-trade')({
             placedType: 0,
           }
 
-          const r = await mtGet('/OrderSendSafe', params)
+          const r = await mtGet('/OrderSendSafe', params, platform)
           if (!r.ok) {
             return json(502, { ok: false, data: r.data, error: extractError(r.data, r.status) })
           }
