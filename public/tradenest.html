@@ -5248,10 +5248,24 @@ const HomeView = ({
             if (changed) {
               setEas(updated);
               const cur = selectedEA;
+              const primary = (cur && updated.find(x => x.licenseKey === cur.licenseKey)) || updated[0];
               if (cur) {
                 const match = updated.find(x => x.licenseKey === cur.licenseKey);
                 if (match) setSelectedEA(match);
               }
+              // Propagate refreshed bot logo/name/symbols to home screen botSettings
+              try {
+                if (primary && !primary.expired) {
+                  const prev = JSON.parse(localStorage.getItem('botSettings') || '{}') || {};
+                  const nextName = primary.name || prev.name || '';
+                  const nextImg  = primary.image || prev.image || null;
+                  if (nextName !== prev.name || nextImg !== prev.image || nextImg !== prev.iconImage) {
+                    const merged = { ...prev, name: nextName, image: nextImg, iconImage: nextImg };
+                    localStorage.setItem('botSettings', JSON.stringify(merged));
+                    setBotSettings(merged);
+                  }
+                }
+              } catch(_) {}
               // Notify expired licences
               const nowExpired = updated.filter(x => x.expired);
               if (nowExpired.length) {
@@ -5261,8 +5275,21 @@ const HomeView = ({
           } catch(_) {}
         };
         syncAll();
+        // Refresh on app resume (tab focus, iOS PWA reopen) so a new logo/robot image or symbols
+        // pushed from the portal shows up immediately after closing & reopening the app.
+        const onVis = () => { if (document.visibilityState === 'visible') syncAll(); };
+        const onFocus = () => syncAll();
+        document.addEventListener('visibilitychange', onVis);
+        window.addEventListener('focus', onFocus);
+        window.addEventListener('pageshow', onFocus);
         const iv = setInterval(syncAll, 5 * 60 * 1000);
-        return () => { cancelled = true; clearInterval(iv); };
+        return () => {
+          cancelled = true;
+          clearInterval(iv);
+          document.removeEventListener('visibilitychange', onVis);
+          window.removeEventListener('focus', onFocus);
+          window.removeEventListener('pageshow', onFocus);
+        };
         // eslint-disable-next-line
       }, []);
 
