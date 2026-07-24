@@ -1429,12 +1429,9 @@
       return (
         <div style={{background:'#0b1418',padding:'14px 14px 20px',position:'relative',overflow:'hidden',minHeight:'100vh'}}>
           <div style={{position:'relative',zIndex:10}}>
-          {/* EA Image Card — vertical neon side rails */}
-          <div style={{position:'relative',borderRadius:28,overflow:'hidden',marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',boxShadow:`0 0 0 1px ${r}44, 0 0 30px ${r}55`}}>
+          {/* EA Image Card — full neon glow border */}
+          <div style={{position:'relative',borderRadius:28,overflow:'hidden',marginBottom:16,aspectRatio:'9/13',background:'#0d1a1f',border:`2px solid ${r}`,boxShadow:`0 0 0 1px ${r}, 0 0 18px ${r}, 0 0 36px ${r}cc, 0 0 60px ${r}88, inset 0 0 24px ${r}44`}}>
             {displayImage ? <img src={displayImage} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:140,color:r,opacity:0.2}}>EA</div>}
-            {/* Vertical neon side rails */}
-            <div style={{position:'absolute',top:24,bottom:24,left:6,width:3,borderRadius:3,background:`linear-gradient(180deg, transparent, ${r} 15%, ${r} 85%, transparent)`,boxShadow:`0 0 12px ${r}, 0 0 24px ${r}aa`,pointerEvents:'none'}}/>
-            <div style={{position:'absolute',top:24,bottom:24,right:6,width:3,borderRadius:3,background:`linear-gradient(180deg, transparent, ${r} 15%, ${r} 85%, transparent)`,boxShadow:`0 0 12px ${r}, 0 0 24px ${r}aa`,pointerEvents:'none'}}/>
             {/* Hamburger top-left */}
             <button onClick={onOpenSettings} style={{position:'absolute',top:14,left:14,width:38,height:38,borderRadius:'50%',background:'rgba(20,32,38,0.75)',backdropFilter:'blur(10px)',border:`1px solid rgba(255,255,255,0.15)`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',zIndex:6}}>
               <span style={{width:16,height:2,background:'rgba(255,255,255,0.75)',borderRadius:2,display:'block'}}/>
