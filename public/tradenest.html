@@ -5629,9 +5629,10 @@ const HomeView = ({
       };
 
       const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
-        platform = 'MT5';
-        const accountId = localStorage.getItem('mt_accountId_mt5') || '';
-        const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || localStorage.getItem('mt_login_mt5') || '') : '';
+        const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
+        const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
+        const accountId = platform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
+        const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || '') : '';
         if (accountId) {
           try {
             toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${platform}...` });
