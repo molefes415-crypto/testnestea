@@ -78,6 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
       { name: "theme-color", content: "#080808" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "TradeNest EA" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { title: "TradeNest EA — Automated Trading Suite" },
       { name: "description", content: "TradeNest EA is an automated trading control suite for MetaTrader — manage robots, signals, and market analysis from one interface." },
       { property: "og:title", content: "TradeNest EA — Automated Trading Suite" },
@@ -92,6 +96,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/tradenest-logo.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+      { rel: "apple-touch-icon-precomposed", href: "/apple-touch-icon.png" },
     ],
   }),
 
