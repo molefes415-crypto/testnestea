@@ -5194,7 +5194,7 @@ const HomeView = ({
           name: bot.name,
           version: 'PRO',
           source: 'TRADENEST EA',
-          licenseKey: key,
+          licenseKey: String(key||'').trim(),
           symbols,
           signals,
           mentorName: mentor.display_name || mentor.full_name || '',
