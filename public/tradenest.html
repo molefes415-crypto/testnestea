@@ -5631,37 +5631,23 @@ const HomeView = ({
         setTradeData(null);
       };
 
-      const resolveExecutionSymbol = (symbol, platform) => {
-        const raw = String(symbol || '').trim();
-        if (!raw) return raw;
-        // If the signal already includes a broker suffix/prefix, keep it exactly as received.
-        if (/^\./.test(raw) || /[._+-][a-z0-9]{1,8}$/i.test(raw) || /m$/i.test(raw)) return raw;
-        try {
-          const key = String(platform || 'MT5').toLowerCase() === 'mt4' ? 'mt_credentials_mt4' : 'mt_credentials_mt5';
-          const creds = JSON.parse(localStorage.getItem(key) || '{}');
-          return applyBrokerSuffix(raw, creds?.server || detectConnectedBroker());
-        } catch { return applyBrokerSuffix(raw, detectConnectedBroker()); }
-      };
-
       const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
         const targetPlatform = String(platform || 'MT5').toUpperCase() === 'MT4' ? 'MT4' : 'MT5';
         const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
         const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
         const accountId = targetPlatform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
-        const login = accountId ? (localStorage.getItem(`mt_login_for_${accountId}`) || '') : '';
         if (accountId) {
           try {
-            const tradeSymbol = resolveExecutionSymbol(symbol, targetPlatform);
-            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${tradeSymbol} via ${targetPlatform}...` });
+            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
             const actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
             await callMetaAPIFromApp('trade', {
-              accountId, login, actionType, symbol: tradeSymbol,
+              accountId, actionType, symbol,
               volume: parseFloat(lotSize) || 0.01,
               stopLoss: sl || undefined,
               takeProfit: tp || undefined,
               platform: targetPlatform,
             });
-            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${tradeSymbol} on ${targetPlatform}` });
+            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${targetPlatform}` });
             return true;
           } catch (err) {
             toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
