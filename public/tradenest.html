@@ -5274,7 +5274,8 @@ const HomeView = ({
             const updated = await Promise.all(saved.map(async (ea) => {
               if (!ea?.licenseKey) return ea;
               try {
-                const r = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(ea.licenseKey)}&_=${Date.now()}`);
+                const dId = getDeviceId();
+                const r = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
                 const d = await r.json();
                 // Expiry check — treat past expires_at as expired even if server still says valid
                 let expired = false;
