@@ -275,6 +275,23 @@
 
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+    // Persistent per-device identifier — sent alongside the license key so the portal
+    // can bind/track activations. Generated once per browser/PWA install.
+    function getDeviceId() {
+      try {
+        let d = localStorage.getItem('tn_device_id');
+        if (!d) {
+          d = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+            : ('dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10));
+          localStorage.setItem('tn_device_id', d);
+        }
+        return d;
+      } catch(_) {
+        return 'dev-anon';
+      }
+    }
+    window.getDeviceId = getDeviceId;
+
     // ==========================================================================
     // MTAPI (mtapi.io) — direct browser integration.
     // Single base URL per platform. Connect → receive session token (id) →
