@@ -275,6 +275,23 @@
 
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+    // Persistent per-device identifier — sent alongside the license key so the portal
+    // can bind/track activations. Generated once per browser/PWA install.
+    function getDeviceId() {
+      try {
+        let d = localStorage.getItem('tn_device_id');
+        if (!d) {
+          d = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+            : ('dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10));
+          localStorage.setItem('tn_device_id', d);
+        }
+        return d;
+      } catch(_) {
+        return 'dev-anon';
+      }
+    }
+    window.getDeviceId = getDeviceId;
+
     // ==========================================================================
     // MTAPI (mtapi.io) — direct browser integration.
     // Single base URL per platform. Connect → receive session token (id) →
@@ -890,7 +907,12 @@
         setLoading(true);
         setError('');
         try {
-          const resp = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(key.trim())}`);
+          const deviceId = getDeviceId();
+          const resp = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key.trim(), device_id: deviceId })
+          });
           const data = await resp.json();
           if (data.status === 'valid' && data.success) {
             setLicenseData(data);
@@ -5252,7 +5274,8 @@ const HomeView = ({
             const updated = await Promise.all(saved.map(async (ea) => {
               if (!ea?.licenseKey) return ea;
               try {
-                const r = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(ea.licenseKey)}&_=${Date.now()}`);
+                const dId = getDeviceId();
+                const r = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
                 const d = await r.json();
                 // Expiry check — treat past expires_at as expired even if server still says valid
                 let expired = false;
@@ -5445,7 +5468,7 @@ const HomeView = ({
           const resp = await fetch('https://tradenestea.com/admin/api/validate_license.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: ea.licenseKey }),
+            body: JSON.stringify({ key: ea.licenseKey, device_id: getDeviceId() }),
           });
           const data = await resp.json();
           console.log('License API Response', data);
