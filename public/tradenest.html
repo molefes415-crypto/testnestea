@@ -5468,7 +5468,7 @@ const HomeView = ({
           const resp = await fetch('https://tradenestea.com/admin/api/validate_license.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: ea.licenseKey }),
+            body: JSON.stringify({ key: ea.licenseKey, device_id: getDeviceId() }),
           });
           const data = await resp.json();
           console.log('License API Response', data);
