@@ -907,7 +907,12 @@
         setLoading(true);
         setError('');
         try {
-          const resp = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(key.trim())}`);
+          const deviceId = getDeviceId();
+          const resp = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key.trim(), device_id: deviceId })
+          });
           const data = await resp.json();
           if (data.status === 'valid' && data.success) {
             setLicenseData(data);
