@@ -427,7 +427,7 @@
             id, symbol: resolvedSymbol, operation: op,
             volume: parseFloat(volume) || 0.01,
             stoploss: stopLoss || 0, takeprofit: takeProfit || 0,
-            comment: `${(comment || 'BOT')}-TRADENEST`.toUpperCase(),
+            comment: String(comment || 'BOT').toUpperCase(),
           };
           let result;
           try {
