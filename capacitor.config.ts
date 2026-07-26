@@ -1,16 +1,12 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Fully offline / bundled build:
+// The web assets from `dist/` are packaged into the APK and loaded locally.
+// No remote URL is fetched at startup — the app runs entirely from bundled files.
 const config: CapacitorConfig = {
   appId: 'app.tradnestea',
   appName: 'TradeNest EA',
   webDir: 'dist',
-  server: {
-    // Load the live published site inside the native shell.
-    // Remove `url` and use `webDir` if you want a fully offline bundled build.
-    url: 'https://tradnestea.app',
-    cleartext: false,
-    androidScheme: 'https',
-  },
   android: {
     allowMixedContent: false,
   },
