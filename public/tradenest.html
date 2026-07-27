@@ -5533,6 +5533,7 @@ const HomeView = ({
             }
             const cfg = match.cfg || {};
             const direction = String(sig.direction || sig.action || sig.type || '').toUpperCase();
+            const numTrades = Math.max(1, Math.min(50, parseInt(cfg.numTrades, 10) || 1));
             const signalTrade = {
               symbol: rawSymbol, // execute the exact broker symbol sent by validate_license.php (e.g. US30.std)
               direction: direction === 'SELL' ? 'SELL' : 'BUY',
@@ -5541,6 +5542,7 @@ const HomeView = ({
               lotSize: parseFloat(sig.lot ?? sig.lotSize ?? sig.lot_size) || parseFloat(cfg.lotSize) || 0.01,
               platform: cfg.platform || 'MT5',
               signalId: sigId,
+              numTrades,
               entry: 'MARKET',
             };
             console.log('[SIGNALS] ✓ Executing', signalTrade);
@@ -5867,14 +5869,25 @@ const HomeView = ({
           `SL ${signal.sl}`,
         ];
         for (const s of steps) { pushStepLog(s); await new Promise(r=>setTimeout(r,250)); }
-        const placed = await executeTrade(signal);
-        if (placed && signal.signalId) {
+        const count = Math.max(1, Math.min(50, parseInt(signal.numTrades, 10) || 1));
+        pushStepLog(`Placing ${count} trade${count>1?'s':''} on ${signal.symbol}`);
+        let successCount = 0;
+        for (let i = 0; i < count; i++) {
+          const placed = await executeTrade(signal);
+          if (placed) {
+            successCount++;
+            setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), pair: signal.symbol, action: signal.direction, tp: signal.tp, sl: signal.sl, lot: signal.lotSize, entry: 'MARKET', order: '#' + (309304330 + prev.length) }]);
+          } else {
+            pushStepLog(`Trade ${i+1}/${count} failed — link MetaTrader account and retry`);
+            break;
+          }
+          if (i < count - 1) await new Promise(r=>setTimeout(r, 400));
+        }
+        if (successCount > 0 && signal.signalId) {
           await markSignalRead(signal.signalId);
           seenSignalIdsRef.current.add(String(signal.signalId));
           localStorage.setItem('seenSignalIds', JSON.stringify(Array.from(seenSignalIdsRef.current)));
         }
-        if (placed) setExecutionLogs(prev => [...prev, { id: Date.now(), time: new Date().toLocaleTimeString(), pair: signal.symbol, action: signal.direction, tp: signal.tp, sl: signal.sl, lot: signal.lotSize, entry: 'MARKET', order: '#' + (309304330 + prev.length) }]);
-        else pushStepLog('Trade failed - link MetaTrader account and retry');
         if (signal.signalId) processingSignalIdsRef.current.delete(String(signal.signalId));
         triggerIconPulse();
       };
