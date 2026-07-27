@@ -79,7 +79,7 @@ async function getPayPalToken(): Promise<string | null> {
  * last N days. Uses the Transaction Search API. Requires the "Transaction
  * Search" feature enabled on the PayPal app.
  */
-async function checkPayPalByEmail(email: string, days = 35): Promise<{ active: boolean; raw?: unknown; error?: string }> {
+async function checkPayPalByEmail(email: string, days = 31): Promise<{ active: boolean; raw?: unknown; error?: string }> {
   const token = await getPayPalToken()
   if (!token) return { active: false, error: 'paypal_auth_failed' }
 
