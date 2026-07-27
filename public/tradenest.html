@@ -4830,43 +4830,34 @@ const HomeView = ({
       document.head.appendChild(s);
     });
 
+    const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/RRJAVKALC9VAQ';
+
     const PayPalPaywall = ({ adminId, email, onPaid, onCancel }) => {
-      const btnRef = useRef(null);
-      const [status, setStatus] = useState('loading'); // loading | ready | processing | done | error
+      const [status, setStatus] = useState('ready'); // ready | processing | done | error
       const [msg, setMsg] = useState('');
-      useEffect(() => {
-        let cancelled = false;
-        loadPayPalSdk().then(pp => {
-          if (cancelled || !btnRef.current) return;
-          btnRef.current.innerHTML = '';
-          setStatus('ready');
-          pp.Buttons({
-            style: { shape:'pill', color:'white', layout:'vertical', label:'subscribe' },
-            createSubscription: (_d, actions) => actions.subscription.create({ plan_id: PAYPAL_PLAN_ID }),
-            onApprove: async (data) => {
-              setStatus('processing');
-              setMsg('Activating your account…');
-              try {
-                // Best-effort: notify the portal so the mentor sees the subscription.
-                // Backend endpoint is optional — we activate the device either way.
-                await fetch('/api/public/check-subscription', {
-                  method:'POST',
-                  headers:{ 'content-type':'application/json' },
-                  body: JSON.stringify({ admin_id: adminId, email, subscription_id: data.subscriptionID, provider:'paypal' })
-                }).catch(()=>{});
-              } catch(_) {}
-              try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
-              try { localStorage.setItem('mobi_paypal_sub', data.subscriptionID || ''); } catch(_) {}
-              setStatus('done');
-              setMsg('Subscription active. Opening app…');
-              setTimeout(() => { onPaid && onPaid(data.subscriptionID); }, 900);
-            },
-            onError: (err) => { console.error('[paypal]', err); setStatus('error'); setMsg('Payment failed. Please try again.'); },
-            onCancel: () => { setStatus('ready'); setMsg('Payment cancelled.'); }
-          }).render(btnRef.current).catch(e => { console.error(e); setStatus('error'); setMsg('Could not load PayPal.'); });
-        }).catch(() => { setStatus('error'); setMsg('Could not load PayPal SDK.'); });
-        return () => { cancelled = true; };
-      }, [adminId, email]);
+      const [opened, setOpened] = useState(false);
+
+      const openCheckout = () => {
+        try { window.open(PAYPAL_CHECKOUT_URL, '_blank', 'noopener,noreferrer'); } catch(_) {}
+        setOpened(true);
+        setMsg('Complete payment in the PayPal tab, then tap "I\'ve Paid" below.');
+      };
+
+      const confirmPaid = async () => {
+        setStatus('processing');
+        setMsg('Activating your account…');
+        try {
+          await fetch('/api/public/check-subscription', {
+            method:'POST',
+            headers:{ 'content-type':'application/json' },
+            body: JSON.stringify({ admin_id: adminId, email, provider:'paypal', checkout:'ncp' })
+          }).catch(()=>{});
+        } catch(_) {}
+        try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
+        setStatus('done');
+        setMsg('Payment confirmed. Opening app…');
+        setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
+      };
 
       return (
         <div style={{position:'fixed',inset:0,zIndex:600,background:'radial-gradient(ellipse at 50% 0%, #1a0a10 0%, #050505 55%, #000 100%)',display:'flex',flexDirection:'column',padding:'28px 20px',overflow:'auto'}} className="animate-fade-in">
@@ -4878,7 +4869,7 @@ const HomeView = ({
             <h1 style={{color:'white',fontSize:22,fontWeight:900,marginBottom:6,letterSpacing:2,fontFamily:'Orbitron',textAlign:'center'}}>ACTIVATE ACCESS</h1>
             <p style={{color:'rgba(255,255,255,0.55)',fontSize:12.5,marginBottom:20,textAlign:'center',lineHeight:1.55}}>
               Your email <span style={{color:'#ff97a8'}}>{email}</span> isn't activated yet.
-              Subscribe below to unlock TradeNest EA. Access opens automatically after payment.
+              Subscribe below to unlock TradeNest EA.
             </p>
 
             <div style={{width:'100%',padding:'24px 20px',borderRadius:22,background:'linear-gradient(180deg,#1a1112 0%, #120a0a 100%)',border:'1px solid rgba(255,45,85,0.18)',boxShadow:'0 20px 50px rgba(0,0,0,0.6), inset 0 0 30px rgba(255,45,85,0.05)'}}>
@@ -4894,16 +4885,28 @@ const HomeView = ({
                 <img src="/__l5e/assets-v1/d9283292-9bca-458f-a3e1-bd8e214bd729/tradenest-host.png" alt="TradeNest Host Trading" style={{width:'100%',height:'auto',display:'block'}} />
               </div>
 
-              <div id="paypal-button-container-P-83P59715GY913282LNJPCP2I" ref={btnRef} style={{minHeight:180}}/>
+              <button
+                onClick={openCheckout}
+                disabled={status==='processing'||status==='done'}
+                style={{width:'100%',padding:'16px 20px',borderRadius:14,border:'none',background:'linear-gradient(180deg,#ffc439 0%, #f0a800 100%)',color:'#0a1a2f',fontWeight:900,fontSize:15,letterSpacing:0.5,cursor:'pointer',boxShadow:'0 10px 30px rgba(255,196,57,0.35)',marginBottom:10}}>
+                {opened ? 'REOPEN PAYPAL CHECKOUT' : 'PAY WITH PAYPAL'}
+              </button>
 
-              {status==='loading' && <p style={{color:'rgba(255,255,255,0.4)',fontSize:11,textAlign:'center',marginTop:8}}>Loading secure checkout…</p>}
-              {status==='processing' && <p style={{color:'#22d3ee',fontSize:12,textAlign:'center',marginTop:8}}>{msg}</p>}
-              {status==='done' && <p style={{color:'#4ade80',fontSize:12,textAlign:'center',marginTop:8}}>{msg}</p>}
+              {opened && (
+                <button
+                  onClick={confirmPaid}
+                  disabled={status==='processing'||status==='done'}
+                  style={{width:'100%',padding:'14px 20px',borderRadius:14,border:'1px solid rgba(74,222,128,0.55)',background:'rgba(34,197,94,0.14)',color:'#4ade80',fontWeight:800,fontSize:13,letterSpacing:1.5,fontFamily:'Orbitron',cursor:'pointer',marginTop:6}}>
+                  {status==='processing' ? 'ACTIVATING…' : status==='done' ? 'ACTIVATED ✓' : 'I\'VE PAID — UNLOCK APP'}
+                </button>
+              )}
+
+              {msg && status!=='error' && <p style={{color: status==='done' ? '#4ade80' : 'rgba(255,255,255,0.55)',fontSize:11.5,textAlign:'center',marginTop:12,lineHeight:1.5}}>{msg}</p>}
               {status==='error' && <p style={{color:'#f472b6',fontSize:12,textAlign:'center',marginTop:8}}>{msg}</p>}
             </div>
 
             <p style={{color:'rgba(255,255,255,0.3)',fontSize:10.5,marginTop:18,textAlign:'center',letterSpacing:0.5,lineHeight:1.55,maxWidth:360}}>
-              You'll be billed by PayPal. Cancel anytime from your PayPal account. Once payment is approved the app opens automatically — no need to re-enter your email.
+              You'll be billed by PayPal. Cancel anytime from your PayPal account. After paying, return here and tap "I've Paid" to unlock the app instantly.
             </p>
           </div>
         </div>
