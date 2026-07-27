@@ -4845,18 +4845,24 @@ const HomeView = ({
 
       const confirmPaid = async () => {
         setStatus('processing');
-        setMsg('Activating your account…');
+        setMsg('Verifying your payment with PayPal…');
         try {
-          await fetch('/api/public/check-subscription', {
-            method:'POST',
-            headers:{ 'content-type':'application/json' },
-            body: JSON.stringify({ admin_id: adminId, email, provider:'paypal', checkout:'ncp' })
-          }).catch(()=>{});
-        } catch(_) {}
-        try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
-        setStatus('done');
-        setMsg('Payment confirmed. Opening app…');
-        setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
+          const url = `/api/public/check-subscription?admin_id=${encodeURIComponent(adminId)}&email=${encodeURIComponent(email)}&provider=paypal&checkout=ncp`;
+          const r = await fetch(url, { headers: { accept: 'application/json' } });
+          const data = await r.json().catch(()=>({active:false}));
+          if (data && data.active) {
+            try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
+            setStatus('done');
+            setMsg('Payment verified. Opening app…');
+            setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
+          } else {
+            setStatus('error');
+            setMsg('We couldn\'t confirm your payment yet. If you just paid, wait ~30 seconds and try again. Make sure you used the same email on PayPal.');
+          }
+        } catch (_) {
+          setStatus('error');
+          setMsg('Network error while verifying payment. Please try again.');
+        }
       };
 
       return (
