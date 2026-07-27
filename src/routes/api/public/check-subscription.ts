@@ -138,7 +138,7 @@ export const Route = createFileRoute('/api/public/check-subscription')({
             return new Response(JSON.stringify({ active: true, via: 'paypal', txn: (paypal.raw as any)?.id }), { status: 200, headers: CORS })
           }
 
-          return new Response(JSON.stringify({ active: false, via: 'none', paypalError: paypal.error }), { status: 200, headers: CORS })
+          return new Response(JSON.stringify({ active: false, via: 'none', paypalError: paypal.error, paypalRaw: paypal.raw }), { status: 200, headers: CORS })
         } catch (e: any) {
           return new Response(JSON.stringify({ active: false, error: e?.message || 'server error' }), { status: 500, headers: CORS })
         }
