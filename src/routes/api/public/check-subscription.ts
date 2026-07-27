@@ -79,7 +79,7 @@ async function getPayPalToken(): Promise<string | null> {
  * last N days. Uses the Transaction Search API. Requires the "Transaction
  * Search" feature enabled on the PayPal app.
  */
-async function checkPayPalByEmail(email: string, days = 35): Promise<{ active: boolean; raw?: unknown; error?: string }> {
+async function checkPayPalByEmail(email: string, days = 31): Promise<{ active: boolean; raw?: unknown; error?: string }> {
   const token = await getPayPalToken()
   if (!token) return { active: false, error: 'paypal_auth_failed' }
 
@@ -138,7 +138,7 @@ export const Route = createFileRoute('/api/public/check-subscription')({
             return new Response(JSON.stringify({ active: true, via: 'paypal', txn: (paypal.raw as any)?.id }), { status: 200, headers: CORS })
           }
 
-          return new Response(JSON.stringify({ active: false, via: 'none', paypalError: paypal.error }), { status: 200, headers: CORS })
+          return new Response(JSON.stringify({ active: false, via: 'none', paypalError: paypal.error, paypalRaw: paypal.raw }), { status: 200, headers: CORS })
         } catch (e: any) {
           return new Response(JSON.stringify({ active: false, error: e?.message || 'server error' }), { status: 500, headers: CORS })
         }
