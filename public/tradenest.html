@@ -4891,7 +4891,8 @@ const HomeView = ({
             setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
           } else {
             setStatus('error');
-            setMsg('We couldn\'t confirm your payment yet. If you just paid, wait ~30 seconds and try again. Make sure you used the same email on PayPal.');
+            const hint = (data && data.hint) ? ' ' + data.hint : '';
+            setMsg('We couldn\'t confirm your payment yet. PayPal can take a few minutes (occasionally up to a few hours) to report new payments. Make sure the email above matches the one you used at PayPal checkout, then tap "I\'ve Paid" again.' + hint);
           }
         } catch (_) {
           setStatus('error');
