@@ -169,12 +169,33 @@ async function callGateway(body: AnalyzeBody) {
       continue;
     }
     // Normalise: mirror stopLoss/takeProfit into sl/tp so the UI (which reads .tp and .sl) works
-    const tps = Array.isArray((parsed as any).takeProfit) ? (parsed as any).takeProfit : [];
-    if ((parsed as any).sl == null && (parsed as any).stopLoss != null) (parsed as any).sl = (parsed as any).stopLoss;
-    if ((parsed as any).tp == null && tps.length) (parsed as any).tp = tps[0];
-    if ((parsed as any).stopLoss == null && (parsed as any).sl != null) (parsed as any).stopLoss = (parsed as any).sl;
-    if (!(parsed as any).lotSize) (parsed as any).lotSize = 0.01;
-    if (!(parsed as any).orderType) (parsed as any).orderType = body.orderType || "instant";
+    const p = parsed as any;
+    const tps = Array.isArray(p.takeProfit) ? p.takeProfit : [];
+    if (p.sl == null && p.stopLoss != null) p.sl = p.stopLoss;
+    if (p.tp == null && tps.length) p.tp = tps[0];
+    if (p.stopLoss == null && p.sl != null) p.stopLoss = p.sl;
+
+    // Enforce SL/TP for non-swing setups — fabricate sane defaults from entry if the model omitted them.
+    const style = String(body.tradeStyle || "day").toLowerCase();
+    const dir = String(p.direction || "").toUpperCase();
+    const entry = parseFloat(p.entry) || 0;
+    if (style !== "swing" && entry > 0 && (dir === "BUY" || dir === "SELL")) {
+      const pct = style === "scalp" ? 0.0025 : 0.006; // 0.25% scalp, 0.6% day
+      if (!p.sl || parseFloat(p.sl) <= 0) {
+        p.sl = dir === "BUY" ? entry * (1 - pct) : entry * (1 + pct);
+        p.stopLoss = p.sl;
+      }
+      if (!p.tp || parseFloat(p.tp) <= 0) {
+        p.tp = dir === "BUY" ? entry * (1 + pct * 2) : entry * (1 - pct * 2);
+      }
+      if (!Array.isArray(p.takeProfit) || p.takeProfit.length === 0) {
+        p.takeProfit = dir === "BUY"
+          ? [entry * (1 + pct * 2), entry * (1 + pct * 3), entry * (1 + pct * 4)]
+          : [entry * (1 - pct * 2), entry * (1 - pct * 3), entry * (1 - pct * 4)];
+      }
+    }
+    if (!p.lotSize) p.lotSize = 0.01;
+    if (!p.orderType) p.orderType = body.orderType || "instant";
     return parsed;
   }
   throw new Error(lastErr || "All models failed");
