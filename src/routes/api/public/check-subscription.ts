@@ -79,38 +79,65 @@ async function getPayPalToken(): Promise<string | null> {
  * last N days. Uses the Transaction Search API. Requires the "Transaction
  * Search" feature enabled on the PayPal app.
  */
-async function checkPayPalByEmail(email: string, days = 31): Promise<{ active: boolean; raw?: unknown; error?: string }> {
+async function checkPayPalByEmail(email: string, days = 31): Promise<{ active: boolean; raw?: unknown; error?: string; scanned?: number; sampleEmails?: string[] }> {
   const token = await getPayPalToken()
   if (!token) return { active: false, error: 'paypal_auth_failed' }
 
   const end = new Date()
   const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000)
   const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, '-0000')
-
-  const qs = new URLSearchParams({
-    start_date: fmt(start),
-    end_date: fmt(end),
-    fields: 'payer_info,transaction_info',
-    page_size: '100',
-    page: '1',
-    transaction_status: 'S', // successful
-  })
-
-  const r = await fetch(`${paypalBase()}/v1/reporting/transactions?${qs.toString()}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-  })
-  if (!r.ok) {
-    const txt = await r.text().catch(() => '')
-    return { active: false, error: `paypal_${r.status}`, raw: txt.slice(0, 300) }
-  }
-  const j: any = await r.json()
   const target = email.trim().toLowerCase()
-  const details: any[] = Array.isArray(j?.transaction_details) ? j.transaction_details : []
-  const match = details.find((t) => {
-    const em = (t?.payer_info?.email_address || '').toLowerCase()
-    return em && em === target
-  })
-  return { active: !!match, raw: match ? { id: match?.transaction_info?.transaction_id } : undefined }
+  const sampleEmails: string[] = []
+  let scanned = 0
+  let lastError: string | undefined
+
+  // Try both Successful and Pending — hosted-button captures often sit Pending briefly.
+  for (const status of ['S', 'P']) {
+    let page = 1
+    while (page <= 5) {
+      const qs = new URLSearchParams({
+        start_date: fmt(start),
+        end_date: fmt(end),
+        fields: 'payer_info,transaction_info,cart_info',
+        page_size: '100',
+        page: String(page),
+        transaction_status: status,
+      })
+      const r = await fetch(`${paypalBase()}/v1/reporting/transactions?${qs.toString()}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      })
+      if (!r.ok) {
+        const txt = await r.text().catch(() => '')
+        lastError = `paypal_${r.status}_status_${status}${txt ? ':' + txt.slice(0, 120) : ''}`
+        break
+      }
+      const j: any = await r.json()
+      const details: any[] = Array.isArray(j?.transaction_details) ? j.transaction_details : []
+      scanned += details.length
+      for (const t of details) {
+        const em = (t?.payer_info?.email_address || '').toLowerCase()
+        if (em) {
+          if (sampleEmails.length < 8 && !sampleEmails.includes(em)) sampleEmails.push(em)
+          if (em === target) {
+            return { active: true, raw: { id: t?.transaction_info?.transaction_id, status }, scanned, sampleEmails }
+          }
+        }
+      }
+      const totalPages = Number(j?.total_pages || 1)
+      if (page >= totalPages) break
+      page += 1
+    }
+  }
+  return { active: false, error: lastError, scanned, sampleEmails }
+}
+
+// Manual override list — comma-separated emails granted access without PayPal verification.
+// Set MANUAL_ACTIVATED_EMAILS secret to activate a user immediately (bypasses PayPal lag).
+function isManuallyActivated(email: string): boolean {
+  const raw = process.env.MANUAL_ACTIVATED_EMAILS || ''
+  if (!raw) return false
+  const list = raw.split(/[,;\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean)
+  return list.includes(email.trim().toLowerCase())
 }
 
 export const Route = createFileRoute('/api/public/check-subscription')({
@@ -122,23 +149,39 @@ export const Route = createFileRoute('/api/public/check-subscription')({
           const u = new URL(request.url)
           const adminId = (u.searchParams.get('admin_id') || '').trim()
           const email = (u.searchParams.get('email') || '').trim().toLowerCase()
+          const debug = u.searchParams.get('debug') === '1'
           if (!adminId || !email) {
             return new Response(JSON.stringify({ active: false, error: 'missing admin_id or email' }), { status: 400, headers: CORS })
           }
 
-          // 1) Portal (authoritative if it already flags the account active)
+          // 0) Manual override
+          if (isManuallyActivated(email)) {
+            return new Response(JSON.stringify({ active: true, via: 'manual' }), { status: 200, headers: CORS })
+          }
+
+          // 1) Portal
           const portal = await checkUpstream(adminId, email)
           if (portal.active) {
             return new Response(JSON.stringify({ active: true, via: 'portal', source: portal.source }), { status: 200, headers: CORS })
           }
 
-          // 2) PayPal REST fallback — verify a successful payment exists for this email.
+          // 2) PayPal REST fallback (Transaction Search may lag up to 3 hours after checkout).
           const paypal = await checkPayPalByEmail(email)
           if (paypal.active) {
             return new Response(JSON.stringify({ active: true, via: 'paypal', txn: (paypal.raw as any)?.id }), { status: 200, headers: CORS })
           }
 
-          return new Response(JSON.stringify({ active: false, via: 'none', paypalError: paypal.error, paypalRaw: paypal.raw }), { status: 200, headers: CORS })
+          const body: any = {
+            active: false,
+            via: 'none',
+            hint: 'PayPal Transaction Search can lag up to 3 hours after payment. Try again shortly, and confirm the email matches the one used at PayPal checkout.',
+          }
+          if (debug) {
+            body.paypalError = paypal.error
+            body.paypalScanned = paypal.scanned
+            body.paypalSampleEmails = paypal.sampleEmails
+          }
+          return new Response(JSON.stringify(body), { status: 200, headers: CORS })
         } catch (e: any) {
           return new Response(JSON.stringify({ active: false, error: e?.message || 'server error' }), { status: 500, headers: CORS })
         }
