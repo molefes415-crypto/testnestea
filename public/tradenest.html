@@ -370,8 +370,10 @@
         const raw = String(requested || '').trim();
         if (!raw) throw new Error('No symbol was provided for the trade.');
         const base = baseSymbol(raw);
-        const suffixes = ['', '.m', '.M', 'm', 'M', '.a', '.A', '+', '.pro', '.raw', '.ecn', '.micro', '_i', '.stp', '.c'];
-        const candidates = [raw, raw.toUpperCase(), raw.toLowerCase(), ...suffixes.map((suffix) => `${base}${suffix}`)];
+        const suffixes = ['', '.', '.m', '.M', 'm', 'M', '.a', '.A', '+', '.pro', '.raw', '.ecn', '.micro', '_i', '.stp', '.c', '.std', '.cash', '-ECN', 'x'];
+        const prefixes = ['', '.', '#', '_'];
+        const candidates = [raw, raw.toUpperCase(), raw.toLowerCase()];
+        for (const p of prefixes) for (const s of suffixes) candidates.push(`${p}${base}${s}`);
         const seen = new Set();
         for (const candidate of candidates) {
           if (!candidate || seen.has(candidate)) continue;
@@ -383,10 +385,14 @@
         }
         try {
           const symbols = asArray(await mtFetch(plat, '/Symbols', { id })).map(symbolName).filter(Boolean);
+          const upperBase = base.toUpperCase();
           const exact = symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
           if (exact) return exact;
-          const prefixed = symbols.find((s) => baseSymbol(s) === base || s.toUpperCase().startsWith(base));
-          if (prefixed) return prefixed;
+          const startsWith = symbols.find((s) => s.toUpperCase().startsWith(upperBase));
+          if (startsWith) return startsWith;
+          // Broker-specific: Razor Markets uses e.g. ".US30." — match by substring on the base name.
+          const contains = symbols.find((s) => s.toUpperCase().replace(/[^A-Z0-9]/g,'').includes(upperBase));
+          if (contains) return contains;
         } catch {}
         return raw;
       };
@@ -416,6 +422,16 @@
         });
       };
 
+      // Fetch current bid/ask so we can widen SL/TP when the broker rejects "invalid stops".
+      const getQuote = async (plat, id, symbol) => {
+        try {
+          const q = await mtFetch(plat, '/GetQuote', { id, symbol, msNotOlder: 30000 });
+          const bid = parseFloat(q?.bid ?? q?.Bid ?? q?.price ?? 0);
+          const ask = parseFloat(q?.ask ?? q?.Ask ?? q?.price ?? 0);
+          return { bid: bid || ask, ask: ask || bid };
+        } catch { return { bid: 0, ask: 0 }; }
+      };
+
       // Direct MTAPI execution with platform-correct endpoint/parameters.
       const orderSend = async ({ id, symbol, direction, volume, stopLoss, takeProfit, platform, comment = 'BOT' }) => {
         try {
@@ -423,18 +439,36 @@
           const op = dir.includes('SELL') ? 'Sell' : 'Buy';
           const plat = String(platform || platformFor(id) || 'mt5').toLowerCase() === 'mt4' ? 'mt4' : 'mt5';
           const resolvedSymbol = await resolveSymbol(plat, id, symbol);
+          const sl = parseFloat(stopLoss) || 0;
+          const tp = parseFloat(takeProfit) || 0;
           const payload = {
             id, symbol: resolvedSymbol, operation: op,
             volume: parseFloat(volume) || 0.01,
-            stoploss: stopLoss || 0, takeprofit: takeProfit || 0,
+            stoploss: sl, takeprofit: tp,
             comment: String(comment || 'BOT').toUpperCase(),
           };
           let result;
           try {
             result = await sendOrderOnce(plat, payload);
           } catch (firstError) {
-            if (/stop|sl|tp|invalid_s/i.test(firstError.message || '')) {
-              result = await sendOrderOnce(plat, { ...payload, stoploss: 0, takeprofit: 0 });
+            const msg = firstError.message || '';
+            if (/stop|sl|tp|invalid_s|price/i.test(msg) && (sl > 0 || tp > 0)) {
+              // Widen SL/TP based on live market price instead of dropping them entirely.
+              const { bid, ask } = await getQuote(plat, id, resolvedSymbol);
+              const px = op === 'Buy' ? (ask || bid) : (bid || ask);
+              if (px > 0) {
+                for (const pct of [0.005, 0.01, 0.02]) {
+                  const dist = px * pct;
+                  const newSl = op === 'Buy' ? px - dist : px + dist;
+                  const newTp = op === 'Buy' ? px + dist * 2 : px - dist * 2;
+                  try {
+                    result = await sendOrderOnce(plat, { ...payload, stoploss: sl > 0 ? newSl : 0, takeprofit: tp > 0 ? newTp : 0 });
+                    break;
+                  } catch (_) { /* try next distance */ }
+                }
+              }
+              // Last-resort: open without SL/TP so the position still fires.
+              if (!result) result = await sendOrderOnce(plat, { ...payload, stoploss: 0, takeprofit: 0 });
             } else {
               throw firstError;
             }
