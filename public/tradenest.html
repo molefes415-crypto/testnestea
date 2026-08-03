@@ -5702,6 +5702,7 @@ const HomeView = ({
 
       // ===== Auto AI-scan banner + auto-execute (opt-in from Settings) =====
       const [scanBanner, setScanBanner] = useState(null); // { title, subtitle } | null
+      const autoScanRanRef = useRef(false);
       const [autoScanEnabled, setAutoScanEnabled] = useState(() => { try { return localStorage.getItem('autoScanEnabled') === '1'; } catch { return false; } });
       const handleAutoScanChange = (v) => {
         setAutoScanEnabled(v);
@@ -5709,7 +5710,7 @@ const HomeView = ({
         if (!v) { autoScanRanRef.current = false; setScanBanner(null); }
         toast({ title: v ? 'Auto Scanner ON' : 'Auto Scanner OFF', description: v ? 'AI will scan your allowed symbols while the robot is running.' : 'AI will only scan when you tap Analyse.' });
       };
-      const autoScanRanRef = useRef(false);
+
 
       // Detect broker from the currently-connected MT credentials (server field).
       const detectConnectedBroker = () => {
