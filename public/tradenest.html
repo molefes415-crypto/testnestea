@@ -529,15 +529,34 @@
     const ToastContext = React.createContext(null);
     const ToastProvider = ({ children }) => {
       const [toasts, setToasts] = useState([]);
+      const timersRef = useRef({});
+      const dismiss = (id) => {
+        setToasts(prev => prev.filter(x => x.id !== id));
+        if (timersRef.current[id]) { clearTimeout(timersRef.current[id]); delete timersRef.current[id]; }
+      };
       const addToast = (t) => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { ...t, id }]);
-        setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3000);
+        const id = Date.now() + Math.random();
+        const key = `${t.title||''}|${t.description||''}`;
+        setToasts(prev => {
+          // ignore an identical toast that is still on screen (stops signal spam stacking)
+          if (prev.some(x => x.key === key)) return prev;
+          const next = [...prev, { ...t, id, key }];
+          // never stack more than 3 at once — drop the oldest
+          while (next.length > 3) { const old = next.shift(); if (timersRef.current[old.id]) { clearTimeout(timersRef.current[old.id]); delete timersRef.current[old.id]; } }
+          return next;
+        });
+        timersRef.current[id] = setTimeout(() => dismiss(id), 5000);
       };
       return (
         <ToastContext.Provider value={addToast}>
           {children}
           <div style={{ position:'fixed', top:16, left:'50%', transform:'translateX(-50%)', zIndex:999, display:'flex', flexDirection:'column', gap:8, width:'calc(100% - 32px)', maxWidth:380, pointerEvents:'none' }}>
+            {toasts.length > 1 && (
+              <button onClick={() => { Object.values(timersRef.current).forEach(clearTimeout); timersRef.current = {}; setToasts([]); }}
+                style={{alignSelf:'flex-end',pointerEvents:'auto',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.8)',fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:999,cursor:'pointer'}}>
+                Clear all
+              </button>
+            )}
             {toasts.map(t => (
               <div key={t.id} className="animate-slide-in-up" style={{
                 background: t.variant === 'destructive' ? 'rgba(220,38,38,0.95)' : 'rgba(22,22,22,0.95)',
@@ -545,10 +564,14 @@
                 color:'white', padding:'14px 18px', borderRadius:14, maxWidth:'100%',
                 boxShadow:'0 8px 40px rgba(0,0,0,0.4)',
                 border: t.variant === 'destructive' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.08)',
-                pointerEvents:'auto'
+                pointerEvents:'auto', display:'flex', alignItems:'flex-start', gap:10
               }}>
-                <div style={{fontWeight:600, fontSize:13, marginBottom:2}}>{t.title}</div>
-                <div style={{opacity:0.7, fontSize:12, fontWeight:400}}>{t.description}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600, fontSize:13, marginBottom:2}}>{t.title}</div>
+                  <div style={{opacity:0.7, fontSize:12, fontWeight:400}}>{t.description}</div>
+                </div>
+                <button onClick={() => dismiss(t.id)} aria-label="Dismiss notification"
+                  style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.6)',fontSize:18,lineHeight:1,cursor:'pointer',padding:'0 2px',flexShrink:0}}>×</button>
               </div>
             ))}
           </div>
