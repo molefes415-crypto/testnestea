@@ -3483,6 +3483,7 @@ const HomeView = ({
 
     // ====== Settings View ======
     const SettingsView = ({ themeColor, onColorChange, themeName, currentFont, onFontChange, onEffect, onOpenSettings, onOpenChartAnalyzer, botSettings, interfaceMode, onInterfaceModeChange, isListening, voiceTranscript, onToggleVoice,
+      autoScanEnabled, onAutoScanChange,
       glassStyle, onGlassStyleChange, heroStyle, onHeroStyleChange, cardImage, onCardImageChange, cardShape, onCardShapeChange, textCase, onTextCaseChange, background, onBackgroundChange, customBgImage, onCustomBgImage, customBgVideo, onCustomBgVideo, buttonStyle, onButtonStyleChange }) => {
       const tc = themeColor || colorMap.graphite;
       const a = tc.accent;
@@ -3689,6 +3690,24 @@ const HomeView = ({
               )}
             </div>
           </Section>
+
+          {/* AI Auto Scanner */}
+          <Section title="AI Scanner">
+            <button onClick={()=>onAutoScanChange?.(!autoScanEnabled)} style={{width:'100%',borderRadius:14,padding:'14px',border:autoScanEnabled?`1px solid ${a}`:'1px solid rgba(255,255,255,0.08)',background:autoScanEnabled?`${a}14`:'rgba(255,255,255,0.02)',cursor:'pointer',display:'flex',alignItems:'center',gap:12,color:'white',textAlign:'left'}}>
+              <span style={{fontSize:20}}>🤖</span>
+              <div style={{flex:1}}>
+                <p style={{fontSize:14,fontWeight:700}}>Auto Scanner {autoScanEnabled?'ON':'OFF'}</p>
+                <p style={{fontSize:11,opacity:0.45,marginTop:2}}>{autoScanEnabled?'Scans your allowed symbols only while the robot is running.':'Off — nothing is scanned unless you upload/choose a chart and tap Analyse.'}</p>
+              </div>
+              <div style={{width:44,height:24,borderRadius:12,background:autoScanEnabled?a:'rgba(255,255,255,0.12)',position:'relative',flexShrink:0,transition:'all .25s'}}>
+                <div style={{position:'absolute',top:3,left:autoScanEnabled?23:3,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'all .25s'}}/>
+              </div>
+            </button>
+            <button onClick={onOpenChartAnalyzer} style={{width:'100%',marginTop:10,padding:'12px',borderRadius:12,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.75)',fontWeight:700,cursor:'pointer'}}>
+              📈 Open Chart Scanner (manual)
+            </button>
+          </Section>
+
 
           {/* Voice Theme */}
           <button onClick={onToggleVoice} style={{width:'100%',borderRadius:14,padding:'16px 18px',border:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',display:'flex',alignItems:'center',gap:12,color:'white',background:isListening?'rgba(34,197,94,0.12)':'rgba(255,255,255,0.02)',transition:'all 0.3s'}}>
@@ -5700,9 +5719,18 @@ const HomeView = ({
       const [tradeDelayTimer, setTradeDelayTimer] = useState(null);
       const [tradeDelaySeconds, setTradeDelaySeconds] = useState(0);
 
-      // ===== Auto AI-scan banner + auto-execute on app open =====
+      // ===== Auto AI-scan banner + auto-execute (opt-in from Settings) =====
       const [scanBanner, setScanBanner] = useState(null); // { title, subtitle } | null
       const autoScanRanRef = useRef(false);
+      const [autoScanEnabled, setAutoScanEnabled] = useState(() => { try { return localStorage.getItem('autoScanEnabled') === '1'; } catch { return false; } });
+      const handleAutoScanChange = (v) => {
+        setAutoScanEnabled(v);
+        try { localStorage.setItem('autoScanEnabled', v ? '1' : '0'); } catch {}
+        if (!v) { autoScanRanRef.current = false; setScanBanner(null); }
+        toast({ title: v ? 'Auto Scanner ON' : 'Auto Scanner OFF', description: v ? 'AI will scan your allowed symbols while the robot is running.' : 'AI will only scan when you tap Analyse.' });
+      };
+
+
       // Detect broker from the currently-connected MT credentials (server field).
       const detectConnectedBroker = () => {
         try {
@@ -5759,9 +5787,11 @@ const HomeView = ({
       };
       useEffect(() => {
         if (autoScanRanRef.current) return;
+        if (!autoScanEnabled) { console.log('[AUTOSCAN] Auto Scanner is OFF in Settings — no scanning'); return; }
         if (!selectedEA) return;
         const botOn = showDraggableIcon || !!tradeDelayTimer;
         if (!botOn) { console.log('[AUTOSCAN] Bot is OFF — auto-scan disabled'); return; }
+
         // Only scan symbols the user activated in Quotes. If none, do nothing.
         const allowedList = Object.keys(allowedSymbols||{});
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
@@ -5810,14 +5840,15 @@ const HomeView = ({
             if (cancelled) return clearInterval(iv);
             // Stop the loop if the bot has been switched off in the meantime
             const stillOn = showDraggableIcon || !!tradeDelayTimer;
-            if (!stillOn) { console.log('[AUTOSCAN] Bot switched OFF — stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
+            if (!stillOn || !autoScanEnabled) { console.log('[AUTOSCAN] Stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
             for (const base of FOCUS) { if (cancelled) return; await scanOne(base); await new Promise(r=>setTimeout(r,1200)); }
           }, 180000);
         })();
 
         return () => { cancelled = true; };
         // eslint-disable-next-line
-      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols]);
+      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled]);
+
 
       const handleStartTrading = (ea) => {
         if(showDraggableIcon||tradeDelayTimer){
@@ -6015,7 +6046,7 @@ const HomeView = ({
             if (interfaceMode==='nexus_pro') return <NexusProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             return <HomeView eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} onColorChange={handleColorChange} themeColor={themeColor} onNavigate={setActiveTab} onStopTrading={handleFullStop} onSwitchMode={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} onEffect={setActiveEffect} onChangePic={img=>{const s={...botSettings,image:img};setBotSettings(s);localStorage.setItem('botSettings',JSON.stringify(s));}} tradeDelaySeconds={tradeDelaySeconds} onOpenChartAnalyzer={handleOpenChartAnalyzer} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} interfaceMode={interfaceMode} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange} cardShape={cardShape}/>;
           case 'metatrader': return <MetaTraderView isVIP={interfaceMode==='vip'} themeColor={themeColor}/>;
-          case 'settings': return <SettingsView themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
+          case 'settings': return <SettingsView autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
         }
       };
