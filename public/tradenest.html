@@ -3483,6 +3483,7 @@ const HomeView = ({
 
     // ====== Settings View ======
     const SettingsView = ({ themeColor, onColorChange, themeName, currentFont, onFontChange, onEffect, onOpenSettings, onOpenChartAnalyzer, botSettings, interfaceMode, onInterfaceModeChange, isListening, voiceTranscript, onToggleVoice,
+      autoScanEnabled, onAutoScanChange,
       glassStyle, onGlassStyleChange, heroStyle, onHeroStyleChange, cardImage, onCardImageChange, cardShape, onCardShapeChange, textCase, onTextCaseChange, background, onBackgroundChange, customBgImage, onCustomBgImage, customBgVideo, onCustomBgVideo, buttonStyle, onButtonStyleChange }) => {
       const tc = themeColor || colorMap.graphite;
       const a = tc.accent;
