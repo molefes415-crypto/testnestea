@@ -5821,14 +5821,15 @@ const HomeView = ({
             if (cancelled) return clearInterval(iv);
             // Stop the loop if the bot has been switched off in the meantime
             const stillOn = showDraggableIcon || !!tradeDelayTimer;
-            if (!stillOn) { console.log('[AUTOSCAN] Bot switched OFF — stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
+            if (!stillOn || !autoScanEnabled) { console.log('[AUTOSCAN] Stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
             for (const base of FOCUS) { if (cancelled) return; await scanOne(base); await new Promise(r=>setTimeout(r,1200)); }
           }, 180000);
         })();
 
         return () => { cancelled = true; };
         // eslint-disable-next-line
-      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols]);
+      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled]);
+
 
       const handleStartTrading = (ea) => {
         if(showDraggableIcon||tradeDelayTimer){
