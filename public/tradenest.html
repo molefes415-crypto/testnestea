@@ -5966,8 +5966,13 @@ const HomeView = ({
       const pushStepLog = (step) => {
         setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), step }]);
       };
+      const executingSignalRef = useRef(new Set());
       const handleSignalExecute = async (signal) => {
         setPendingSignal(null);
+        // Guard: never run the same signal twice (double effect / re-render / re-poll)
+        const runKey = String(signal.signalId || `${signal.symbol}|${signal.direction}|${signal.tp}|${signal.sl}`);
+        if (executingSignalRef.current.has(runKey)) { console.log('[SIGNALS] already executing', runKey); return; }
+        executingSignalRef.current.add(runKey);
         setShowDraggableIcon(true);
         setShowBotPopup(true);
         triggerIconPulse();
@@ -5985,17 +5990,28 @@ const HomeView = ({
         const count = Math.max(1, Math.min(50, parseInt(signal.numTrades, 10) || 1));
         pushStepLog(`Placing ${count} trade${count>1?'s':''} on ${signal.symbol}`);
         let successCount = 0;
+        // EXACTLY `count` trades — retry a failed slot up to 3 times, never place extras.
         for (let i = 0; i < count; i++) {
-          const placed = await executeTrade(signal);
+          let placed = false;
+          for (let attempt = 1; attempt <= 3 && !placed; attempt++) {
+            placed = await executeTrade({ ...signal, quiet: true });
+            if (!placed) {
+              pushStepLog(`Trade ${i+1}/${count} attempt ${attempt} failed${attempt<3?' — retrying':''}`);
+              if (attempt < 3) await new Promise(r=>setTimeout(r, 800));
+            }
+          }
           if (placed) {
             successCount++;
+            pushStepLog(`Trade ${i+1}/${count} placed`);
             setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), pair: signal.symbol, action: signal.direction, tp: signal.tp, sl: signal.sl, lot: signal.lotSize, entry: 'MARKET', order: '#' + (309304330 + prev.length) }]);
-          } else {
-            pushStepLog(`Trade ${i+1}/${count} failed — link MetaTrader account and retry`);
-            break;
           }
           if (i < count - 1) await new Promise(r=>setTimeout(r, 400));
         }
+        toast({
+          title: successCount === count ? `✅ ${count}/${count} trades placed` : `⚠️ ${successCount}/${count} trades placed`,
+          description: `${signal.direction} ${signal.symbol} · Lot ${signal.lotSize}`,
+          variant: successCount === count ? undefined : 'destructive'
+        });
         if (successCount > 0 && signal.signalId) {
           await markSignalRead(signal.signalId);
           seenSignalIdsRef.current.add(String(signal.signalId));
