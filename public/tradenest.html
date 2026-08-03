@@ -529,15 +529,34 @@
     const ToastContext = React.createContext(null);
     const ToastProvider = ({ children }) => {
       const [toasts, setToasts] = useState([]);
+      const timersRef = useRef({});
+      const dismiss = (id) => {
+        setToasts(prev => prev.filter(x => x.id !== id));
+        if (timersRef.current[id]) { clearTimeout(timersRef.current[id]); delete timersRef.current[id]; }
+      };
       const addToast = (t) => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { ...t, id }]);
-        setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3000);
+        const id = Date.now() + Math.random();
+        const key = `${t.title||''}|${t.description||''}`;
+        setToasts(prev => {
+          // ignore an identical toast that is still on screen (stops signal spam stacking)
+          if (prev.some(x => x.key === key)) return prev;
+          const next = [...prev, { ...t, id, key }];
+          // never stack more than 3 at once — drop the oldest
+          while (next.length > 3) { const old = next.shift(); if (timersRef.current[old.id]) { clearTimeout(timersRef.current[old.id]); delete timersRef.current[old.id]; } }
+          return next;
+        });
+        timersRef.current[id] = setTimeout(() => dismiss(id), 5000);
       };
       return (
         <ToastContext.Provider value={addToast}>
           {children}
           <div style={{ position:'fixed', top:16, left:'50%', transform:'translateX(-50%)', zIndex:999, display:'flex', flexDirection:'column', gap:8, width:'calc(100% - 32px)', maxWidth:380, pointerEvents:'none' }}>
+            {toasts.length > 1 && (
+              <button onClick={() => { Object.values(timersRef.current).forEach(clearTimeout); timersRef.current = {}; setToasts([]); }}
+                style={{alignSelf:'flex-end',pointerEvents:'auto',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.8)',fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:999,cursor:'pointer'}}>
+                Clear all
+              </button>
+            )}
             {toasts.map(t => (
               <div key={t.id} className="animate-slide-in-up" style={{
                 background: t.variant === 'destructive' ? 'rgba(220,38,38,0.95)' : 'rgba(22,22,22,0.95)',
@@ -545,10 +564,14 @@
                 color:'white', padding:'14px 18px', borderRadius:14, maxWidth:'100%',
                 boxShadow:'0 8px 40px rgba(0,0,0,0.4)',
                 border: t.variant === 'destructive' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.08)',
-                pointerEvents:'auto'
+                pointerEvents:'auto', display:'flex', alignItems:'flex-start', gap:10
               }}>
-                <div style={{fontWeight:600, fontSize:13, marginBottom:2}}>{t.title}</div>
-                <div style={{opacity:0.7, fontSize:12, fontWeight:400}}>{t.description}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600, fontSize:13, marginBottom:2}}>{t.title}</div>
+                  <div style={{opacity:0.7, fontSize:12, fontWeight:400}}>{t.description}</div>
+                </div>
+                <button onClick={() => dismiss(t.id)} aria-label="Dismiss notification"
+                  style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.6)',fontSize:18,lineHeight:1,cursor:'pointer',padding:'0 2px',flexShrink:0}}>×</button>
               </div>
             ))}
           </div>
@@ -5911,14 +5934,14 @@ const HomeView = ({
         setTradeData(null);
       };
 
-      const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
+      const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform, quiet }) => {
         const targetPlatform = String(platform || 'MT5').toUpperCase() === 'MT4' ? 'MT4' : 'MT5';
         const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
         const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
         const accountId = targetPlatform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
         if (accountId) {
           try {
-            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
+            if (!quiet) toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
             const actionType = String(direction || '').toUpperCase().includes('BUY') ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
             await callMetaAPIFromApp('trade', {
               accountId, actionType, symbol,
@@ -5927,10 +5950,10 @@ const HomeView = ({
               takeProfit: tp || undefined,
               platform: targetPlatform,
             });
-            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${targetPlatform}` });
+            if (!quiet) toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${targetPlatform}` });
             return true;
           } catch (err) {
-            toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
+            if (!quiet) toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
             setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), step: `MTAPI rejected trade: ${err.message}` }]);
             return false;
           }
@@ -5943,8 +5966,13 @@ const HomeView = ({
       const pushStepLog = (step) => {
         setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), step }]);
       };
+      const executingSignalRef = useRef(new Set());
       const handleSignalExecute = async (signal) => {
         setPendingSignal(null);
+        // Guard: never run the same signal twice (double effect / re-render / re-poll)
+        const runKey = String(signal.signalId || `${signal.symbol}|${signal.direction}|${signal.tp}|${signal.sl}`);
+        if (executingSignalRef.current.has(runKey)) { console.log('[SIGNALS] already executing', runKey); return; }
+        executingSignalRef.current.add(runKey);
         setShowDraggableIcon(true);
         setShowBotPopup(true);
         triggerIconPulse();
@@ -5962,17 +5990,28 @@ const HomeView = ({
         const count = Math.max(1, Math.min(50, parseInt(signal.numTrades, 10) || 1));
         pushStepLog(`Placing ${count} trade${count>1?'s':''} on ${signal.symbol}`);
         let successCount = 0;
+        // EXACTLY `count` trades — retry a failed slot up to 3 times, never place extras.
         for (let i = 0; i < count; i++) {
-          const placed = await executeTrade(signal);
+          let placed = false;
+          for (let attempt = 1; attempt <= 3 && !placed; attempt++) {
+            placed = await executeTrade({ ...signal, quiet: true });
+            if (!placed) {
+              pushStepLog(`Trade ${i+1}/${count} attempt ${attempt} failed${attempt<3?' — retrying':''}`);
+              if (attempt < 3) await new Promise(r=>setTimeout(r, 800));
+            }
+          }
           if (placed) {
             successCount++;
+            pushStepLog(`Trade ${i+1}/${count} placed`);
             setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), pair: signal.symbol, action: signal.direction, tp: signal.tp, sl: signal.sl, lot: signal.lotSize, entry: 'MARKET', order: '#' + (309304330 + prev.length) }]);
-          } else {
-            pushStepLog(`Trade ${i+1}/${count} failed — link MetaTrader account and retry`);
-            break;
           }
           if (i < count - 1) await new Promise(r=>setTimeout(r, 400));
         }
+        toast({
+          title: successCount === count ? `✅ ${count}/${count} trades placed` : `⚠️ ${successCount}/${count} trades placed`,
+          description: `${signal.direction} ${signal.symbol} · Lot ${signal.lotSize}`,
+          variant: successCount === count ? undefined : 'destructive'
+        });
         if (successCount > 0 && signal.signalId) {
           await markSignalRead(signal.signalId);
           seenSignalIdsRef.current.add(String(signal.signalId));
