@@ -5700,9 +5700,17 @@ const HomeView = ({
       const [tradeDelayTimer, setTradeDelayTimer] = useState(null);
       const [tradeDelaySeconds, setTradeDelaySeconds] = useState(0);
 
-      // ===== Auto AI-scan banner + auto-execute on app open =====
+      // ===== Auto AI-scan banner + auto-execute (opt-in from Settings) =====
       const [scanBanner, setScanBanner] = useState(null); // { title, subtitle } | null
+      const [autoScanEnabled, setAutoScanEnabled] = useState(() => { try { return localStorage.getItem('autoScanEnabled') === '1'; } catch { return false; } });
+      const handleAutoScanChange = (v) => {
+        setAutoScanEnabled(v);
+        try { localStorage.setItem('autoScanEnabled', v ? '1' : '0'); } catch {}
+        if (!v) { autoScanRanRef.current = false; setScanBanner(null); }
+        toast({ title: v ? 'Auto Scanner ON' : 'Auto Scanner OFF', description: v ? 'AI will scan your allowed symbols while the robot is running.' : 'AI will only scan when you tap Analyse.' });
+      };
       const autoScanRanRef = useRef(false);
+
       // Detect broker from the currently-connected MT credentials (server field).
       const detectConnectedBroker = () => {
         try {
