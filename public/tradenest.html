@@ -5768,9 +5768,11 @@ const HomeView = ({
       };
       useEffect(() => {
         if (autoScanRanRef.current) return;
+        if (!autoScanEnabled) { console.log('[AUTOSCAN] Auto Scanner is OFF in Settings — no scanning'); return; }
         if (!selectedEA) return;
         const botOn = showDraggableIcon || !!tradeDelayTimer;
         if (!botOn) { console.log('[AUTOSCAN] Bot is OFF — auto-scan disabled'); return; }
+
         // Only scan symbols the user activated in Quotes. If none, do nothing.
         const allowedList = Object.keys(allowedSymbols||{});
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
