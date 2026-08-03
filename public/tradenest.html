@@ -5934,14 +5934,14 @@ const HomeView = ({
         setTradeData(null);
       };
 
-      const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform }) => {
+      const executeTrade = async ({ symbol, direction, tp, sl, lotSize, platform, quiet }) => {
         const targetPlatform = String(platform || 'MT5').toUpperCase() === 'MT4' ? 'MT4' : 'MT5';
         const mt5AccId = localStorage.getItem('mt_accountId_mt5') || '';
         const mt4AccId = localStorage.getItem('mt_accountId_mt4') || '';
         const accountId = targetPlatform === 'MT4' ? (mt4AccId || mt5AccId) : (mt5AccId || mt4AccId);
         if (accountId) {
           try {
-            toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
+            if (!quiet) toast({ title: 'Executing Trade...', description: `Sending ${direction} ${symbol} via ${targetPlatform}...` });
             const actionType = String(direction || '').toUpperCase().includes('BUY') ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
             await callMetaAPIFromApp('trade', {
               accountId, actionType, symbol,
@@ -5950,10 +5950,10 @@ const HomeView = ({
               takeProfit: tp || undefined,
               platform: targetPlatform,
             });
-            toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${targetPlatform}` });
+            if (!quiet) toast({ title: 'Trade Placed!', description: `${direction} ${lotSize} ${symbol} on ${targetPlatform}` });
             return true;
           } catch (err) {
-            toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
+            if (!quiet) toast({ title: 'Trade Failed', description: err.message, variant: 'destructive' });
             setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), step: `MTAPI rejected trade: ${err.message}` }]);
             return false;
           }
