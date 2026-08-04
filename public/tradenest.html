@@ -4929,10 +4929,14 @@ const HomeView = ({
       const [opened, setOpened] = useState(false);
 
       const openCheckout = () => {
-        try { window.open(PAYPAL_CHECKOUT_URL, '_blank', 'noopener,noreferrer'); } catch(_) {}
+        const ret = window.location.origin + '/paypal-return.html';
+        const url = PAYPAL_CHECKOUT_URL + (PAYPAL_CHECKOUT_URL.includes('?') ? '&' : '?') + 'return=' + encodeURIComponent(ret);
+        try { localStorage.setItem('tn_paypal_email', email || ''); } catch(_) {}
+        try { window.open(url, '_blank', 'noopener,noreferrer'); } catch(_) {}
         setOpened(true);
-        setMsg('Complete payment in the PayPal tab, then tap "I\'ve Paid" below.');
+        setMsg('Complete payment in the PayPal tab — you\'ll be returned to a success page that opens the app. Or tap "I\'ve Paid" below.');
       };
+
 
       const confirmPaid = async () => {
         setStatus('processing');
@@ -4957,7 +4961,22 @@ const HomeView = ({
         }
       };
 
+      // Auto-verify when the user comes back from the PayPal success page.
+      useEffect(() => {
+        let returned = false;
+        try {
+          returned = new URLSearchParams(window.location.search).get('paypal') === 'success'
+            || localStorage.getItem('tn_paypal_returned') === '1';
+        } catch(_) {}
+        if (!returned) return;
+        try { localStorage.removeItem('tn_paypal_returned'); } catch(_) {}
+        setOpened(true);
+        confirmPaid();
+        // eslint-disable-next-line
+      }, []);
+
       return (
+
         <div style={{position:'fixed',inset:0,zIndex:600,background:'radial-gradient(ellipse at 50% 0%, #1a0a10 0%, #050505 55%, #000 100%)',display:'flex',flexDirection:'column',padding:'28px 20px',overflow:'auto'}} className="animate-fade-in">
           <button onClick={onCancel} style={{alignSelf:'flex-start',background:'transparent',border:'none',color:'rgba(255,255,255,0.55)',fontSize:12,cursor:'pointer',marginBottom:10,fontFamily:'Orbitron',letterSpacing:2}}>← BACK</button>
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',maxWidth:420,width:'100%',margin:'0 auto'}}>
