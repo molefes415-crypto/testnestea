@@ -5666,21 +5666,23 @@ const HomeView = ({
         } catch(e) { console.error('[SIGNALS] Signal poll error', e); }
       }, [allowedSymbols, toast]);
 
-      // Poll only when the bot is switched ON and the user has at least one allowed symbol
+      // Poll ONLY after the user has pressed START, and only with at least one allowed symbol
       const pollRef = useRef(null);
       useEffect(() => {
         const hasAllowed = Object.keys(allowedSymbols||{}).length > 0;
-        if (selectedEA?.licenseKey && hasAllowed) {
+        if (selectedEA?.licenseKey && hasAllowed && botRunning) {
           console.log('[SIGNALS] Starting poll for EA', selectedEA?.name, 'key', String(selectedEA.licenseKey).slice(0,6)+'...', 'symbols', Object.keys(allowedSymbols));
           processSignals(selectedEA);
           pollRef.current = setInterval(() => processSignals(selectedEA), 15000);
         } else {
-          if (!selectedEA?.licenseKey) console.log('[SIGNALS] No selectedEA/licenseKey - polling disabled');
+          if (!botRunning) console.log('[SIGNALS] Robot is not started — polling disabled');
+          else if (!selectedEA?.licenseKey) console.log('[SIGNALS] No selectedEA/licenseKey - polling disabled');
           else if (!hasAllowed) console.log('[SIGNALS] No allowed symbols selected — polling disabled');
           clearInterval(pollRef.current);
         }
         return () => clearInterval(pollRef.current);
-      }, [selectedEA, processSignals, allowedSymbols]);
+      }, [selectedEA, processSignals, allowedSymbols, botRunning]);
+
 
 
       const [showExecution, setShowExecution] = useState(false);
