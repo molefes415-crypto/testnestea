@@ -5132,6 +5132,9 @@ const HomeView = ({
       const [eas, setEas] = useState(()=>{try{const s=localStorage.getItem('savedEAs');return s?JSON.parse(s):[];}catch{return [];}});
       const [selectedEA, setSelectedEA] = useState(()=>{try{const s=localStorage.getItem('savedEAs');const arr=s?JSON.parse(s):[];return arr.length>0?arr[0]:null;}catch{return null;}});
       const [showDraggableIcon, setShowDraggableIcon] = useState(false);
+      // TRUE only after the user presses START — no signals/trades are taken before that.
+      const [botRunning, setBotRunning] = useState(false);
+
       const [tradingEA, setTradingEA] = useState(null);
       const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
       const [showChartAnalyzer, setShowChartAnalyzer] = useState(initialView === 'chart');
