@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
+import { Route as ApiPublicPaypalRouteImport } from './routes/api/public/paypal'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
 import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vision'
@@ -23,6 +25,16 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
+  id: '/api/public/paypal-webhook',
+  path: '/api/public/paypal-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaypalRoute = ApiPublicPaypalRouteImport.update({
+  id: '/api/public/paypal',
+  path: '/api/public/paypal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCheckSubscriptionRoute =
@@ -48,6 +60,8 @@ export interface FileRoutesByFullPath {
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
+  '/api/public/paypal': typeof ApiPublicPaypalRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -55,6 +69,8 @@ export interface FileRoutesByTo {
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
+  '/api/public/paypal': typeof ApiPublicPaypalRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -63,6 +79,8 @@ export interface FileRoutesById {
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
+  '/api/public/paypal': typeof ApiPublicPaypalRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -72,6 +90,8 @@ export interface FileRouteTypes {
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
+    | '/api/public/paypal'
+    | '/api/public/paypal-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -79,6 +99,8 @@ export interface FileRouteTypes {
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
+    | '/api/public/paypal'
+    | '/api/public/paypal-webhook'
   id:
     | '__root__'
     | '/'
@@ -86,6 +108,8 @@ export interface FileRouteTypes {
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
+    | '/api/public/paypal'
+    | '/api/public/paypal-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +118,8 @@ export interface RootRouteChildren {
   ApiPublicAiVisionRoute: typeof ApiPublicAiVisionRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
+  ApiPublicPaypalRoute: typeof ApiPublicPaypalRoute
+  ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -110,6 +136,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/paypal-webhook': {
+      id: '/api/public/paypal-webhook'
+      path: '/api/public/paypal-webhook'
+      fullPath: '/api/public/paypal-webhook'
+      preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/paypal': {
+      id: '/api/public/paypal'
+      path: '/api/public/paypal'
+      fullPath: '/api/public/paypal'
+      preLoaderRoute: typeof ApiPublicPaypalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/check-subscription': {
@@ -142,17 +182,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiVisionRoute: ApiPublicAiVisionRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,
+  ApiPublicPaypalRoute: ApiPublicPaypalRoute,
+  ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

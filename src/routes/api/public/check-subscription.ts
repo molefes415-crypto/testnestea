@@ -159,6 +159,24 @@ export const Route = createFileRoute('/api/public/check-subscription')({
             return new Response(JSON.stringify({ active: true, via: 'manual' }), { status: 200, headers: CORS })
           }
 
+          // 0.5) Server-verified PayPal payment recorded in our database
+          try {
+            const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+            const { data: paid } = await supabaseAdmin
+              .from('payments')
+              .select('paypal_order_id')
+              .eq('status', 'paid')
+              .or(`email.eq.${email},payer_email.eq.${email}`)
+              .limit(1)
+              .maybeSingle()
+            if (paid) {
+              return new Response(JSON.stringify({ active: true, via: 'payment_record', order: paid.paypal_order_id }), { status: 200, headers: CORS })
+            }
+          } catch {
+            // fall through to the other checks
+          }
+
+
           // 1) Portal
           const portal = await checkUpstream(adminId, email)
           if (portal.active) {

@@ -4927,59 +4927,103 @@ const HomeView = ({
       document.head.appendChild(s);
     });
 
-    const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/RRJAVKALC9VAQ';
-
+    // Payment is created + verified server-side (PayPal Orders API v2).
+    // The client never sees PayPal credentials and never decides that a payment succeeded.
     const PayPalPaywall = ({ adminId, email, onPaid, onCancel }) => {
-      const [status, setStatus] = useState('ready'); // ready | processing | done | error
+      const [status, setStatus] = useState('ready'); // ready | processing | verifying | done | error | cancelled
       const [msg, setMsg] = useState('');
       const [opened, setOpened] = useState(false);
 
-      const openCheckout = () => {
-        const ret = window.location.origin + '/paypal-return.html';
-        const url = PAYPAL_CHECKOUT_URL + (PAYPAL_CHECKOUT_URL.includes('?') ? '&' : '?') + 'return=' + encodeURIComponent(ret);
-        try { localStorage.setItem('tn_paypal_email', email || ''); } catch(_) {}
-        try { window.open(url, '_blank', 'noopener,noreferrer'); } catch(_) {}
-        setOpened(true);
-        setMsg('Complete payment in the PayPal tab — you\'ll be returned to a success page that opens the app. Or tap "I\'ve Paid" below.');
-      };
-
-
-      const confirmPaid = async () => {
+      const openCheckout = async () => {
         setStatus('processing');
-        setMsg('Verifying your payment with PayPal…');
+        setMsg('Creating your secure PayPal checkout…');
         try {
-          const url = `/api/public/check-subscription?admin_id=${encodeURIComponent(adminId)}&email=${encodeURIComponent(email)}&provider=paypal&checkout=ncp`;
-          const r = await fetch(url, { headers: { accept: 'application/json' } });
-          const data = await r.json().catch(()=>({active:false}));
-          if (data && data.active) {
-            try { localStorage.setItem('mobi_activated','1'); localStorage.setItem('tn_open_add_robot','1'); } catch(_) {}
-            setStatus('done');
-            setMsg('Payment verified. Opening app…');
-            setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
-          } else {
+          const r = await fetch('/api/public/paypal?action=create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, user_ref: adminId || email }),
+          });
+          const d = await r.json().catch(()=>({}));
+          if (!d || !d.approve_url || !d.order_id) {
             setStatus('error');
-            const hint = (data && data.hint) ? ' ' + data.hint : '';
-            setMsg('We couldn\'t confirm your payment yet. PayPal can take a few minutes (occasionally up to a few hours) to report new payments. Make sure the email above matches the one you used at PayPal checkout, then tap "I\'ve Paid" again.' + hint);
+            setMsg('Could not start PayPal checkout. Please try again in a moment.');
+            return;
           }
+          try {
+            localStorage.setItem('tn_paypal_order', d.order_id);
+            localStorage.setItem('tn_paypal_email', email || '');
+          } catch(_) {}
+          setOpened(true);
+          setStatus('ready');
+          setMsg('Complete the payment in PayPal — you\'ll be brought straight back here once it\'s verified.');
+          try { window.location.href = d.approve_url; } catch(_) { window.open(d.approve_url, '_blank'); }
         } catch (_) {
           setStatus('error');
-          setMsg('Network error while verifying payment. Please try again.');
+          setMsg('Network error starting checkout. Please try again.');
         }
       };
 
-      // Auto-verify when the user comes back from the PayPal success page.
+      // Ask the backend whether THIS payment has been verified. Never trusts the redirect.
+      const checkVerified = async (tries = 6) => {
+        let orderId = '';
+        try { orderId = localStorage.getItem('tn_paypal_order') || ''; } catch(_) {}
+        setStatus('verifying');
+        setMsg('Verifying your payment…');
+        for (let i = 0; i < tries; i++) {
+          try {
+            const qs = orderId
+              ? `order_id=${encodeURIComponent(orderId)}`
+              : `email=${encodeURIComponent(email)}`;
+            const r = await fetch(`/api/public/paypal?action=status&${qs}`, { headers: { accept: 'application/json' } });
+            const d = await r.json().catch(()=>({}));
+            if (d && d.paid) {
+              try {
+                localStorage.setItem('mobi_activated','1');
+                localStorage.setItem('tn_open_add_robot','1');
+                localStorage.removeItem('tn_paypal_order');
+              } catch(_) {}
+              setStatus('done');
+              setMsg('Payment Successful ✓ — opening your license page…');
+              setTimeout(() => { onPaid && onPaid('paypal'); }, 900);
+              return true;
+            }
+            if (d && d.status === 'cancelled') {
+              setStatus('cancelled');
+              setMsg('Payment cancelled. Nothing was charged — you can try again.');
+              return false;
+            }
+          } catch(_) {}
+          await new Promise(res => setTimeout(res, 2500));
+        }
+        setStatus('error');
+        setMsg('Payment could not be verified. Please try again.');
+        return false;
+      };
+
+      // Handle the return from PayPal (success / cancel), backend-verified only.
       useEffect(() => {
-        let returned = false;
+        let state = '';
         try {
-          returned = new URLSearchParams(window.location.search).get('paypal') === 'success'
-            || localStorage.getItem('tn_paypal_returned') === '1';
+          state = new URLSearchParams(window.location.search).get('paypal')
+            || localStorage.getItem('tn_paypal_state') || '';
         } catch(_) {}
-        if (!returned) return;
-        try { localStorage.removeItem('tn_paypal_returned'); } catch(_) {}
+        try { localStorage.removeItem('tn_paypal_state'); localStorage.removeItem('tn_paypal_returned'); } catch(_) {}
+        if (!state) return;
         setOpened(true);
-        confirmPaid();
+        if (state === 'cancel' || state === 'cancelled') {
+          setStatus('cancelled');
+          setMsg('Payment cancelled. Nothing was charged — you can try again.');
+          return;
+        }
+        if (state === 'failed') {
+          setStatus('error');
+          setMsg('Payment could not be verified. Please try again.');
+          return;
+        }
+        checkVerified();
         // eslint-disable-next-line
       }, []);
+
 
       return (
 
@@ -5010,27 +5054,28 @@ const HomeView = ({
 
               <button
                 onClick={openCheckout}
-                disabled={status==='processing'||status==='done'}
+                disabled={status==='processing'||status==='verifying'||status==='done'}
                 style={{width:'100%',padding:'16px 20px',borderRadius:14,border:'none',background:'linear-gradient(180deg,#ffc439 0%, #f0a800 100%)',color:'#0a1a2f',fontWeight:900,fontSize:15,letterSpacing:0.5,cursor:'pointer',boxShadow:'0 10px 30px rgba(255,196,57,0.35)',marginBottom:10}}>
-                {opened ? 'REOPEN PAYPAL CHECKOUT' : 'PAY WITH PAYPAL'}
+                {status==='processing' ? 'OPENING PAYPAL…' : status==='done' ? 'PAYMENT SUCCESSFUL ✓' : opened ? 'PAY AGAIN WITH PAYPAL' : 'PAY WITH PAYPAL'}
               </button>
 
-              {opened && (
+              {opened && status!=='done' && (
                 <button
-                  onClick={confirmPaid}
-                  disabled={status==='processing'||status==='done'}
+                  onClick={()=>checkVerified()}
+                  disabled={status==='verifying'}
                   style={{width:'100%',padding:'14px 20px',borderRadius:14,border:'1px solid rgba(74,222,128,0.55)',background:'rgba(34,197,94,0.14)',color:'#4ade80',fontWeight:800,fontSize:13,letterSpacing:1.5,fontFamily:'Orbitron',cursor:'pointer',marginTop:6}}>
-                  {status==='processing' ? 'ACTIVATING…' : status==='done' ? 'ACTIVATED ✓' : 'I\'VE PAID — UNLOCK APP'}
+                  {status==='verifying' ? 'VERIFYING PAYMENT…' : 'CHECK PAYMENT STATUS'}
                 </button>
               )}
 
-              {msg && status!=='error' && <p style={{color: status==='done' ? '#4ade80' : 'rgba(255,255,255,0.55)',fontSize:11.5,textAlign:'center',marginTop:12,lineHeight:1.5}}>{msg}</p>}
-              {status==='error' && <p style={{color:'#f472b6',fontSize:12,textAlign:'center',marginTop:8}}>{msg}</p>}
+              {msg && status!=='error' && status!=='cancelled' && <p style={{color: status==='done' ? '#4ade80' : 'rgba(255,255,255,0.55)',fontSize:11.5,textAlign:'center',marginTop:12,lineHeight:1.5}}>{msg}</p>}
+              {(status==='error'||status==='cancelled') && <p style={{color:'#f472b6',fontSize:12,textAlign:'center',marginTop:8}}>{msg}</p>}
             </div>
 
             <p style={{color:'rgba(255,255,255,0.3)',fontSize:10.5,marginTop:18,textAlign:'center',letterSpacing:0.5,lineHeight:1.55,maxWidth:360}}>
-              You'll be billed by PayPal. Cancel anytime from your PayPal account. After paying, return here and tap "I've Paid" to unlock the app instantly.
+              Secure one-time payment of $35 USD through PayPal. Access is unlocked only after PayPal confirms your payment on our server.
             </p>
+
           </div>
         </div>
       );
@@ -5712,12 +5757,15 @@ const HomeView = ({
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
       const [showBotSwitcher, setShowBotSwitcher] = useState(false);
-      // After a successful $35 payment, land on the ROBOT LIST (home) screen.
+      // After a backend-VERIFIED $35 payment, land on the robot list and open the
+      // existing "Enter License" (Add Robot) page. The flag is only ever set after
+      // /api/public/paypal confirms the payment with PayPal.
       const [showAddRobot, setShowAddRobot] = useState(false);
       useEffect(() => {
-        const goRobotList = () => {
-          try { localStorage.removeItem('tn_open_add_robot'); } catch(_) {}
+        const goEnterLicense = () => {
+          try { localStorage.removeItem('tn_open_add_robot'); localStorage.removeItem('tn_paypal_verified'); } catch(_) {}
           setActiveTab('home');
+          setShowAddRobot(true);
           try {
             const u = new URL(window.location.href);
             u.searchParams.delete('addbot');
@@ -5728,8 +5776,10 @@ const HomeView = ({
         const check = () => {
           try {
             const q = new URLSearchParams(window.location.search);
-            if (localStorage.getItem('tn_open_add_robot') === '1' || q.get('addbot') === '1' || q.get('paypal') === 'success') {
-              goRobotList();
+            const verified = localStorage.getItem('tn_open_add_robot') === '1'
+              || localStorage.getItem('tn_paypal_verified') === '1';
+            if (verified || q.get('addbot') === '1') {
+              goEnterLicense();
             }
           } catch(_) {}
         };
@@ -5739,6 +5789,7 @@ const HomeView = ({
         window.addEventListener('focus', check);
         return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', check); };
       }, []);
+
 
       const [executionLogs, setExecutionLogs] = useState([]);
       const [iconPulse, setIconPulse] = useState(false);
