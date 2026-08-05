@@ -380,20 +380,39 @@
         if (value && typeof value === 'object') return value.symbol || value.name || value.Symbol || value.Name || '';
         return '';
       };
-      // STRICT: trade ONLY the exact symbol the user chose. No suffix/prefix guessing,
-      // no fuzzy broker matching — XAUUSD never becomes XAUUSD.m, .US30. never becomes .US30std.
+      // SAME INSTRUMENT ONLY: prefer the exact symbol the user chose; if the broker
+      // names it differently (XAUUSD -> XAUUSD.m, .US30. -> US30), fall back to a
+      // broker variant of the SAME base instrument. Never a different instrument.
+      const baseOf = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+        .replace(/(MICRO|MINI|CASH|STD|PRO|ECN|RAW|SPOT|USDX)$/, '');
       const resolveSymbol = async (plat, id, requested) => {
         const raw = String(requested || '').trim();
         if (!raw) throw new Error('No symbol was provided for the trade.');
+        const want = baseOf(raw);
         try {
           const symbols = asArray(await mtFetch(plat, '/Symbols', { id })).map(symbolName).filter(Boolean);
           if (symbols.length) {
             const exact = symbols.find((s) => s === raw) || symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
             if (exact) return exact;
-            throw new Error(`Symbol "${raw}" does not exist on this broker — choose the exact broker symbol.`);
+            // Same base instrument, broker-specific naming (suffix/prefix/dots).
+            const sameBase = symbols.filter((s) => baseOf(s) === want);
+            if (sameBase.length) {
+              sameBase.sort((a, b) => a.length - b.length);
+              return sameBase[0];
+            }
+            // Base contained with only decoration around it (e.g. US30 -> .US30.cash)
+            const decorated = symbols.filter((s) => {
+              const b = baseOf(s);
+              return want.length >= 3 && (b.startsWith(want) || b.endsWith(want));
+            });
+            if (decorated.length) {
+              decorated.sort((a, b) => a.length - b.length);
+              return decorated[0];
+            }
+            throw new Error(`Symbol "${raw}" is not available on this broker account.`);
           }
         } catch (e) {
-          if (/does not exist/.test(e.message || '')) throw e;
+          if (/not available on this broker/.test(e.message || '')) throw e;
         }
         return raw;
       };
