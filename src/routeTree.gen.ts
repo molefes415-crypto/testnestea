@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
+import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vision'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -35,16 +36,23 @@ const ApiPublicAnalyzeChartRoute = ApiPublicAnalyzeChartRouteImport.update({
   path: '/api/public/analyze-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAiVisionRoute = ApiPublicAiVisionRouteImport.update({
+  id: '/api/public/ai-vision',
+  path: '/api/public/ai-vision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
 }
@@ -52,6 +60,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
 }
@@ -60,18 +69,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sitemap.xml'
+    | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/sitemap.xml'
+    | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
   id:
     | '__root__'
     | '/'
     | '/sitemap.xml'
+    | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
   fileRoutesById: FileRoutesById
@@ -79,6 +91,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicAiVisionRoute: typeof ApiPublicAiVisionRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
 }
@@ -113,15 +126,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAnalyzeChartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai-vision': {
+      id: '/api/public/ai-vision'
+      path: '/api/public/ai-vision'
+      fullPath: '/api/public/ai-vision'
+      preLoaderRoute: typeof ApiPublicAiVisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicAiVisionRoute: ApiPublicAiVisionRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
