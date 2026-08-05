@@ -5641,7 +5641,7 @@ const HomeView = ({
             const direction = String(sig.direction || sig.action || sig.type || '').toUpperCase();
             const numTrades = Math.max(1, Math.min(50, parseInt(cfg.numTrades, 10) || 1));
             const signalTrade = {
-              symbol: rawSymbol, // execute the exact broker symbol sent by validate_license.php (e.g. US30.std)
+              symbol: match.key, // EXACT symbol the user enabled in QUOTES — never a broker variant
               direction: direction === 'SELL' ? 'SELL' : 'BUY',
               tp: sig.tp ?? sig.take_profit ?? '',
               sl: sig.sl ?? sig.stop_loss ?? '',
