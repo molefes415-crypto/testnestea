@@ -20,13 +20,16 @@
     <div class="tick">✓</div>
     <h1>PAYMENT SUCCESSFUL</h1>
     <p>Thanks! Your TradeNest EA subscription is confirmed. We're opening the app and activating your access…</p>
-    <a class="btn" id="open" href="/tradenest.html?paypal=success">OPEN TRADENEST EA</a>
+    <a class="btn" id="open" href="/tradenest.html?paypal=success&amp;addbot=1">ADD LICENSE KEY</a>
     <small>If the app doesn't open automatically, tap the button above.</small>
   </div>
 <script>
   (function () {
-    try { localStorage.setItem('tn_paypal_returned', '1'); } catch (e) {}
-    var target = '/tradenest.html?paypal=success';
+    try {
+      localStorage.setItem('tn_paypal_returned', '1');
+      localStorage.setItem('tn_open_add_robot', '1');
+    } catch (e) {}
+    var target = '/tradenest.html?paypal=success&addbot=1';
     // Try the native app deep link first (Android/iOS shell), then fall back to web.
     try { window.location.href = 'tradenest://paypal/success'; } catch (e) {}
     document.getElementById('open').setAttribute('href', target);
