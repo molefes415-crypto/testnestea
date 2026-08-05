@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          email: string
+          id: string
+          payer_email: string | null
+          paypal_capture_id: string | null
+          paypal_order_id: string
+          provider: string
+          raw: Json | null
+          status: string
+          user_ref: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          email: string
+          id?: string
+          payer_email?: string | null
+          paypal_capture_id?: string | null
+          paypal_order_id: string
+          provider?: string
+          raw?: Json | null
+          status?: string
+          user_ref: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          email?: string
+          id?: string
+          payer_email?: string | null
+          paypal_capture_id?: string | null
+          paypal_order_id?: string
+          provider?: string
+          raw?: Json | null
+          status?: string
+          user_ref?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
