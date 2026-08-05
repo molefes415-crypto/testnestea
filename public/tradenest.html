@@ -2777,7 +2777,7 @@ const HomeView = ({
         {interfaceMode === 'glass' && eas.length === 0 && (
           <div style={{padding:'20px 16px 120px',display:'flex',flexDirection:'column',gap:12,position:'relative',zIndex:5}}>
             <ChartScannerBlock onClick={onOpenChartAnalyzer} accent={'#FFD600'}/>
-            <button onClick={() => setIsLicenseModalOpen(true)} style={{width:"100%",borderRadius:14,padding:"16px 18px",border:"1px dashed rgba(255,255,255,0.18)",cursor:"pointer",display:"flex",alignItems:"center",gap:12,color:"white",background:"rgba(0,0,0,0.4)"}}>
+            <button onClick={() => setIsLicenseModalOpen(true)} style={{width:"100%",borderRadius:14,padding:"18px",border:`2px solid ${tc.accent}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,color:"#fff",background:`linear-gradient(135deg, ${tc.accent}33, rgba(0,0,0,0.75))`,boxShadow:`0 0 18px ${tc.accent}66`}}>
               <div style={{width:40,height:40,borderRadius:10,background:`${tc.accent}25`,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${tc.accent}45`,color:tc.accent}}><PlusIcon/></div>
               <div style={{textAlign:"left",flex:1}}>
                 <p style={{fontSize:13,fontWeight:600}}>Add Trading Bot</p>
@@ -2905,9 +2905,9 @@ const HomeView = ({
             <div style={{padding:'28px 16px 120px',display:'flex',flexDirection:'column',gap:10}}>
               <ChartScannerBlock onClick={onOpenChartAnalyzer}/><p style={{color:`${a}50`,fontSize:10,fontWeight:600,letterSpacing:3,marginBottom:4}}>ROBOT LIST</p>
               {eas.map(ea => <VIPEAListItem key={ea.id} name={botSettings.name} isSelected={selectedEA?.id===ea.id} onClick={()=>setSelectedEA(ea)} botImage={botSettings.iconImage||botSettings.image} isActive={showDraggableIcon&&selectedEA?.id===ea.id} onRemove={()=>handleRemove(ea.id)} tc={tc}/>)}
-              <button onClick={()=>setIsLicenseModalOpen(true)} style={{width:'100%',borderRadius:14,padding:'16px 18px',display:'flex',alignItems:'center',gap:12,background:'transparent',border:`1px dashed ${a}40`,cursor:'pointer',color:a,transition:'all 0.3s'}}>
+              <button onClick={()=>setIsLicenseModalOpen(true)} style={{width:'100%',borderRadius:14,padding:'18px',display:'flex',alignItems:'center',gap:12,background:`linear-gradient(135deg, ${a}33, rgba(0,0,0,0.75))`,border:`2px solid ${a}`,cursor:'pointer',color:'#fff',boxShadow:`0 0 18px ${a}66`,transition:'all 0.3s'}}>
                 <div style={{width:40,height:40,borderRadius:10,background:`${a}15`,display:'flex',alignItems:'center',justifyContent:'center'}}><PlusIcon/></div>
-                <span style={{fontWeight:600,fontSize:13}}>Add New Trading Bot</span>
+                <span style={{fontWeight:800,fontSize:14,letterSpacing:0.5}}>ADD LICENSE KEY</span>
               </button>
             </div>
           </div>
