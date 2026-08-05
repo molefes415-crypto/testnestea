@@ -3,38 +3,116 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Payment Successful — TradeNest EA</title>
+<title>Verifying Payment — TradeNest EA</title>
 <meta name="robots" content="noindex" />
 <style>
   html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 0%,#1a0a10 0%,#050505 55%,#000 100%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center}
-  .tick{width:88px;height:88px;border-radius:50%;border:2px solid rgba(74,222,128,.6);display:flex;align-items:center;justify-content:center;font-size:42px;color:#4ade80;box-shadow:0 0 40px rgba(74,222,128,.35);margin-bottom:18px}
-  h1{font-size:20px;letter-spacing:2px;margin:0 0 8px}
+  .tick{width:88px;height:88px;border-radius:50%;border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;margin-bottom:18px;transition:all .3s}
+  .tick.ok{border-color:rgba(74,222,128,.6);color:#4ade80;box-shadow:0 0 40px rgba(74,222,128,.35)}
+  .tick.bad{border-color:rgba(244,114,182,.6);color:#f472b6;box-shadow:0 0 40px rgba(244,114,182,.25)}
+  h1{font-size:19px;letter-spacing:2px;margin:0 0 8px}
   p{font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;max-width:340px;margin:0 0 22px}
-  a.btn{display:block;width:100%;max-width:340px;padding:16px 20px;border-radius:14px;background:linear-gradient(180deg,#ffc439,#f0a800);color:#0a1a2f;font-weight:900;text-decoration:none;box-shadow:0 10px 30px rgba(255,196,57,.35)}
+  a.btn,button.btn{display:block;width:100%;max-width:340px;padding:16px 20px;border-radius:14px;background:linear-gradient(180deg,#ffc439,#f0a800);color:#0a1a2f;font-weight:900;text-decoration:none;border:none;font-size:15px;cursor:pointer;box-shadow:0 10px 30px rgba(255,196,57,.35)}
   small{display:block;margin-top:16px;color:rgba(255,255,255,.32);font-size:11px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin 1s linear infinite;display:inline-block}
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="tick">✓</div>
-    <h1>PAYMENT SUCCESSFUL</h1>
-    <p>Thanks! Your TradeNest EA subscription is confirmed. We're opening the app and activating your access…</p>
-    <a class="btn" id="open" href="/tradenest.html?paypal=success&amp;addbot=1">ADD LICENSE KEY</a>
-    <small>If the app doesn't open automatically, tap the button above.</small>
+    <div class="tick" id="tick"><span class="spin">◌</span></div>
+    <h1 id="title">VERIFYING YOUR PAYMENT…</h1>
+    <p id="msg">Please wait while we confirm your payment with PayPal. Don't close this page.</p>
+    <a class="btn" id="open" href="/tradenest.html" style="display:none">CONTINUE</a>
+    <small id="hint"></small>
   </div>
 <script>
-  (function () {
+(function () {
+  var q = new URLSearchParams(location.search);
+  var orderId = q.get('token') || q.get('order_id') || '';
+  var cancelled = q.get('cancel') === '1';
+  var tick = document.getElementById('tick');
+  var title = document.getElementById('title');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('open');
+  var hint = document.getElementById('hint');
+
+  function show(cls, t, m, href, label) {
+    tick.className = 'tick ' + (cls || '');
+    tick.innerHTML = cls === 'ok' ? '✓' : cls === 'bad' ? '!' : '<span class="spin">◌</span>';
+    title.textContent = t;
+    msg.textContent = m;
+    if (href) {
+      btn.href = href; btn.textContent = label || 'CONTINUE'; btn.style.display = 'block';
+    }
+  }
+
+  // The app is the source of truth for navigation; these flags tell it what happened.
+  function goApp(state) {
+    var target = '/tradenest.html?paypal=' + state + (state === 'success' ? '&addbot=1' : '');
     try {
-      localStorage.setItem('tn_paypal_returned', '1');
-      localStorage.setItem('tn_open_add_robot', '1');
+      localStorage.setItem('tn_paypal_state', state);
+      if (state === 'success') { localStorage.setItem('tn_paypal_verified', '1'); localStorage.setItem('tn_open_add_robot', '1'); }
+      else { localStorage.removeItem('tn_paypal_verified'); localStorage.removeItem('tn_open_add_robot'); }
     } catch (e) {}
-    var target = '/tradenest.html?paypal=success&addbot=1';
-    // Try the native app deep link first (Android/iOS shell), then fall back to web.
-    try { window.location.href = 'tradenest://paypal/success'; } catch (e) {}
-    document.getElementById('open').setAttribute('href', target);
-    setTimeout(function () { window.location.replace(target); }, 1200);
-  })();
+    // Native shell deep link first (iOS/Android), then web fallback.
+    if (state === 'success') { try { location.href = 'tradenest://paypal/success'; } catch (e) {} }
+    setTimeout(function () { location.replace(target); }, 900);
+    show(state === 'success' ? 'ok' : 'bad',
+      state === 'success' ? 'PAYMENT SUCCESSFUL ✓' : title.textContent,
+      state === 'success' ? 'Opening Trade Nest EA so you can enter your license key…' : msg.textContent,
+      target, 'OPEN TRADE NEST EA');
+  }
+
+  if (cancelled) {
+    if (orderId) {
+      fetch('/api/public/paypal?action=cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: orderId }) }).catch(function(){});
+    }
+    show('bad', 'PAYMENT CANCELLED', 'Your payment was cancelled and nothing was charged. You can try again from the payment page.');
+    btn.href = '/tradenest.html?paypal=cancel'; btn.textContent = 'BACK TO PAYMENT'; btn.style.display = 'block';
+    try { localStorage.setItem('tn_paypal_state', 'cancelled'); } catch (e) {}
+    setTimeout(function () { location.replace('/tradenest.html?paypal=cancel'); }, 1500);
+    return;
+  }
+
+  if (!orderId) {
+    show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'We couldn\'t identify this payment. Please return to the app and try again.');
+    btn.href = '/tradenest.html?paypal=failed'; btn.textContent = 'BACK TO PAYMENT'; btn.style.display = 'block';
+    return;
+  }
+
+  var attempts = 0;
+  function verify() {
+    attempts++;
+    fetch('/api/public/paypal?action=capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.paid) return goApp('success');
+        if (d && d.status === 'cancelled') {
+          show('bad', 'PAYMENT CANCELLED', 'Your payment was cancelled. Nothing was charged.');
+          return goApp('cancel');
+        }
+        if (d && d.status === 'failed') {
+          show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'PayPal reported a problem with this payment. Please try again.');
+          return goApp('failed');
+        }
+        if (attempts < 8) { hint.textContent = 'Still verifying with PayPal… (' + attempts + ')'; return setTimeout(verify, 2000); }
+        show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'Payment could not be verified. Please try again.');
+        goApp('failed');
+      })
+      .catch(function () {
+        if (attempts < 8) return setTimeout(verify, 2000);
+        show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'Payment could not be verified. Please try again.');
+        goApp('failed');
+      });
+  }
+  verify();
+})();
 </script>
 </body>
 </html>
