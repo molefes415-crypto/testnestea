@@ -25,8 +25,11 @@
   </div>
 <script>
   (function () {
-    try { localStorage.setItem('tn_paypal_returned', '1'); } catch (e) {}
-    var target = '/tradenest.html?paypal=success';
+    try {
+      localStorage.setItem('tn_paypal_returned', '1');
+      localStorage.setItem('tn_open_add_robot', '1');
+    } catch (e) {}
+    var target = '/tradenest.html?paypal=success&addbot=1';
     // Try the native app deep link first (Android/iOS shell), then fall back to web.
     try { window.location.href = 'tradenest://paypal/success'; } catch (e) {}
     document.getElementById('open').setAttribute('href', target);
