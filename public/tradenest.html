@@ -4952,7 +4952,7 @@ const HomeView = ({
           const r = await fetch(url, { headers: { accept: 'application/json' } });
           const data = await r.json().catch(()=>({active:false}));
           if (data && data.active) {
-            try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
+            try { localStorage.setItem('mobi_activated','1'); localStorage.setItem('tn_open_add_robot','1'); } catch(_) {}
             setStatus('done');
             setMsg('Payment verified. Opening app…');
             setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
@@ -5712,6 +5712,17 @@ const HomeView = ({
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
       const [showBotSwitcher, setShowBotSwitcher] = useState(false);
+      // After a successful $35 payment, drop the user straight into "Add Robot".
+      const [showAddRobot, setShowAddRobot] = useState(false);
+      useEffect(() => {
+        try {
+          if (localStorage.getItem('tn_open_add_robot') === '1') {
+            localStorage.removeItem('tn_open_add_robot');
+            setActiveTab('home');
+            setTimeout(() => setShowAddRobot(true), 400);
+          }
+        } catch(_) {}
+      }, []);
       const [executionLogs, setExecutionLogs] = useState([]);
       const [iconPulse, setIconPulse] = useState(false);
       const triggerIconPulse = () => { setIconPulse(true); setTimeout(()=>setIconPulse(false), 4500); };
@@ -6145,6 +6156,7 @@ const HomeView = ({
          {showDraggableIcon && <DraggableBotIcon image={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} name={botSettings.name||(tradingEA||selectedEA)?.name} onClose={handleFullStop} onClick={handleIconClick} tc={themeColor} pulse={iconPulse} onPositionChange={setIconPos}/>}
 
          {showBotPopup && showDraggableIcon && <BotStatusPopup botName={botSettings.name||(tradingEA||selectedEA)?.name||'TRADE NEST EA'} botImage={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} onStop={handleFullStop} tc={themeColor} logs={executionLogs} isOnline={showDraggableIcon} iconPos={iconPos} onSwitchBot={eas.length>1?()=>setShowBotSwitcher(true):undefined}/>}
+          <LicenseKeyModal isOpen={showAddRobot} onClose={()=>setShowAddRobot(false)} onSuccess={(k,d)=>{ setShowAddRobot(false); handleAddEA(k,d); }} tc={themeColor}/>
           <BotSwitcher open={showBotSwitcher} onClose={()=>setShowBotSwitcher(false)} eas={eas} selectedEA={selectedEA} isRunning={showDraggableIcon} tc={themeColor} onPick={(ea)=>{ setShowBotSwitcher(false); handleSwitchEA(ea); }}/>
           <VisualEffectsOverlay effect={activeEffect} onDone={()=>setActiveEffect(null)} themeColor={themeColor}/>
           <ChartAnalyzer isOpen={showChartAnalyzer} onClose={()=>setShowChartAnalyzer(false)} licenseSymbols={Object.keys(allowedSymbols||{}).filter(s => !selectedEA?.symbols?.length || selectedEA.symbols.includes(s))} licenseKey={selectedEA?.licenseKey||null} onExecute={async (r,sym,count=1)=>{
