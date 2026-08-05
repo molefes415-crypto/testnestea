@@ -5517,6 +5517,7 @@ const HomeView = ({
       const handleRemoveEA = (id) => {
         const r = eas.filter(e => e.id !== id);
         setEas(r);
+        setBotRunning(false);
         setShowDraggableIcon(false);
         setTradingEA(null);
         setPendingSignal(null);
@@ -5822,7 +5823,7 @@ const HomeView = ({
         if (autoScanRanRef.current) return;
         if (!autoScanEnabled) { console.log('[AUTOSCAN] Auto Scanner is OFF in Settings — no scanning'); return; }
         if (!selectedEA) return;
-        const botOn = showDraggableIcon || !!tradeDelayTimer;
+        const botOn = botRunning && (showDraggableIcon || !!tradeDelayTimer);
         if (!botOn) { console.log('[AUTOSCAN] Bot is OFF — auto-scan disabled'); return; }
 
         // Only scan symbols the user activated in Quotes. If none, do nothing.
@@ -5872,7 +5873,7 @@ const HomeView = ({
           const iv = setInterval(async () => {
             if (cancelled) return clearInterval(iv);
             // Stop the loop if the bot has been switched off in the meantime
-            const stillOn = showDraggableIcon || !!tradeDelayTimer;
+            const stillOn = botRunning && (showDraggableIcon || !!tradeDelayTimer);
             if (!stillOn || !autoScanEnabled) { console.log('[AUTOSCAN] Stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
             for (const base of FOCUS) { if (cancelled) return; await scanOne(base); await new Promise(r=>setTimeout(r,1200)); }
           }, 180000);
@@ -5880,7 +5881,7 @@ const HomeView = ({
 
         return () => { cancelled = true; };
         // eslint-disable-next-line
-      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled]);
+      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled, botRunning]);
 
 
       const handleStartTrading = (ea) => {
@@ -6035,7 +6036,7 @@ const HomeView = ({
         triggerIconPulse();
       };
       // Auto-execute as soon as a new signal arrives — no prompt
-      useEffect(() => { if (pendingSignal) { handleSignalExecute(pendingSignal); } /* eslint-disable-next-line */ }, [pendingSignal]);
+      useEffect(() => { if (pendingSignal) { if (!botRunning) { console.log('[SIGNALS] Robot not started — ignoring signal'); setPendingSignal(null); return; } handleSignalExecute(pendingSignal); } /* eslint-disable-next-line */ }, [pendingSignal, botRunning]);
 
       const handleSaveSettings = (name,image,video,iconImage) => {
         const s={name,image,video,iconImage}; setBotSettings(s); localStorage.setItem('botSettings',JSON.stringify(s));
