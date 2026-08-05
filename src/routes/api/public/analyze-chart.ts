@@ -236,19 +236,11 @@ export const Route = createFileRoute("/api/public/analyze-chart")({
           const msg = err instanceof Error ? err.message : String(err);
           return new Response(JSON.stringify({ error: msg, fallback: true }), {
             status: 200,
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", ...CORS },
           });
         }
       },
-      OPTIONS: async () =>
-        new Response(null, {
-          status: 204,
-          headers: {
-            "access-control-allow-origin": "*",
-            "access-control-allow-methods": "POST, OPTIONS",
-            "access-control-allow-headers": "content-type",
-          },
-        }),
+      OPTIONS: async () => new Response(null { status: 204, headers: CORS }),
     },
   },
 });
