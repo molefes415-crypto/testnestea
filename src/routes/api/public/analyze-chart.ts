@@ -240,7 +240,7 @@ export const Route = createFileRoute("/api/public/analyze-chart")({
           });
         }
       },
-      OPTIONS: async () => new Response(null { status: 204, headers: CORS }),
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
     },
   },
 });
