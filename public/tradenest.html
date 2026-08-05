@@ -656,7 +656,7 @@
                   <div style={{width:7,height:7,borderRadius:'50%',background:'#22c55e',boxShadow:'0 0 8px rgba(34,197,94,0.8)',animation:'breathe 1s ease-in-out infinite'}}/>
                   <span style={{fontFamily:'Orbitron',fontSize:9,color:'#22c55e',letterSpacing:2,fontWeight:700}}>LIVE SIGNAL</span>
                 </div>
-                <p style={{color:'white',fontSize:12,fontWeight:600,marginTop:1}}>{botName || 'Trading Robot'}</p>
+                <p style={{color:'white',fontSize:12,fontWeight:600,marginTop:1}}>{botName || 'TRADE NEST EA'}</p>
               </div>
               <button onClick={onDismiss} style={{width:28,height:28,borderRadius:8,background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.4)'}}><XIcon size={12}/></button>
             </div>
@@ -707,7 +707,7 @@
       const amber = '#ffb23f';
       const green = '#22c55e';
       const red = '#ff454d';
-      const displayName = (botName || 'Trading Robot');
+      const displayName = (botName || 'TRADE NEST EA');
       const online = isOnline !== false;
       const tradeLogs = logs || [];
 
@@ -1095,7 +1095,7 @@
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
-      const displayName = botSettings.name || "PINKSPECTRA X";
+      const displayName = botSettings.name || "TRADE NEST EA";
       const displayImage = botSettings.image || null;
       const isVideo = botSettings.video || false;
       const videoSrc = botSettings.video || null;
@@ -1165,7 +1165,7 @@
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
-      const displayName = botSettings.name || "PINKSPECTRA X";
+      const displayName = botSettings.name || "TRADE NEST EA";
       const displayImage = botSettings.image || null;
       const isVideo = botSettings.video || false;
       const videoSrc = botSettings.video || null;
@@ -1298,7 +1298,7 @@
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
-      const displayName = (botSettings.name || selectedEA?.name || "Godzilla X AI").toUpperCase();
+      const displayName = (botSettings.name || selectedEA?.name || "TRADE NEST EA").toUpperCase();
       const handleRemove = (id) => { onRemoveEA(id); toast({ title:"Robot Removed", description:"Removed.", variant:"destructive" }); };
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={false} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
 
@@ -1434,7 +1434,7 @@
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
-      const displayName = (botSettings.name || selectedEA?.name || "SMC Sniper Ea v.3");
+      const displayName = (botSettings.name || selectedEA?.name || "TRADE NEST EA");
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
       const handleRemove = (id) => { onRemoveEA(id); toast({ title:"Robot Removed", description:"Removed.", variant:"destructive" }); };
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={false} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
@@ -1522,14 +1522,14 @@
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
       const toast = useToast();
-      const displayName = botSettings.name || "SNIPER AI PRIMEX";
+      const displayName = botSettings.name || "TRADE NEST EA";
       const displayImage = botSettings.image || null;
       const handleRemove = (id) => { onRemoveEA(id); toast({ title:"Robot Removed", description:"Removed.", variant:"destructive" }); };
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={false} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
       // Theme-aware neon color (side rails, glow, button)
       const r = themeColor?.accent || '#22d3ee';
       const aStyle = getActionStyle(buttonStyle, r);
-      const mentorName = selectedEA?.mentorName || botSettings.name || 'SNIPER AI PRIMEX';
+      const mentorName = selectedEA?.mentorName || botSettings.name || 'TRADE NEST EA';
       const mentorLogo = selectedEA?.mentorLogo || displayImage;
       // Button style affects the image card border:
       //  solid   -> flat color border, no glow
@@ -1620,7 +1620,7 @@
       const [accountInfo, setAccountInfo] = useState(null);
       const [showAccount, setShowAccount] = useState(false);
       const toast = useToast();
-      const displayName = botSettings.name || selectedEA?.name || "Nemesis Prime Volt +";
+      const displayName = botSettings.name || selectedEA?.name || "TRADE NEST EA";
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
       const desc = selectedEA?.description || "Ai-powered forex bot trading SMC, ICT, PO3, OTE, FVG with precision. Real-time signals…";
       // Poll persisted account info
@@ -1740,7 +1740,7 @@
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={true} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
       const a = themeColor?.accent || '#22d3ee';
       const g = themeColor?.glow || `${a}aa`;
-      const displayName = botSettings.name || selectedEA?.name || 'HOLO PRO';
+      const displayName = botSettings.name || selectedEA?.name || 'TRADE NEST EA';
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
       const active = !!showDraggableIcon;
       const currency = String(accountInfo?.currency || 'USD').toUpperCase();
@@ -1817,7 +1817,7 @@
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={true} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
       const a = themeColor?.accent || '#f472b6';
       const g = themeColor?.glow || `${a}aa`;
-      const displayName = botSettings.name || selectedEA?.name || 'QUANTUM PRO';
+      const displayName = botSettings.name || selectedEA?.name || 'TRADE NEST EA';
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
       const active = !!showDraggableIcon;
       const currency = String(accountInfo?.currency || 'USD').toUpperCase();
@@ -1901,7 +1901,7 @@
       if (quotesEA) return <QuotesView eaName={quotesEA.name} onBack={()=>setQuotesEA(null)} botName={botSettings.name} isVIP={true} themeColor={themeColor} licenseSymbols={quotesEA.symbols} allowedSymbols={allowedSymbols||{}} onAllowedChange={onAllowedChange}/>;
       const a = themeColor?.accent || '#00e5ff';
       const g = themeColor?.glow || `${a}aa`;
-      const displayName = botSettings.name || selectedEA?.name || 'NEXUS PRO';
+      const displayName = botSettings.name || selectedEA?.name || 'TRADE NEST EA';
       const displayImage = botSettings.image || selectedEA?.mentorLogo || null;
       const active = !!showDraggableIcon;
       const currency = String(accountInfo?.currency || 'USD').toUpperCase();
@@ -2375,7 +2375,7 @@
 
    // ====== EA Card (Compact Mode) ======
 const EACard = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, customName, customImage, customVideo, tc, tradeDelaySeconds, cardShape }) => {
-  const displayName = customName || "PROSPER TRADING ROBOT";
+  const displayName = customName || "TRADE NEST EA";
   const a = tc?.accent || '#ff2d55';
   const d = tc?.dark || '#8b0f2b';
   const g = tc?.glow || 'rgba(255,45,85,0.5)';
@@ -2402,7 +2402,7 @@ const EACard = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, custo
 
 // ====== SQUARE UI (Interface 2) — stacked oval pill buttons + big AI button on the right ======
 const EACardSquare = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, customName, customImage, customVideo, tc, tradeDelaySeconds, cardShape, onAI }) => {
-  const displayName = customName || "GHOST RIDER";
+  const displayName = customName || "TRADE NEST EA";
   const a = tc?.accent || '#3FB6FF';
   const d = tc?.dark || '#0B4E78';
   const g = tc?.glow || 'rgba(63,182,255,0.55)';
@@ -2441,7 +2441,7 @@ const EACardSquare = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive,
 
 // ====== GLASS UI (Interface 3) — bot image is the app background, no card/circle, buttons stay put ======
 const EACardGlass = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, customName, customImage, customVideo, tc, tradeDelaySeconds, cardShape, onAI }) => {
-  const displayName = customName || "PROSPER TRADING ROBOT";
+  const displayName = customName || "TRADE NEST EA";
   const a = tc?.accent || '#ff2d55';
   const d = tc?.dark || '#8b0f2b';
   const g = tc?.glow || 'rgba(255,45,85,0.5)';
@@ -2463,7 +2463,7 @@ const EACardGlass = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, 
 
 // ====== UNIVERSE UI (ring with orbital buttons) ======
 const EACardUniverse = ({ name, onTrade, onQuotes, onRemove, onSettings, isActive, customName, customImage, customVideo, tc, tradeDelaySeconds }) => {
-  const displayName = customName || "PROSPER TRADING ROBOT";
+  const displayName = customName || "TRADE NEST EA";
   const a = tc?.accent || '#3b82f6';
   const d = tc?.dark || '#1e3a8a';
   const g = tc?.glow || 'rgba(59,130,246,0.5)';
@@ -2853,7 +2853,7 @@ const HomeView = ({
       const [quotesEA, setQuotesEA] = useState(null);
       const [showLogs, setShowLogs] = useState(false);
       const toast = useToast();
-      const displayName = botSettings.name || "PROSPER TRADING ROBOT";
+      const displayName = botSettings.name || "TRADE NEST EA";
       const displayImage = botSettings.image || null;
       const isVideo = botSettings.video || false;
       const videoSrc = botSettings.video || null;
@@ -5329,7 +5329,7 @@ const HomeView = ({
       const handleColorChange = (color,name) => { setThemeColor(color); setThemeName(name); localStorage.setItem('appThemeColor',JSON.stringify(color)); localStorage.setItem('appThemeName',name); try{window.__TN_THEME_ACCENT__ = color?.accent || '#8b8b8b';}catch(_){} };
 
       const [activeEffect, setActiveEffect] = useState(null);
-      const [botSettings, setBotSettings] = useState(()=>{try{const s=localStorage.getItem('botSettings');return s?JSON.parse(s):{name:"PROSPER TRADING ROBOT",image:null,video:null,iconImage:null};}catch{return{name:"PROSPER TRADING ROBOT",image:null,video:null,iconImage:null};}});
+      const [botSettings, setBotSettings] = useState(()=>{try{const s=localStorage.getItem('botSettings');return s?JSON.parse(s):{name:"TRADE NEST EA",image:null,video:null,iconImage:null};}catch{return{name:"TRADE NEST EA",image:null,video:null,iconImage:null};}});
       const IS_ANDROID = typeof window !== 'undefined' && (window.Capacitor?.getPlatform?.() === 'android' || /Android/i.test(window.navigator?.userAgent||''));
       const ANDROID_ALLOWED_INTERFACES = ['normal','square','glass','universe'];
       const [interfaceMode, setInterfaceMode] = useState(()=>{try{const m=localStorage.getItem('interfaceMode')||'normal';return IS_ANDROID && !ANDROID_ALLOWED_INTERFACES.includes(m) ? 'normal' : m;}catch{return 'normal';}});
@@ -6128,7 +6128,7 @@ const HomeView = ({
           {!showSplash && authStep==='login' && <LoginScreen onBack={()=>setAuthStep('welcome')} onLogin={(p)=>{setUserProfile(p);localStorage.setItem('userProfile',JSON.stringify(p));setAuthStep('done');}}/>}
          {showDraggableIcon && <DraggableBotIcon image={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} name={botSettings.name||(tradingEA||selectedEA)?.name} onClose={handleFullStop} onClick={handleIconClick} tc={themeColor} pulse={iconPulse} onPositionChange={setIconPos}/>}
 
-         {showBotPopup && showDraggableIcon && <BotStatusPopup botName={botSettings.name||(tradingEA||selectedEA)?.name||'Trading Robot'} botImage={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} onStop={handleFullStop} tc={themeColor} logs={executionLogs} isOnline={showDraggableIcon} iconPos={iconPos} onSwitchBot={eas.length>1?()=>setShowBotSwitcher(true):undefined}/>}
+         {showBotPopup && showDraggableIcon && <BotStatusPopup botName={botSettings.name||(tradingEA||selectedEA)?.name||'TRADE NEST EA'} botImage={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} onStop={handleFullStop} tc={themeColor} logs={executionLogs} isOnline={showDraggableIcon} iconPos={iconPos} onSwitchBot={eas.length>1?()=>setShowBotSwitcher(true):undefined}/>}
           <BotSwitcher open={showBotSwitcher} onClose={()=>setShowBotSwitcher(false)} eas={eas} selectedEA={selectedEA} isRunning={showDraggableIcon} tc={themeColor} onPick={(ea)=>{ setShowBotSwitcher(false); handleSwitchEA(ea); }}/>
           <VisualEffectsOverlay effect={activeEffect} onDone={()=>setActiveEffect(null)} themeColor={themeColor}/>
           <ChartAnalyzer isOpen={showChartAnalyzer} onClose={()=>setShowChartAnalyzer(false)} licenseSymbols={Object.keys(allowedSymbols||{}).filter(s => !selectedEA?.symbols?.length || selectedEA.symbols.includes(s))} licenseKey={selectedEA?.licenseKey||null} onExecute={async (r,sym,count=1)=>{
