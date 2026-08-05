@@ -5712,17 +5712,34 @@ const HomeView = ({
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
       const [showBotSwitcher, setShowBotSwitcher] = useState(false);
-      // After a successful $35 payment, drop the user straight into "Add Robot".
+      // After a successful $35 payment, land on the ROBOT LIST (home) screen.
       const [showAddRobot, setShowAddRobot] = useState(false);
       useEffect(() => {
-        try {
-          if (localStorage.getItem('tn_open_add_robot') === '1') {
-            localStorage.removeItem('tn_open_add_robot');
-            setActiveTab('home');
-            setTimeout(() => setShowAddRobot(true), 400);
-          }
-        } catch(_) {}
+        const goRobotList = () => {
+          try { localStorage.removeItem('tn_open_add_robot'); } catch(_) {}
+          setActiveTab('home');
+          try {
+            const u = new URL(window.location.href);
+            u.searchParams.delete('addbot');
+            u.searchParams.delete('paypal');
+            window.history.replaceState({}, '', u.pathname + (u.search || '') + u.hash);
+          } catch(_) {}
+        };
+        const check = () => {
+          try {
+            const q = new URLSearchParams(window.location.search);
+            if (localStorage.getItem('tn_open_add_robot') === '1' || q.get('addbot') === '1' || q.get('paypal') === 'success') {
+              goRobotList();
+            }
+          } catch(_) {}
+        };
+        check();
+        const onVis = () => { if (document.visibilityState === 'visible') check(); };
+        document.addEventListener('visibilitychange', onVis);
+        window.addEventListener('focus', check);
+        return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', check); };
       }, []);
+
       const [executionLogs, setExecutionLogs] = useState([]);
       const [iconPulse, setIconPulse] = useState(false);
       const triggerIconPulse = () => { setIconPulse(true); setTimeout(()=>setIconPulse(false), 4500); };
