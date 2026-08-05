@@ -472,7 +472,8 @@
             result = await sendOrderOnce(plat, payload);
           } catch (firstError) {
             const msg = firstError.message || '';
-            if (/stop|sl|tp|invalid_s|price/i.test(msg) && (sl > 0 || tp > 0)) {
+            const retryable = /stop|sl|tp|invalid|price|reject|4072430|requote|off\s*quote|volume/i.test(msg);
+            if (retryable) {
               // Widen SL/TP based on live market price instead of dropping them entirely.
               const { bid, ask } = await getQuote(plat, id, resolvedSymbol);
               const px = op === 'Buy' ? (ask || bid) : (bid || ask);
