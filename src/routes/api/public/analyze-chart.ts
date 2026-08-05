@@ -202,34 +202,45 @@ async function callGateway(body: AnalyzeBody) {
 }
 
 
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "content-type, x-api-key, authorization",
+};
+
 export const Route = createFileRoute("/api/public/analyze-chart")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         try {
+          const required = process.env["SCANNER_API_KEY"];
+          if (required) {
+            const auth = request.headers.get("authorization") || "";
+            const provided =
+              request.headers.get("x-api-key") ||
+              (auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "");
+            if (provided !== required) {
+              return new Response(JSON.stringify({ error: "Invalid API key" }), {
+                status: 401,
+                headers: { "content-type": "application/json", ...CORS },
+              });
+            }
+          }
           const body = (await request.json()) as AnalyzeBody;
           const result = await callGateway(body);
           return new Response(JSON.stringify(result), {
             status: 200,
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", ...CORS },
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           return new Response(JSON.stringify({ error: msg, fallback: true }), {
             status: 200,
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", ...CORS },
           });
         }
       },
-      OPTIONS: async () =>
-        new Response(null, {
-          status: 204,
-          headers: {
-            "access-control-allow-origin": "*",
-            "access-control-allow-methods": "POST, OPTIONS",
-            "access-control-allow-headers": "content-type",
-          },
-        }),
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
     },
   },
 });

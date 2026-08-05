@@ -10,9 +10,10 @@ import java.util.concurrent.TimeUnit
 /**
  * AI Chart Scanner API (TradeNest EA)
  *
- * Base URL: https://testnestea.lovable.app/   (or https://www.tradnestea.app/)
+ * Base URL: https://www.tradnestea.app/   (fallback: https://testnestea.lovable.app/)
  * Endpoint: POST /api/public/analyze-chart
- * Auth: none (public route) — server holds the AI key.
+ * Auth: header  x-api-key: <SCANNER_API_KEY>   (Bearer token also accepted)
+ * The server holds the AI provider key — the native app only sends the scanner key.
  */
 interface ScannerApiService {
 
@@ -20,10 +21,21 @@ interface ScannerApiService {
     suspend fun analyzeChart(@Body request: AnalyzeRequest): AnalyzeResponse
 
     companion object {
-        private const val BASE_URL = "https://testnestea.lovable.app/"
+        private const val BASE_URL = "https://www.tradnestea.app/"
 
-        fun create(): ScannerApiService {
+        /** TradeNest scanner key — same value stored server-side as SCANNER_API_KEY. */
+        const val SCANNER_API_KEY = "tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9"
+
+        fun create(apiKey: String = SCANNER_API_KEY): ScannerApiService {
             val client = OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    chain.proceed(
+                        chain.request().newBuilder()
+                            .addHeader("x-api-key", apiKey)
+                            .addHeader("Content-Type", "application/json")
+                            .build()
+                    )
+                }
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS) // AI analysis can take a while
                 .writeTimeout(120, TimeUnit.SECONDS)
@@ -38,6 +50,7 @@ interface ScannerApiService {
         }
     }
 }
+
 
 // ---------------- Request ----------------
 

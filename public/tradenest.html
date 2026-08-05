@@ -3917,7 +3917,7 @@ const HomeView = ({
         setAnalyzing(true); setResult(null);
         try {
           const resp = await fetch('/api/public/analyze-chart', {
-            method:'POST', headers:{'Content-Type':'application/json'},
+            method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
             body: JSON.stringify({ imageBase64:image, symbol, strategy: vaultStrategies.length ? vaultStrategies.join(',') : strategy, vaultStrategies, tradeStyle, session, timeframe, userPrompt, dataSource: effectiveSource, orderType, trailStop, confidenceThreshold: 55, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
           });
           if(!resp.ok){ const err=await resp.json().catch(()=>({})); throw new Error(err.error||`Error ${resp.status}`); }
@@ -5871,7 +5871,7 @@ const HomeView = ({
           setScanBanner({ title: `${botName} · Sniper Scan ${base}`, subtitle: `Analysing ${base} · low DD sniper` });
           try {
             const resp = await fetch('/api/public/analyze-chart', {
-              method:'POST', headers:{'Content-Type':'application/json'},
+              method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
               body: JSON.stringify({ symbol: base, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'candles', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
             });
             const data = await resp.json().catch(()=>({}));
