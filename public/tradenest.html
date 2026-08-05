@@ -5886,10 +5886,13 @@ const HomeView = ({
       const handleStartTrading = (ea) => {
         if(showDraggableIcon||tradeDelayTimer){
           if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);}
+          setBotRunning(false);
+          setPendingSignal(null);
           setShowDraggableIcon(false);setShowExecution(false);setShowBotPopup(false);setTradingEA(null);
           toast({title:"Stopped",description:"Trading robot stopped."});
         } else {
           speakText("Trade will execute in 1 minute!");
+          setBotRunning(true);
           setShowDraggableIcon(true);setTradeDelaySeconds(60);
           const interval=setInterval(()=>{setTradeDelaySeconds(prev=>{if(prev<=1){clearInterval(interval);setTradeDelayTimer(null);handleExecutionComplete();setShowBotPopup(true);return 0;}return prev-1;});},1000);
           setTradeDelayTimer(interval);
@@ -5897,7 +5900,8 @@ const HomeView = ({
         }
       };
 
-      const handleFullStop = () => { setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null); toast({title:"Stopped",description:"Trading robot stopped."}); };
+      const handleFullStop = () => { setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null); toast({title:"Stopped",description:"Trading robot stopped."}); };
+
       const handleSwitchEA = (ea) => {
         if (!ea || selectedEA?.id === ea.id) { setSelectedEA(ea); return; }
         const wasActive = showDraggableIcon || !!tradeDelayTimer;
