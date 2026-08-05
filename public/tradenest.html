@@ -380,20 +380,39 @@
         if (value && typeof value === 'object') return value.symbol || value.name || value.Symbol || value.Name || '';
         return '';
       };
-      // STRICT: trade ONLY the exact symbol the user chose. No suffix/prefix guessing,
-      // no fuzzy broker matching — XAUUSD never becomes XAUUSD.m, .US30. never becomes .US30std.
+      // SAME INSTRUMENT ONLY: prefer the exact symbol the user chose; if the broker
+      // names it differently (XAUUSD -> XAUUSD.m, .US30. -> US30), fall back to a
+      // broker variant of the SAME base instrument. Never a different instrument.
+      const baseOf = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+        .replace(/(MICRO|MINI|CASH|STD|PRO|ECN|RAW|SPOT|USDX)$/, '');
       const resolveSymbol = async (plat, id, requested) => {
         const raw = String(requested || '').trim();
         if (!raw) throw new Error('No symbol was provided for the trade.');
+        const want = baseOf(raw);
         try {
           const symbols = asArray(await mtFetch(plat, '/Symbols', { id })).map(symbolName).filter(Boolean);
           if (symbols.length) {
             const exact = symbols.find((s) => s === raw) || symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
             if (exact) return exact;
-            throw new Error(`Symbol "${raw}" does not exist on this broker — choose the exact broker symbol.`);
+            // Same base instrument, broker-specific naming (suffix/prefix/dots).
+            const sameBase = symbols.filter((s) => baseOf(s) === want);
+            if (sameBase.length) {
+              sameBase.sort((a, b) => a.length - b.length);
+              return sameBase[0];
+            }
+            // Base contained with only decoration around it (e.g. US30 -> .US30.cash)
+            const decorated = symbols.filter((s) => {
+              const b = baseOf(s);
+              return want.length >= 3 && (b.startsWith(want) || b.endsWith(want));
+            });
+            if (decorated.length) {
+              decorated.sort((a, b) => a.length - b.length);
+              return decorated[0];
+            }
+            throw new Error(`Symbol "${raw}" is not available on this broker account.`);
           }
         } catch (e) {
-          if (/does not exist/.test(e.message || '')) throw e;
+          if (/not available on this broker/.test(e.message || '')) throw e;
         }
         return raw;
       };
@@ -453,7 +472,8 @@
             result = await sendOrderOnce(plat, payload);
           } catch (firstError) {
             const msg = firstError.message || '';
-            if (/stop|sl|tp|invalid_s|price/i.test(msg) && (sl > 0 || tp > 0)) {
+            const retryable = /stop|sl|tp|invalid|price|reject|4072430|requote|off\s*quote|volume/i.test(msg);
+            if (retryable) {
               // Widen SL/TP based on live market price instead of dropping them entirely.
               const { bid, ask } = await getQuote(plat, id, resolvedSymbol);
               const px = op === 'Buy' ? (ask || bid) : (bid || ask);
@@ -4932,7 +4952,7 @@ const HomeView = ({
           const r = await fetch(url, { headers: { accept: 'application/json' } });
           const data = await r.json().catch(()=>({active:false}));
           if (data && data.active) {
-            try { localStorage.setItem('mobi_activated','1'); } catch(_) {}
+            try { localStorage.setItem('mobi_activated','1'); localStorage.setItem('tn_open_add_robot','1'); } catch(_) {}
             setStatus('done');
             setMsg('Payment verified. Opening app…');
             setTimeout(() => { onPaid && onPaid('ncp'); }, 900);
@@ -5692,6 +5712,17 @@ const HomeView = ({
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
       const [showBotSwitcher, setShowBotSwitcher] = useState(false);
+      // After a successful $35 payment, drop the user straight into "Add Robot".
+      const [showAddRobot, setShowAddRobot] = useState(false);
+      useEffect(() => {
+        try {
+          if (localStorage.getItem('tn_open_add_robot') === '1') {
+            localStorage.removeItem('tn_open_add_robot');
+            setActiveTab('home');
+            setTimeout(() => setShowAddRobot(true), 400);
+          }
+        } catch(_) {}
+      }, []);
       const [executionLogs, setExecutionLogs] = useState([]);
       const [iconPulse, setIconPulse] = useState(false);
       const triggerIconPulse = () => { setIconPulse(true); setTimeout(()=>setIconPulse(false), 4500); };
@@ -6125,6 +6156,7 @@ const HomeView = ({
          {showDraggableIcon && <DraggableBotIcon image={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} name={botSettings.name||(tradingEA||selectedEA)?.name} onClose={handleFullStop} onClick={handleIconClick} tc={themeColor} pulse={iconPulse} onPositionChange={setIconPos}/>}
 
          {showBotPopup && showDraggableIcon && <BotStatusPopup botName={botSettings.name||(tradingEA||selectedEA)?.name||'TRADE NEST EA'} botImage={botSettings.iconImage||botSettings.image||(tradingEA||selectedEA)?.image} onStop={handleFullStop} tc={themeColor} logs={executionLogs} isOnline={showDraggableIcon} iconPos={iconPos} onSwitchBot={eas.length>1?()=>setShowBotSwitcher(true):undefined}/>}
+          <LicenseKeyModal isOpen={showAddRobot} onClose={()=>setShowAddRobot(false)} onSuccess={(k,d)=>{ setShowAddRobot(false); handleAddEA(k,d); }} tc={themeColor}/>
           <BotSwitcher open={showBotSwitcher} onClose={()=>setShowBotSwitcher(false)} eas={eas} selectedEA={selectedEA} isRunning={showDraggableIcon} tc={themeColor} onPick={(ea)=>{ setShowBotSwitcher(false); handleSwitchEA(ea); }}/>
           <VisualEffectsOverlay effect={activeEffect} onDone={()=>setActiveEffect(null)} themeColor={themeColor}/>
           <ChartAnalyzer isOpen={showChartAnalyzer} onClose={()=>setShowChartAnalyzer(false)} licenseSymbols={Object.keys(allowedSymbols||{}).filter(s => !selectedEA?.symbols?.length || selectedEA.symbols.includes(s))} licenseKey={selectedEA?.licenseKey||null} onExecute={async (r,sym,count=1)=>{
