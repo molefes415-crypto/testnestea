@@ -380,35 +380,21 @@
         if (value && typeof value === 'object') return value.symbol || value.name || value.Symbol || value.Name || '';
         return '';
       };
-      const baseSymbol = (value) => String(value || '').trim().replace(/[^A-Za-z0-9].*$/, '').replace(/m$/i, '').toUpperCase();
+      // STRICT: trade ONLY the exact symbol the user chose. No suffix/prefix guessing,
+      // no fuzzy broker matching — XAUUSD never becomes XAUUSD.m, .US30. never becomes .US30std.
       const resolveSymbol = async (plat, id, requested) => {
         const raw = String(requested || '').trim();
         if (!raw) throw new Error('No symbol was provided for the trade.');
-        const base = baseSymbol(raw);
-        const suffixes = ['', '.', '.m', '.M', 'm', 'M', '.a', '.A', '+', '.pro', '.raw', '.ecn', '.micro', '_i', '.stp', '.c', '.std', '.cash', '-ECN', 'x'];
-        const prefixes = ['', '.', '#', '_'];
-        const candidates = [raw, raw.toUpperCase(), raw.toLowerCase()];
-        for (const p of prefixes) for (const s of suffixes) candidates.push(`${p}${base}${s}`);
-        const seen = new Set();
-        for (const candidate of candidates) {
-          if (!candidate || seen.has(candidate)) continue;
-          seen.add(candidate);
-          try {
-            await mtFetch(plat, '/GetQuote', { id, symbol: candidate, msNotOlder: 30000 });
-            return candidate;
-          } catch {}
-        }
         try {
           const symbols = asArray(await mtFetch(plat, '/Symbols', { id })).map(symbolName).filter(Boolean);
-          const upperBase = base.toUpperCase();
-          const exact = symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
-          if (exact) return exact;
-          const startsWith = symbols.find((s) => s.toUpperCase().startsWith(upperBase));
-          if (startsWith) return startsWith;
-          // Broker-specific: Razor Markets uses e.g. ".US30." — match by substring on the base name.
-          const contains = symbols.find((s) => s.toUpperCase().replace(/[^A-Z0-9]/g,'').includes(upperBase));
-          if (contains) return contains;
-        } catch {}
+          if (symbols.length) {
+            const exact = symbols.find((s) => s === raw) || symbols.find((s) => s.toUpperCase() === raw.toUpperCase());
+            if (exact) return exact;
+            throw new Error(`Symbol "${raw}" does not exist on this broker — choose the exact broker symbol.`);
+          }
+        } catch (e) {
+          if (/does not exist/.test(e.message || '')) throw e;
+        }
         return raw;
       };
 
