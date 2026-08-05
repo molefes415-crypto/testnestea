@@ -5757,12 +5757,15 @@ const HomeView = ({
       const [showExecution, setShowExecution] = useState(false);
       const [showBotPopup, setShowBotPopup] = useState(false);
       const [showBotSwitcher, setShowBotSwitcher] = useState(false);
-      // After a successful $35 payment, land on the ROBOT LIST (home) screen.
+      // After a backend-VERIFIED $35 payment, land on the robot list and open the
+      // existing "Enter License" (Add Robot) page. The flag is only ever set after
+      // /api/public/paypal confirms the payment with PayPal.
       const [showAddRobot, setShowAddRobot] = useState(false);
       useEffect(() => {
-        const goRobotList = () => {
-          try { localStorage.removeItem('tn_open_add_robot'); } catch(_) {}
+        const goEnterLicense = () => {
+          try { localStorage.removeItem('tn_open_add_robot'); localStorage.removeItem('tn_paypal_verified'); } catch(_) {}
           setActiveTab('home');
+          setShowAddRobot(true);
           try {
             const u = new URL(window.location.href);
             u.searchParams.delete('addbot');
@@ -5773,8 +5776,10 @@ const HomeView = ({
         const check = () => {
           try {
             const q = new URLSearchParams(window.location.search);
-            if (localStorage.getItem('tn_open_add_robot') === '1' || q.get('addbot') === '1' || q.get('paypal') === 'success') {
-              goRobotList();
+            const verified = localStorage.getItem('tn_open_add_robot') === '1'
+              || localStorage.getItem('tn_paypal_verified') === '1';
+            if (verified || q.get('addbot') === '1') {
+              goEnterLicense();
             }
           } catch(_) {}
         };
@@ -5784,6 +5789,7 @@ const HomeView = ({
         window.addEventListener('focus', check);
         return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', check); };
       }, []);
+
 
       const [executionLogs, setExecutionLogs] = useState([]);
       const [iconPulse, setIconPulse] = useState(false);
