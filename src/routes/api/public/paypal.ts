@@ -80,6 +80,8 @@ export const Route = createFileRoute('/api/public/paypal')({
             const returnUrl = `${origin}/paypal-return.html`
             const cancelUrl = `${origin}/paypal-return.html?cancel=1`
 
+            // No payment_source restriction: PayPal then shows both "Pay with PayPal"
+            // and "Debit or Credit Card" (guest checkout) on the approval page.
             const created = await paypalFetch('/v2/checkout/orders', {
               method: 'POST',
               body: JSON.stringify({
@@ -91,18 +93,17 @@ export const Route = createFileRoute('/api/public/paypal')({
                     amount: { currency_code: PRODUCT.currency, value: PRODUCT.amount },
                   },
                 ],
-                payment_source: {
-                  paypal: {
-                    email_address: email,
-                    experience_context: {
-                      brand_name: PRODUCT.name,
-                      user_action: 'PAY_NOW',
-                      shipping_preference: 'NO_SHIPPING',
-                      landing_page: 'LOGIN',
-                      return_url: returnUrl,
-                      cancel_url: cancelUrl,
-                    },
-                  },
+                payer: { email_address: email },
+                application_context: {
+                  brand_name: PRODUCT.name,
+                  user_action: 'PAY_NOW',
+                  shipping_preference: 'NO_SHIPPING',
+                  // 'card' → land straight on the guest card form; otherwise show
+                  // PayPal login page (card option is still available there).
+                  landing_page:
+                    String(body.prefer || '').toLowerCase() === 'card' ? 'BILLING' : 'NO_PREFERENCE',
+                  return_url: returnUrl,
+                  cancel_url: cancelUrl,
                 },
               }),
             })

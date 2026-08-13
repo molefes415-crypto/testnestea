@@ -4934,14 +4934,14 @@ const HomeView = ({
       const [msg, setMsg] = useState('');
       const [opened, setOpened] = useState(false);
 
-      const openCheckout = async () => {
+      const openCheckout = async (prefer) => {
         setStatus('processing');
-        setMsg('Creating your secure PayPal checkout…');
+        setMsg(prefer === 'card' ? 'Opening secure card checkout…' : 'Creating your secure PayPal checkout…');
         try {
           const r = await fetch('/api/public/paypal?action=create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, user_ref: adminId || email }),
+            body: JSON.stringify({ email, user_ref: adminId || email, prefer: prefer || 'paypal' }),
           });
           const d = await r.json().catch(()=>({}));
           if (!d || !d.approve_url || !d.order_id) {
@@ -5053,11 +5053,19 @@ const HomeView = ({
               </div>
 
               <button
-                onClick={openCheckout}
+                onClick={()=>openCheckout('paypal')}
                 disabled={status==='processing'||status==='verifying'||status==='done'}
                 style={{width:'100%',padding:'16px 20px',borderRadius:14,border:'none',background:'linear-gradient(180deg,#ffc439 0%, #f0a800 100%)',color:'#0a1a2f',fontWeight:900,fontSize:15,letterSpacing:0.5,cursor:'pointer',boxShadow:'0 10px 30px rgba(255,196,57,0.35)',marginBottom:10}}>
                 {status==='processing' ? 'OPENING PAYPAL…' : status==='done' ? 'PAYMENT SUCCESSFUL ✓' : opened ? 'PAY AGAIN WITH PAYPAL' : 'PAY WITH PAYPAL'}
               </button>
+
+              <button
+                onClick={()=>openCheckout('card')}
+                disabled={status==='processing'||status==='verifying'||status==='done'}
+                style={{width:'100%',padding:'15px 20px',borderRadius:14,border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.06)',color:'#fff',fontWeight:800,fontSize:13.5,letterSpacing:1,fontFamily:'Orbitron',cursor:'pointer',marginBottom:4}}>
+                💳 PAY WITH DEBIT / CREDIT CARD
+              </button>
+              <div style={{color:'rgba(255,255,255,0.35)',fontSize:10.5,textAlign:'center',marginBottom:8}}>No PayPal account needed for card payments</div>
 
               {opened && status!=='done' && (
                 <button
