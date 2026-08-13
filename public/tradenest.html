@@ -4934,14 +4934,14 @@ const HomeView = ({
       const [msg, setMsg] = useState('');
       const [opened, setOpened] = useState(false);
 
-      const openCheckout = async () => {
+      const openCheckout = async (prefer) => {
         setStatus('processing');
-        setMsg('Creating your secure PayPal checkout…');
+        setMsg(prefer === 'card' ? 'Opening secure card checkout…' : 'Creating your secure PayPal checkout…');
         try {
           const r = await fetch('/api/public/paypal?action=create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, user_ref: adminId || email }),
+            body: JSON.stringify({ email, user_ref: adminId || email, prefer: prefer || 'paypal' }),
           });
           const d = await r.json().catch(()=>({}));
           if (!d || !d.approve_url || !d.order_id) {
