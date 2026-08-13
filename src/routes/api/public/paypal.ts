@@ -101,9 +101,7 @@ export const Route = createFileRoute('/api/public/paypal')({
                   // 'card' → land straight on the guest card form; otherwise show
                   // PayPal login page (card option is still available there).
                   landing_page:
-                    String(body.prefer || '').toLowerCase() === 'card'
-                      ? 'GUEST_CHECKOUT'
-                      : 'NO_PREFERENCE',
+                    String(body.prefer || '').toLowerCase() === 'card' ? 'BILLING' : 'NO_PREFERENCE',
                   return_url: returnUrl,
                   cancel_url: cancelUrl,
                 },
