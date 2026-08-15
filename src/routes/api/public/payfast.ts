@@ -67,7 +67,9 @@ export const Route = createFileRoute('/api/public/payfast')({
               return json({ error: 'payfast_not_configured' }, 500)
             }
 
-            const origin = new URL(request.url).origin
+            // Use the canonical (non-www) origin: www 307-redirects to apex and
+            // PayFast/CloudFront can reject redirected return/notify hops.
+            const origin = new URL(request.url).origin.replace('://www.', '://')
             const paymentId = `tnea${Date.now()}${Math.floor(Math.random() * 1000)}`
             // One link handles both success and cancel (cancel is signalled by PayFast's
             // own flag or the ITN status). notify_url stays server-to-server.
