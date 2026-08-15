@@ -5165,7 +5165,22 @@ const HomeView = ({
                 style={{width:'100%',padding:'15px 20px',borderRadius:14,border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.06)',color:'#fff',fontWeight:800,fontSize:13.5,letterSpacing:1,fontFamily:'Orbitron',cursor:'pointer',marginBottom:4}}>
                 💳 PAY WITH DEBIT / CREDIT CARD
               </button>
-              <div style={{color:'rgba(255,255,255,0.35)',fontSize:10.5,textAlign:'center',marginBottom:8}}>No PayPal account needed for card payments</div>
+              <div style={{color:'rgba(255,255,255,0.35)',fontSize:10.5,textAlign:'center',marginBottom:12}}>No PayPal account needed for card payments</div>
+
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                <div style={{flex:1,height:1,background:'rgba(255,255,255,0.12)'}}/>
+                <div style={{color:'rgba(255,255,255,0.35)',fontSize:10,fontFamily:'Orbitron',letterSpacing:2}}>OR</div>
+                <div style={{flex:1,height:1,background:'rgba(255,255,255,0.12)'}}/>
+              </div>
+
+              <button
+                onClick={openPayFast}
+                disabled={status==='processing'||status==='verifying'||status==='done'}
+                style={{width:'100%',padding:'16px 20px',borderRadius:14,border:'none',background:'linear-gradient(180deg,#00b8e6 0%, #0077b6 100%)',color:'#fff',fontWeight:900,fontSize:14,letterSpacing:1,fontFamily:'Orbitron',cursor:'pointer',boxShadow:'0 10px 30px rgba(0,150,220,0.35)',marginBottom:4}}>
+                SUBSCRIBE WITH PAYFAST · R350/MO
+              </button>
+              <div style={{color:'rgba(255,255,255,0.35)',fontSize:10.5,textAlign:'center',marginBottom:8}}>South African cards, EFT, Instant EFT & SnapScan</div>
+
 
               {opened && status!=='done' && (
                 <button
