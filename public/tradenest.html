@@ -4936,10 +4936,17 @@ const HomeView = ({
           setStatus('ready');
           setMsg('Complete the payment on PayFast — you\'ll be brought straight back here once it\'s verified.');
           // POST the server-signed field set to PayFast.
+          // PayFast refuses to be framed (X-Frame-Options), and this app runs
+          // inside an iframe — so break out: navigate the TOP window (or a new
+          // tab when we can't reach top, e.g. cross-origin embed).
+          const framed = window.top !== window.self;
+          let canTop = false;
+          try { canTop = framed ? !!window.top.location.href : true; } catch(_) { canTop = false; }
           const form = document.createElement('form');
           form.method = 'post';
           form.action = d.process_url;
           form.acceptCharset = 'utf-8';
+          form.target = framed ? (canTop ? '_top' : '_blank') : '_self';
           Object.keys(d.fields).forEach((k) => {
             const i = document.createElement('input');
             i.type = 'hidden'; i.name = k; i.value = String(d.fields[k]);
@@ -4947,6 +4954,7 @@ const HomeView = ({
           });
           document.body.appendChild(form);
           form.submit();
+
         } catch (_) {
           setStatus('error');
           setMsg('Network error starting checkout. Please try again.');
