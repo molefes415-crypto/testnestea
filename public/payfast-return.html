@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Verifying Payment — TradeNest EA</title>
+<meta name="robots" content="noindex" />
+<style>
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 0%,#1a0a10 0%,#050505 55%,#000 100%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center}
+  .tick{width:88px;height:88px;border-radius:50%;border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;margin-bottom:18px;transition:all .3s}
+  .tick.ok{border-color:rgba(74,222,128,.6);color:#4ade80;box-shadow:0 0 40px rgba(74,222,128,.35)}
+  .tick.bad{border-color:rgba(244,114,182,.6);color:#f472b6;box-shadow:0 0 40px rgba(244,114,182,.25)}
+  h1{font-size:19px;letter-spacing:2px;margin:0 0 8px}
+  p{font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;max-width:340px;margin:0 0 22px}
+  a.btn{display:block;width:100%;max-width:340px;padding:16px 20px;border-radius:14px;background:linear-gradient(180deg,#ff5c7a,#e01a3c);color:#fff;font-weight:900;text-decoration:none;font-size:15px;box-shadow:0 10px 30px rgba(255,45,85,.35)}
+  small{display:block;margin-top:16px;color:rgba(255,255,255,.32);font-size:11px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin 1s linear infinite;display:inline-block}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="tick" id="tick"><span class="spin">◌</span></div>
+    <h1 id="title">VERIFYING YOUR PAYMENT…</h1>
+    <p id="msg">Please wait while PayFast confirms your payment. Don't close this page.</p>
+    <a class="btn" id="open" href="/tradenest.html" style="display:none">CONTINUE</a>
+    <small id="hint"></small>
+  </div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var paymentId = q.get('m') || q.get('m_payment_id') || '';
+  var cancelled = q.get('cancel') === '1';
+  var tick = document.getElementById('tick');
+  var title = document.getElementById('title');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('open');
+  var hint = document.getElementById('hint');
+
+  function show(cls, t, m, href, label) {
+    tick.className = 'tick ' + (cls || '');
+    tick.innerHTML = cls === 'ok' ? '✓' : cls === 'bad' ? '!' : '<span class="spin">◌</span>';
+    title.textContent = t;
+    msg.textContent = m;
+    if (href) { btn.href = href; btn.textContent = label || 'CONTINUE'; btn.style.display = 'block'; }
+  }
+
+  // The app is the source of truth for navigation; these flags tell it what happened.
+  function goApp(state) {
+    var target = '/tradenest.html?payfast=' + state + (state === 'success' ? '&addbot=1' : '');
+    try {
+      localStorage.setItem('tn_payfast_state', state);
+      if (state === 'success') {
+        localStorage.setItem('tn_payfast_verified', '1');
+        localStorage.setItem('mobi_activated', '1');
+        localStorage.setItem('tn_open_add_robot', '1');
+      } else {
+        localStorage.removeItem('tn_payfast_verified');
+        localStorage.removeItem('tn_open_add_robot');
+      }
+    } catch (e) {}
+    if (state === 'success') { try { location.href = 'tradenest://payfast/success'; } catch (e) {} }
+    setTimeout(function () { location.replace(target); }, 900);
+    show(state === 'success' ? 'ok' : 'bad',
+      state === 'success' ? 'PAYMENT SUCCESSFUL ✓' : title.textContent,
+      state === 'success' ? 'Opening Trade Nest EA so you can enter your license key…' : msg.textContent,
+      target, 'OPEN TRADE NEST EA');
+  }
+
+  if (cancelled) {
+    if (paymentId) {
+      fetch('/api/public/payfast?action=cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_id: paymentId }) }).catch(function(){});
+    }
+    show('bad', 'PAYMENT CANCELLED', 'Your payment was cancelled and nothing was charged. You can try again from the payment page.');
+    btn.href = '/tradenest.html?payfast=cancel'; btn.textContent = 'BACK TO PAYMENT'; btn.style.display = 'block';
+    try { localStorage.setItem('tn_payfast_state', 'cancelled'); } catch (e) {}
+    setTimeout(function () { location.replace('/tradenest.html?payfast=cancel'); }, 1500);
+    return;
+  }
+
+  if (!paymentId) {
+    show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'We couldn\'t identify this payment. Please return to the app and try again.');
+    btn.href = '/tradenest.html?payfast=failed'; btn.textContent = 'BACK TO PAYMENT'; btn.style.display = 'block';
+    return;
+  }
+
+  // PayFast confirms server-to-server (ITN). We poll our own backend until the
+  // ITN lands — the browser never decides that a payment succeeded.
+  var attempts = 0;
+  function poll() {
+    attempts++;
+    fetch('/api/public/payfast?action=status&payment_id=' + encodeURIComponent(paymentId), { headers: { accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.paid) return goApp('success');
+        if (d && d.status === 'cancelled') {
+          show('bad', 'PAYMENT CANCELLED', 'Your payment was cancelled. Nothing was charged.');
+          return goApp('cancel');
+        }
+        if (d && d.status === 'failed') {
+          show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'PayFast reported a problem with this payment. Please try again.');
+          return goApp('failed');
+        }
+        if (attempts < 12) { hint.textContent = 'Still verifying with PayFast… (' + attempts + ')'; return setTimeout(poll, 2500); }
+        show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'Payment could not be verified yet. If you completed the payment it will unlock shortly — reopen the app and tap CHECK PAYMENT STATUS.');
+        btn.href = '/tradenest.html?payfast=pending'; btn.textContent = 'OPEN TRADE NEST EA'; btn.style.display = 'block';
+      })
+      .catch(function () {
+        if (attempts < 12) return setTimeout(poll, 2500);
+        show('bad', 'PAYMENT COULD NOT BE VERIFIED', 'Payment could not be verified. Please try again.');
+        goApp('failed');
+      });
+  }
+  poll();
+})();
+</script>
+</body>
+</html>
