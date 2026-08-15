@@ -21,7 +21,13 @@ export function payfastConfig() {
   return {
     sandbox,
     merchantId: process.env['PAYFAST_MERCHANT_ID'] || '24791875',
-    merchantKey: process.env['PAYFAST_MERCHANT_KEY'] || '',
+    // The merchant key is posted in the browser form by design (not a private
+    // credential). Ignore an env value that is clearly not a PayFast key so a
+    // stale/wrong secret can't break the signature.
+    merchantKey: (() => {
+      const v = (process.env['PAYFAST_MERCHANT_KEY'] || '').trim()
+      return /^[a-z0-9]{8,20}$/i.test(v) ? v : '2z9cx1tb1vgik'
+    })(),
     passphrase: process.env['PAYFAST_PASSPHRASE'] || '',
     processUrl: sandbox
       ? 'https://sandbox.payfast.co.za/eng/process'
