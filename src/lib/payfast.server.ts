@@ -20,14 +20,11 @@ export function payfastConfig() {
   const sandbox = String(process.env['PAYFAST_ENV'] || '').toLowerCase() === 'sandbox'
   return {
     sandbox,
-    merchantId: process.env['PAYFAST_MERCHANT_ID'] || '24791875',
-    // The merchant key is posted in the browser form by design (not a private
-    // credential). Ignore an env value that is clearly not a PayFast key so a
-    // stale/wrong secret can't break the signature.
-    merchantKey: (() => {
-      const v = (process.env['PAYFAST_MERCHANT_KEY'] || '').trim()
-      return /^[a-z0-9]{8,20}$/i.test(v) ? v : '2z9cx1tb1vgik'
-    })(),
+    // Merchant id/key are posted in the browser form by design (not private
+    // credentials). Pinned to the live account so a stale stored value can't
+    // break the signature.
+    merchantId: '36249167',
+    merchantKey: 'uqdzaa8kxtwsg',
     passphrase: process.env['PAYFAST_PASSPHRASE'] || '',
     processUrl: sandbox
       ? 'https://sandbox.payfast.co.za/eng/process'
