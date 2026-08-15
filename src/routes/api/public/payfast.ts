@@ -69,8 +69,10 @@ export const Route = createFileRoute('/api/public/payfast')({
 
             const origin = new URL(request.url).origin
             const paymentId = `tnea${Date.now()}${Math.floor(Math.random() * 1000)}`
+            // One link handles both success and cancel (cancel is signalled by PayFast's
+            // own flag or the ITN status). notify_url stays server-to-server.
             const returnUrl = `${origin}/payfast-return.html?m=${encodeURIComponent(paymentId)}`
-            const cancelUrl = `${origin}/payfast-return.html?cancel=1&m=${encodeURIComponent(paymentId)}`
+            const cancelUrl = returnUrl
             const notifyUrl = `${origin}/api/public/payfast-itn`
 
             // Field ORDER matters for the PayFast signature.
