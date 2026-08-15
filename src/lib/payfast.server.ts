@@ -10,7 +10,7 @@ export const PAYFAST_PRODUCT = {
   name: 'TradeNest EA',
   item_name: 'TradeNest EA Subscription',
   item_description: 'Monthly access to TradeNest EA',
-  amount: '350.00', // ZAR per month
+  amount: '580.00', // ZAR per month
   currency: 'ZAR',
   frequency: '3', // 3 = monthly
   cycles: '0', // 0 = until cancelled
