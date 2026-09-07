@@ -166,10 +166,4 @@ object PayFastCheckout {
     suspend fun cancel(paymentId: String) {
         runCatching { api.cancel(CancelPaymentRequest(paymentId)) }
     }
-
-    private fun escape(s: String) = s
-        .replace("&", "&amp;")
-        .replace("\"", "&quot;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
 }
