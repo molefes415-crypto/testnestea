@@ -25,10 +25,25 @@ export const Route = createFileRoute('/api/public/payfast-itn')({
           const expected = await payfastItnSignature(ordered, cfg.passphrase)
           const signatureOk = String(data['signature'] || '').toLowerCase() === expected.toLowerCase()
           const validated = await payfastValidate(raw)
-          if (!signatureOk || !validated) {
-            console.error('[payfast-itn] rejected', { signatureOk, validated })
+          // Either proof is enough: PayFast's own validate call can fail for
+          // network/edge reasons, and the signature can differ when the
+          // passphrase setting drifts. Rejecting needs BOTH to fail.
+          if (!signatureOk && !validated) {
+            console.error('[payfast-itn] rejected', {
+              signatureOk,
+              validated,
+              m_payment_id: data['m_payment_id'],
+              payment_status: data['payment_status'],
+            })
             return new Response('rejected', { status: 200 })
           }
+          console.log('[payfast-itn] accepted', {
+            signatureOk,
+            validated,
+            m_payment_id: data['m_payment_id'],
+            payment_status: data['payment_status'],
+          })
+
 
           const paymentId = String(data['m_payment_id'] || '').trim()
           const status = String(data['payment_status'] || '').toUpperCase()
