@@ -9,7 +9,7 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: CORS })
 const esc = (s: string) =>
-  String(s).replace('&', '&').replace('"', '"').replace('<', '<').replace('>', '>')
+  String(s).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>')
 
 /**
  * PayFast subscription checkout (server-signed).
