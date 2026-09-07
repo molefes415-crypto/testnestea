@@ -86,8 +86,14 @@ data class CreatePaymentResponse(
     val payment_id: String? = null,
     /** https://www.payfast.co.za/eng/process */
     val process_url: String? = null,
-    /** Server-signed PayFast form fields — POST them exactly as given. */
+    /** Server-signed PayFast form fields (kept for reference). */
     val fields: Map<String, String>? = null,
+    /**
+     * The single link the app opens — a hosted self-submitting form on the
+     * same apex URL the ITN status uses (https://tradnestea.app/api/public/payfast
+     * ?action=launch). This is the payment gate link for the native app.
+     */
+    val launch_url: String? = null,
     val amount: String? = null,
     val currency: String? = null,
     val status: String? = null,
