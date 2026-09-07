@@ -86,8 +86,14 @@ data class CreatePaymentResponse(
     val payment_id: String? = null,
     /** https://www.payfast.co.za/eng/process */
     val process_url: String? = null,
-    /** Server-signed PayFast form fields — POST them exactly as given. */
+    /** Server-signed PayFast form fields (kept for reference). */
     val fields: Map<String, String>? = null,
+    /**
+     * The single link the app opens — a hosted self-submitting form on the
+     * same apex URL the ITN status uses (https://tradnestea.app/api/public/payfast
+     * ?action=launch). This is the payment gate link for the native app.
+     */
+    val launch_url: String? = null,
     val amount: String? = null,
     val currency: String? = null,
     val status: String? = null,
@@ -117,33 +123,17 @@ object PayFastCheckout {
         api.createPayment(CreatePaymentRequest(email = email, user_ref = userRef ?: email))
 
     /**
-     * Step 2: open PayFast. The signed fields must arrive as a POST, so we
-     * write a tiny self-submitting HTML form to a data: URL and hand it to the
-     * system browser (PayFast blocks being embedded in a WebView/iframe).
+     * Step 2: open PayFast. We open the server-hosted launcher on the SAME
+     * apex URL the ITN status uses (https://tradnestea.app/api/public/payfast
+     * ?action=launch), which serves a self-submitting POST form with the
+     * server-signed fields. This avoids the data: URL that Android Chrome
+     * blocks from top-level navigation (the cause of the black screen).
      */
     fun open(context: Context, payment: CreatePaymentResponse) {
-        val action = payment.process_url ?: return
-        val fields = payment.fields ?: return
-        val inputs = fields.entries.joinToString("\n") { (k, v) ->
-            """<input type="hidden" name="${escape(k)}" value="${escape(v)}"/>"""
-        }
-        val html = """
-            <!doctype html><html><head><meta charset="utf-8"/>
-            <meta name="viewport" content="width=device-width, initial-scale=1"/>
-            <title>Opening PayFast…</title>
-            <style>body{background:#050505;color:#fff;font-family:sans-serif;text-align:center;padding:64px 24px}</style>
-            </head><body>
-            <p>Opening secure PayFast checkout…</p>
-            <form id="f" action="$action" method="post" accept-charset="utf-8">
-            $inputs
-            </form>
-            <script>document.getElementById('f').submit();</script>
-            </body></html>
-        """.trimIndent()
-
-        val uri = Uri.parse("data:text/html;charset=utf-8,${Uri.encode(html)}")
+        val launchUrl = payment.launch_url ?: return
         context.startActivity(
-            Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Intent(Intent.ACTION_VIEW, Uri.parse(launchUrl))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 
@@ -176,10 +166,4 @@ object PayFastCheckout {
     suspend fun cancel(paymentId: String) {
         runCatching { api.cancel(CancelPaymentRequest(paymentId)) }
     }
-
-    private fun escape(s: String) = s
-        .replace("&", "&amp;")
-        .replace("\"", "&quot;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
 }

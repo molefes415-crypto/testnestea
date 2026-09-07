@@ -8,6 +8,8 @@ const CORS = {
 }
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: CORS })
+const esc = (s: string) =>
+  String(s).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>')
 
 /**
  * PayFast subscription checkout (server-signed).
@@ -27,7 +29,32 @@ export const Route = createFileRoute('/api/public/payfast')({
       GET: async ({ request }) => {
         try {
           const u = new URL(request.url)
-          if (u.searchParams.get('action') !== 'status') return json({ error: 'unknown action' }, 400)
+          const action = u.searchParams.get('action') || ''
+
+          // Hosted PayFast launcher — the single link the app/browser opens.
+          // Serves a self-submitting POST form with the server-signed fields,
+          // so native apps don't need to build a data: URL (blocked by Chrome)
+          // or hold the signed fields themselves.
+          if (action === 'launch') {
+            const paymentId = (u.searchParams.get('payment_id') || '').trim()
+            if (!paymentId) return json({ error: 'missing payment_id' }, 400)
+            const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+            const { data } = await supabaseAdmin
+              .from('payments')
+              .select('raw')
+              .eq('paypal_order_id', paymentId)
+              .maybeSingle()
+            const fields = (data?.raw as any)?.fields
+            const processUrl = (data?.raw as any)?.process_url
+            if (!fields || !processUrl) return json({ error: 'payment not found' }, 404)
+            const inputs = Object.entries(fields as Record<string, string>)
+              .map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}"/>`)
+              .join('')
+            const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Opening PayFast…</title><style>body{background:#050505;color:#fff;font-family:sans-serif;text-align:center;padding:64px 24px}</style></head><body><p>Opening secure PayFast checkout…</p><form id="f" action="${esc(processUrl)}" method="post" accept-charset="utf-8">${inputs}</form><script>document.getElementById('f').submit();</script></body></html>`
+            return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+          }
+
+          if (action !== 'status') return json({ error: 'unknown action' }, 400)
           const paymentId = (u.searchParams.get('payment_id') || '').trim()
           const email = (u.searchParams.get('email') || '').trim().toLowerCase()
           if (!paymentId && !email) return json({ error: 'missing payment_id or email' }, 400)
@@ -110,6 +137,7 @@ export const Route = createFileRoute('/api/public/payfast')({
                 amount: Number(PAYFAST_PRODUCT.amount),
                 currency: PAYFAST_PRODUCT.currency,
                 status: 'pending',
+                raw: { fields, process_url: cfg.processUrl },
               },
               { onConflict: 'paypal_order_id' },
             )
@@ -118,6 +146,8 @@ export const Route = createFileRoute('/api/public/payfast')({
               payment_id: paymentId,
               process_url: cfg.processUrl,
               fields,
+              // Same-apex hosted launch page — the only link the app opens.
+              launch_url: `${origin}/api/public/payfast?action=launch&payment_id=${encodeURIComponent(paymentId)}`,
               amount: PAYFAST_PRODUCT.amount,
               currency: PAYFAST_PRODUCT.currency,
               status: 'pending',
