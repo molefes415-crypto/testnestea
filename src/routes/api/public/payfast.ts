@@ -110,6 +110,7 @@ export const Route = createFileRoute('/api/public/payfast')({
                 amount: Number(PAYFAST_PRODUCT.amount),
                 currency: PAYFAST_PRODUCT.currency,
                 status: 'pending',
+                raw: { fields, process_url: cfg.processUrl },
               },
               { onConflict: 'paypal_order_id' },
             )
@@ -118,6 +119,8 @@ export const Route = createFileRoute('/api/public/payfast')({
               payment_id: paymentId,
               process_url: cfg.processUrl,
               fields,
+              // Same-apex hosted launch page — the only link the app opens.
+              launch_url: `${origin}/api/public/payfast?action=launch&payment_id=${encodeURIComponent(paymentId)}`,
               amount: PAYFAST_PRODUCT.amount,
               currency: PAYFAST_PRODUCT.currency,
               status: 'pending',
