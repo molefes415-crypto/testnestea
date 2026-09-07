@@ -110,3 +110,41 @@ Base: `https://mt5.mtapi.io` (MT4: `https://mt4.mtapi.io`). See `api/MtApiServic
 - `GET /OrderClose?id=…&ticket=…` — close a position.
 
 Trade comment = the bot's name only.
+
+---
+
+## PayFast subscription (native Android)
+
+Base URL: `https://tradnestea.app` (apex — `www` 307-redirects and would drop POST bodies)
+
+Kotlin: `com.whiteyforex.tradenestea.api.PayFastApi` (`PayFastApiService` + `PayFastCheckout`)
+
+| Call | Endpoint | Purpose |
+| --- | --- | --- |
+| Create | `POST /api/public/payfast?action=create` body `{ "email": "...", "user_ref": "..." }` | Returns `payment_id`, `process_url`, server-signed `fields` (R580/month) |
+| Status | `GET /api/public/payfast?action=status&payment_id=...` (or `&email=...`) | `{ "status": "pending\|paid\|cancelled\|failed", "paid": true/false }` |
+| Cancel | `POST /api/public/payfast?action=cancel` body `{ "payment_id": "..." }` | Marks an abandoned pending payment cancelled |
+| ITN (server only) | `POST /api/public/payfast-itn` | PayFast → our server. The **only** thing that can mark a payment paid |
+
+No API key needed — merchant credentials and the passphrase stay on the server.
+
+### Flow
+
+1. `PayFastCheckout.start(email, userRef)` → keep `payment_id` in SharedPreferences.
+2. `PayFastCheckout.open(context, payment)` → self-submitting form opens PayFast in the system browser.
+3. `PayFastCheckout.awaitPaid(paymentId)` (or `isPaid(...)` on resume) → poll until the ITN lands.
+4. On `paid == true` → navigate to the license-key / ADD ROBOT screen.
+
+The web return page deep-links back as `tradenest://payfast/success`; add this to
+`AndroidManifest.xml` so the app is brought to the front after payment:
+
+```xml
+<intent-filter>
+  <action android:name="android.intent.action.VIEW"/>
+  <category android:name="android.intent.category.DEFAULT"/>
+  <category android:name="android.intent.category.BROWSABLE"/>
+  <data android:scheme="tradenest" android:host="payfast"/>
+</intent-filter>
+```
+
+Never treat the browser returning as proof of payment — always confirm with the status call.
