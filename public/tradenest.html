@@ -986,7 +986,7 @@
         setError('');
         try {
           const deviceId = getDeviceId();
-          const resp = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
+          const resp = await fetch(`https://tradenestea.com/admin/api/validate_licensekey.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: key.trim(), device_id: deviceId })
@@ -5447,7 +5447,7 @@ const HomeView = ({
               if (!ea?.licenseKey) return ea;
               try {
                 const dId = getDeviceId();
-                const r = await fetch(`https://tradenestea.com/admin/api/validate_license.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
+                const r = await fetch(`https://tradenestea.com/admin/api/validate_licensekey.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
                 const d = await r.json();
                 // Expiry check — treat past expires_at as expired even if server still says valid
                 let expired = false;
@@ -5637,8 +5637,8 @@ const HomeView = ({
       const processSignals = useCallback(async (ea) => {
         if (!ea?.licenseKey) return;
         try {
-          console.log('[SIGNALS] Polling validate_license.php for licence key', String(ea.licenseKey).slice(0,6)+'...');
-          const resp = await fetch('https://tradenestea.com/admin/api/validate_license.php', {
+          console.log('[SIGNALS] Polling validate_licensekey.php for licence key', String(ea.licenseKey).slice(0,6)+'...');
+          const resp = await fetch('https://tradenestea.com/admin/api/validate_licensekey.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: ea.licenseKey, device_id: getDeviceId() }),
@@ -5653,7 +5653,7 @@ const HomeView = ({
             return;
           }
 
-          // validate_license.php returns unread signals as { signals: { SYMBOL: [ ... ] } }
+          // validate_licensekey.php returns unread signals as { signals: { SYMBOL: [ ... ] } }
           // Also accept legacy shapes so old portals still work.
           let list = [];
           if (Array.isArray(data)) list = data;
@@ -5677,7 +5677,7 @@ const HomeView = ({
           }
 
           if (list.length === 0) {
-            console.log('[SIGNALS] No unread signals returned by validate_license.php');
+            console.log('[SIGNALS] No unread signals returned by validate_licensekey.php');
             return;
           }
 

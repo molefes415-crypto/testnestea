@@ -10,7 +10,7 @@ Two backends:
 
 ## 1. Portal — License keys & EA data
 
-### POST/GET `/admin/api/validate_license.php`
+### POST/GET `/admin/api/validate_licensekey.php`
 **What it's for:** the single most important call — activates a license key, binds the device, and returns everything about the EA the key belongs to (name, logo/robot image, allowed symbols, mentor branding, expiry) plus grouped signals.
 
 Params (query or JSON body): `key` (license key), `device_id` (unique per install), `_` (cache-buster timestamp).

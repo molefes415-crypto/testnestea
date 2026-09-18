@@ -10,7 +10,7 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.Retrofit
 
 interface ApiService {
-    @POST("admin/api/validate_license.php")
+    @POST("admin/api/validate_licensekey.php")
     suspend fun validateLicense(@Body request: LicenseRequest): LicenseResponse
 
     @POST("admin/api/check_subscription.php")
