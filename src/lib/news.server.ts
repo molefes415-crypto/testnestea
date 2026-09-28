@@ -148,7 +148,7 @@ Return STRICT JSON:
   "signals": [ { "symbol": string, "type": "news"|"fundamental", "direction": "BUY"|"SELL", "event": string, "event_time_utc": string, "confidence": 0-100, "entry_mode": "pre_release"|"post_release"|"market", "sl_pips": number, "tp_pips": number, "reason": string } ],
   "summary": string
 }
-Only include a signal when confidence >= ${minConf}. When forecast/previous numbers are missing, use your own macro knowledge (recent trend, central-bank stance) to estimate the likely outcome and still give an honest confidence. Always give sl_pips and tp_pips (tp >= 1.5x sl). Never force signals below the threshold.`;
+CONFIDENCE for a signal = probability the SYMBOL moves in your direction in the hours around the release, driven mainly by the forecast-vs-previous change (e.g. a rate hike forecast 4.35%->4.60% is AUD-bullish; NFP forecast 90K vs 162K prior is USD-bearish => XAUUSD BUY). It is NOT the probability of a surprise. Include a signal when confidence >= ${minConf}. When forecast/previous numbers are missing, use your own macro knowledge (recent trend, central-bank stance) to estimate the likely outcome and still give an honest confidence. Always give sl_pips and tp_pips (tp >= 1.5x sl). Never force signals below the threshold.`;
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
