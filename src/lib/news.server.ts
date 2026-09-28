@@ -20,6 +20,18 @@ const FC_BASE = "https://www.financecalendar.com/wp-json/fc/v1/calendar";
 
 let cache: { at: number; events: NewsEvent[] } | null = null;
 
+function guessCurrency(n: string): string | null {
+  const s = n.toUpperCase();
+  const map: [RegExp, string][] = [
+    [/\b(US|FED|FOMC|NFP|NONFARM|POWELL|ISM|JOLTS)\b/, "USD"], [/\b(RBA|AUSTRALIA|AUD)\b/, "AUD"],
+    [/\b(ECB|EURO|EUROZONE|GERMAN|FRANCE|SPAIN|ITALY|EUR)\b/, "EUR"], [/\b(BOE|UK|BRITAIN|GBP)\b/, "GBP"],
+    [/\b(BOJ|JAPAN|JPY|TOKYO)\b/, "JPY"], [/\b(BOC|CANADA|CAD)\b/, "CAD"], [/\b(SNB|SWISS|CHF)\b/, "CHF"],
+    [/\b(RBNZ|NEW ZEALAND|NZD)\b/, "NZD"], [/\b(CHINA|PBOC|CNY)\b/, "CNY"], [/\b(SARB|SOUTH AFRICA|ZAR)\b/, "ZAR"],
+  ];
+  for (const [re, c] of map) if (re.test(s)) return c;
+  return null;
+}
+
 function norm(e: any): NewsEvent | null {
   const t = e?.time_utc || e?.date;
   if (!t) return null;
@@ -33,7 +45,7 @@ function norm(e: any): NewsEvent | null {
     time_utc: d.toISOString(),
     day: e.day,
     name: e.name ?? e.title ?? "Economic Event",
-    currency: e.currency ?? e.country ?? null,
+    currency: e.currency ?? e.country ?? guessCurrency(String(e.name ?? e.title ?? "")),
     impact: String(e.impact ?? "unknown").toLowerCase(),
     forecast: e.forecast ?? e.consensus ?? null,
     previous: e.previous ?? e.prior ?? null,
