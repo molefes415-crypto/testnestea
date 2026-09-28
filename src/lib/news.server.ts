@@ -57,7 +57,24 @@ function norm(e: any): NewsEvent | null {
 export async function getNewsEvents(): Promise<NewsEvent[]> {
   if (cache && Date.now() - cache.at < 300_000) return cache.events;
   let raw: any[] = [];
+  // 1) ForexFactory weekly feed — has forecast + previous for every event.
   try {
+    const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
+      headers: { "user-agent": "TradeNest News Calendar" },
+    });
+    if (r.ok) {
+      const j: any = await r.json();
+      if (Array.isArray(j))
+        raw = j.map((e: any) => ({
+          ...e,
+          currency: e.country,
+          forecast: e.forecast || null,
+          previous: e.previous || null,
+          actual: e.actual || null,
+        }));
+    }
+  } catch {}
+  if (!raw.length) try {
     const r = await fetch(`${PORTAL_NEWS}?_=${Date.now()}`, { headers: { accept: "application/json" } });
     if (r.ok) {
       const j: any = await r.json();
