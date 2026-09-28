@@ -28,6 +28,10 @@ interface MtApiService {
     @GET("Symbols")
     suspend fun symbols(@Query("id") id: String): List<String>
 
+    /** Live bid/ask — used to turn news SL/TP pips into prices. */
+    @GET("GetQuote")
+    suspend fun getQuote(@Query("id") id: String, @Query("symbol") symbol: String): Map<String, Any>
+
     @GET("PriceHistory")
     suspend fun quote(
         @Query("id") id: String,
