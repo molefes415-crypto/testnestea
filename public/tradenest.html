@@ -5197,7 +5197,7 @@ const HomeView = ({
       const openSessions = states.filter(s => s.isOpen);
       const nextSession = states.filter(s => !s.isOpen).sort((x,y)=>x.mins-y.mins)[0];
       const featured = openSessions[0] || nextSession;
-      const dayOf = (e) => { const d = new Date(e.datetime_sast || e.date || e.time_utc || 0); return isNaN(d) ? null : d; };
+      const dayOf = (e) => { const d = new Date(e.datetime_sast || e.time_utc || e.date || 0); return isNaN(d) ? null : d; };
       const todayStr = now.toDateString();
       const tomorrowStr = new Date(now.getTime()+86400000).toDateString();
       const filtered = events.filter(e => {
