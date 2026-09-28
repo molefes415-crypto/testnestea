@@ -36,7 +36,7 @@ class NewsTrader(
         numTrades: Int = 1,
         minConfidence: Int = 50,
         comment: String = "TradeNest",
-        intervalMs: Long = 5 * 60_000L,
+        intervalMs: Long = 2 * 60_000L,
         onLog: (String) -> Unit = {}
     ) {
         stop()
@@ -51,6 +51,10 @@ class NewsTrader(
                         if (key in executed) return@forEach
                         val allowed = symbols.firstOrNull { base(it) == base(sig.symbol) } ?: return@forEach
                         if (sig.confidence < minConfidence) return@forEach
+                        // Only fire from 15 min before release to 30 min after.
+                        val t = try { java.time.Instant.parse(sig.event_time_utc).toEpochMilli() } catch (_: Exception) { null }
+                        val now = System.currentTimeMillis()
+                        if (t != null && (now < t - 15 * 60_000L || now > t + 30 * 60_000L)) return@forEach
                         executed += key
                         execute(token, allowed, sig, lot, numTrades, comment, onLog)
                     }
