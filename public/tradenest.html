@@ -870,6 +870,7 @@
       const items = [
         { key:'home', label:'Home', icon:<HomeIcon/> },
         { key:'metatrader', label:'MetaTrader', icon:<ChartIcon/> },
+        { key:'news', label:'News', icon:<span style={{fontSize:15}}>📊</span> },
         { key:'settings', label:'Settings', icon:<SettingsIcon/> },
       ];
 
@@ -949,11 +950,12 @@
       const items = [
         { key:'home', label:'Home', icon:<HomeIcon/> },
         { key:'metatrader', label:'MetaTrader', icon:<ChartIcon/> },
+        { key:'news', label:'News', icon:<span style={{fontSize:15}}>📊</span> },
         { key:'settings', label:'Settings', icon:<SettingsIcon/> },
       ];
       return (
         <div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:60,padding:'10px 14px calc(env(safe-area-inset-bottom,0px) + 10px)',background:'linear-gradient(180deg, rgba(8,8,12,0.65) 0%, rgba(6,6,9,0.96) 60%)',backdropFilter:'blur(18px) saturate(160%)',WebkitBackdropFilter:'blur(18px) saturate(160%)',borderTop:`1px solid ${a}22`}}>
-          <div style={{maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+          <div style={{maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8}}>
             {items.map(it=>{
               const active = activeTab===it.key;
               return (
@@ -5309,7 +5311,7 @@ const HomeView = ({
     // ====== Main App ======
     const App = () => {
       const initialView = (() => { try { return new URLSearchParams(location.search).get('view') || 'home'; } catch { return 'home'; } })();
-      const validTabs = ['home','metatrader','settings','license'];
+      const validTabs = ['home','metatrader','news','settings','license'];
       const [showSplash, setShowSplash] = useState(true);
       const [userProfile, setUserProfile] = useState(()=>{try{const s=localStorage.getItem('userProfile');return s?JSON.parse(s):null;}catch{return null;}});
       const [authStep, setAuthStep] = useState(()=>{try{return localStorage.getItem('userProfile')?'done':'welcome';}catch{return 'welcome';}});
@@ -5433,6 +5435,7 @@ const HomeView = ({
             if(lower.includes('setting')){setActiveTab('settings');toast({title:'🧭 Navigated',description:'Opened Settings'});matched=true;}
             else if(lower.includes('home')){setActiveTab('home');toast({title:'🧭 Navigated',description:'Opened Home'});matched=true;}
             else if(lower.includes('meta') || lower.includes('trader') || lower.includes('trading')){setActiveTab('metatrader');toast({title:'🧭 Navigated',description:'Opened MetaTrader'});matched=true;}
+            else if(lower.includes('news') || lower.includes('fundamental') || lower.includes('calendar')){setActiveTab('news');toast({title:'🧭 Navigated',description:'Opened Fundamentals'});matched=true;}
             if(matched){setTimeout(()=>setVoiceTranscript(''),2000);return;}
           }
 
@@ -6351,6 +6354,7 @@ const HomeView = ({
             if (interfaceMode==='nexus_pro') return <NexusProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             return <HomeView eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} onColorChange={handleColorChange} themeColor={themeColor} onNavigate={setActiveTab} onStopTrading={handleFullStop} onSwitchMode={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} onEffect={setActiveEffect} onChangePic={img=>{const s={...botSettings,image:img};setBotSettings(s);localStorage.setItem('botSettings',JSON.stringify(s));}} tradeDelaySeconds={tradeDelaySeconds} onOpenChartAnalyzer={handleOpenChartAnalyzer} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} interfaceMode={interfaceMode} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange} cardShape={cardShape}/>;
           case 'metatrader': return <MetaTraderView isVIP={interfaceMode==='vip'} themeColor={themeColor}/>;
+          case 'news': return <FundamentalsView themeColor={themeColor}/>;
           case 'settings': return <SettingsView autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
         }
