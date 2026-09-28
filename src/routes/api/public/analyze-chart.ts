@@ -227,7 +227,15 @@ export const Route = createFileRoute("/api/public/analyze-chart")({
             }
           }
           const body = (await request.json()) as AnalyzeBody;
-          const result = await callGateway(body);
+          let rel: any[] = [];
+          try {
+            const { getNewsEvents, relevantEvents, fundamentalsText } = await import("@/lib/news.server");
+            rel = relevantEvents(await getNewsEvents(), body.symbol || "XAUUSD", 24);
+            body.userPrompt = `${body.userPrompt || ""}\n\nFUNDAMENTALS (economic calendar — predict each release vs forecast and factor it into bias; avoid entries within 5 min of high-impact news unless trading the news with a clear edge):\n${fundamentalsText(rel)}`;
+          } catch {}
+          const result: any = await callGateway(body);
+          result.fundamentals = rel;
+          result.accurate = Number(result.confidence) >= 85 && (result.direction === "BUY" || result.direction === "SELL");
           return new Response(JSON.stringify(result), {
             status: 200,
             headers: { "content-type": "application/json", ...CORS },
