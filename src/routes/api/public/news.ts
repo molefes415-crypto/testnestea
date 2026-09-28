@@ -31,10 +31,10 @@ export const Route = createFileRoute("/api/public/news")({
             if (required && provided !== required) return json({ success: false, error: "Invalid API key" }, 401);
             const symbols = (url.searchParams.get("symbols") || "XAUUSD")
               .split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 8);
-            const min = Math.max(50, Math.min(100, Number(url.searchParams.get("min_confidence")) || 75));
+            const min = Math.max(30, Math.min(100, Number(url.searchParams.get("min_confidence")) || 75));
             const hasEvents = symbols.some((s) => relevantEvents(events, s, 48).length);
             if (!hasEvents) return json({ success: true, predictions: [], signals: [], summary: "No relevant news." });
-            const out = await predictNews(symbols, events);
+            const out = await predictNews(symbols, events, min);
             const signals = (Array.isArray(out?.signals) ? out.signals : []).filter(
               (s: any) => (s.direction === "BUY" || s.direction === "SELL") && Number(s.confidence) >= min,
             );

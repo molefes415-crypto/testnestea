@@ -115,7 +115,7 @@ export function fundamentalsText(events: NewsEvent[]) {
 }
 
 /** Ask the AI to predict fundamentals (forecast vs previous/actual) and emit trade signals. */
-export async function predictNews(symbols: string[], events: NewsEvent[]) {
+export async function predictNews(symbols: string[], events: NewsEvent[], minConf = 75) {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI not configured");
   const blocks = symbols
@@ -131,7 +131,7 @@ Return STRICT JSON:
   "signals": [ { "symbol": string, "type": "news"|"fundamental", "direction": "BUY"|"SELL", "event": string, "event_time_utc": string, "confidence": 0-100, "entry_mode": "pre_release"|"post_release"|"market", "sl_pips": number, "tp_pips": number, "reason": string } ],
   "summary": string
 }
-Only include a signal when confidence >= 75 and the fundamental case is clear. Never force signals.`;
+Only include a signal when confidence >= ${minConf}. When forecast/previous numbers are missing, use your own macro knowledge (recent trend, central-bank stance) to estimate the likely outcome and still give an honest confidence. Always give sl_pips and tp_pips (tp >= 1.5x sl). Never force signals below the threshold.`;
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
