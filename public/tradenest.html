@@ -5264,7 +5264,7 @@ const HomeView = ({
           </div>
           {featured && (
             <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'14px 0 6px'}}>
-              <div style={{width:74,height:74,borderRadius:18,background:'rgba(255,255,255,0.04)',border:`1px solid ${a}44`,boxShadow:`0 0 30px ${a}33`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>{featured.flag}</div>
+              <div style={{width:74,height:74,borderRadius:18,background:'rgba(255,255,255,0.04)',border:`1px solid ${a}44`,boxShadow:`0 0 30px ${a}33`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}><FlagIcon code={featured.flagCode} size={52}/></div>
               <div style={{color:a,fontFamily:'Orbitron',fontWeight:900,fontSize:11,letterSpacing:3,marginTop:10}}>{featured.name.toUpperCase()} {featured.isOpen?'OPEN':'OPENS SOON'}</div>
               <div style={{color:'rgba(255,255,255,0.45)',fontSize:10,marginTop:3}}>{featured.label}</div>
             </div>
@@ -5272,7 +5272,7 @@ const HomeView = ({
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,margin:'14px 0 18px'}}>
             {states.map(s=>(
               <div key={s.name} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                <div style={{width:46,height:46,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:s.isOpen?`${a}1f`:'rgba(255,255,255,0.03)',border:s.isOpen?`2px solid ${a}`:'2px solid rgba(255,255,255,0.12)',boxShadow:s.isOpen?`0 0 18px ${a}66`:'none',opacity:s.isOpen?1:0.55}}>{s.flag}</div>
+                <div style={{width:46,height:46,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:s.isOpen?`${a}1f`:'rgba(255,255,255,0.03)',border:s.isOpen?`2px solid ${a}`:'2px solid rgba(255,255,255,0.12)',boxShadow:s.isOpen?`0 0 18px ${a}66`:'none',opacity:s.isOpen?1:0.55,overflow:'hidden'}}><FlagIcon code={s.flagCode} size={26}/></div>
                 <span style={{color:'rgba(255,255,255,0.75)',fontSize:8.5,fontWeight:800,letterSpacing:1.5,fontFamily:'Orbitron'}}>{s.name.toUpperCase()}</span>
                 <span style={{color:s.isOpen?a:'rgba(255,255,255,0.35)',fontSize:8,letterSpacing:0.5}}>{s.isOpen?'OPEN · '+s.label.replace('Closes in ',''):s.label}</span>
               </div>
@@ -5330,7 +5330,7 @@ const HomeView = ({
                         {e.previous && <span style={{color:'rgba(255,255,255,0.35)',fontSize:9.5}}>PREV {e.previous}</span>}
                       </div>
                     </div>
-                    <span style={{fontSize:18,flexShrink:0}}>{CUR_FLAG[cur]||'🏳️'}</span>
+                    {CUR_FLAG_CODE[cur] ? <FlagIcon code={CUR_FLAG_CODE[cur]} size={26}/> : <span style={{fontSize:18,flexShrink:0}}>🏳️</span>}
                   </div>
                 </React.Fragment>
               );
