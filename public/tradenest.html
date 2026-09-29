@@ -5181,13 +5181,19 @@ const HomeView = ({
 
 
     // ====== Fundamentals / News Calendar View ======
+    const flagImg = (code, size) => `https://flagcdn.com/w${size||80}/${code}.png`;
     const NEWS_SESSIONS = [
-      { name:'Sydney',   flag:'🇦🇺', openUTC:21, closeUTC:6  },
-      { name:'Tokyo',    flag:'🇯🇵', openUTC:0,  closeUTC:9  },
-      { name:'London',   flag:'🇬🇧', openUTC:8,  closeUTC:17 },
-      { name:'New York', flag:'🇺🇸', openUTC:13, closeUTC:22 },
+      { name:'Sydney',   flagCode:'au', openUTC:21, closeUTC:6  },
+      { name:'Tokyo',    flagCode:'jp', openUTC:0,  closeUTC:9  },
+      { name:'London',   flagCode:'gb', openUTC:8,  closeUTC:17 },
+      { name:'New York', flagCode:'us', openUTC:13, closeUTC:22 },
     ];
-    const CUR_FLAG = { AUD:'🇦🇺', NZD:'🇳🇿', JPY:'🇯🇵', GBP:'🇬🇧', USD:'🇺🇸', EUR:'🇪🇺', CHF:'🇨🇭', CAD:'🇨🇦', CNY:'🇨🇳', ZAR:'🇿🇦' };
+    const CUR_FLAG_CODE = { AUD:'au', NZD:'nz', JPY:'jp', GBP:'gb', USD:'us', EUR:'eu', CHF:'ch', CAD:'ca', CNY:'cn', ZAR:'za' };
+    const FlagIcon = ({ code, size, round }) => (
+      <img src={flagImg(code, 80)} alt={code} width={size} height={round?size:Math.round(size*0.75)}
+        style={{borderRadius:round?'50%':4,objectFit:'cover',display:'block',flexShrink:0}}
+        onError={(e)=>{e.currentTarget.style.display='none';}}/>
+    );
     const sessionState = (s, now) => {
       const h = now.getUTCHours() + now.getUTCMinutes()/60;
       const isOpen = s.openUTC < s.closeUTC ? (h >= s.openUTC && h < s.closeUTC) : (h >= s.openUTC || h < s.closeUTC);
@@ -5202,12 +5208,13 @@ const HomeView = ({
       return { isOpen:false, label:'IN ' + (mins>=60 ? Math.floor(mins/60)+'h' : mins+'m'), mins };
     };
     const FundamentalsView = ({ themeColor }) => {
+      const ORB = "'Orbitron','Inter',system-ui,sans-serif";
       const a = themeColor?.accent || '#22d3ee';
       const [events, setEvents] = useState([]);
       const [loading, setLoading] = useState(true);
       const [tab, setTab] = useState('week'); // today | tomorrow | week
       const [now, setNow] = useState(new Date());
-      useEffect(() => { const t = setInterval(()=>setNow(new Date()), 30000); return ()=>clearInterval(t); }, []);
+      useEffect(() => { const t = setInterval(()=>setNow(new Date()), 1000); return ()=>clearInterval(t); }, []);
       const load = async () => {
         setLoading(true);
         try {
@@ -5244,30 +5251,30 @@ const HomeView = ({
           {/* Header */}
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
             <span style={{fontSize:16}}>📊</span>
-            <h1 style={{color:a,fontFamily:'Orbitron',fontWeight:900,fontSize:17,letterSpacing:3,margin:0,textShadow:`0 0 18px ${a}66`}}>FUNDAMENTALS</h1>
+            <h1 style={{color:a,fontFamily:ORB,fontWeight:900,fontSize:17,letterSpacing:3,margin:0,textShadow:`0 0 18px ${a}66`}}>FUNDAMENTALS</h1>
           </div>
           <p style={{color:'rgba(255,255,255,0.45)',fontSize:11,margin:'0 0 16px'}}>This week's economic calendar</p>
 
           {/* Market sessions */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-            <span style={{color:'rgba(255,255,255,0.4)',fontSize:9,fontWeight:800,letterSpacing:2.5,fontFamily:'Orbitron'}}>MARKET SESSIONS</span>
+            <span style={{color:'rgba(255,255,255,0.4)',fontSize:9,fontWeight:800,letterSpacing:2.5,fontFamily:ORB}}>MARKET SESSIONS</span>
             <div style={{textAlign:'right'}}>
-              <div style={{color:a,fontSize:9,fontWeight:800,letterSpacing:1.5,fontFamily:'Orbitron'}}>{openSessions.length} OPEN</div>
+              <div style={{color:a,fontSize:9,fontWeight:800,letterSpacing:1.5,fontFamily:ORB}}>{openSessions.length} OPEN</div>
               {nextSession && <div style={{color:'rgba(255,255,255,0.4)',fontSize:8,letterSpacing:1,marginTop:2}}>NEXT · {nextSession.name.toUpperCase()} IN {nextSession.mins>=60?Math.floor(nextSession.mins/60)+'h':nextSession.mins+'m'}</div>}
             </div>
           </div>
           {featured && (
             <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'14px 0 6px'}}>
-              <div style={{width:74,height:74,borderRadius:18,background:'rgba(255,255,255,0.04)',border:`1px solid ${a}44`,boxShadow:`0 0 30px ${a}33`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>{featured.flag}</div>
-              <div style={{color:a,fontFamily:'Orbitron',fontWeight:900,fontSize:11,letterSpacing:3,marginTop:10}}>{featured.name.toUpperCase()} {featured.isOpen?'OPEN':'OPENS SOON'}</div>
+              <div style={{width:74,height:74,borderRadius:18,background:'rgba(255,255,255,0.04)',border:`1px solid ${a}44`,boxShadow:`0 0 30px ${a}33`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}><FlagIcon code={featured.flagCode} size={52}/></div>
+              <div style={{color:a,fontFamily:ORB,fontWeight:900,fontSize:11,letterSpacing:3,marginTop:10}}>{featured.name.toUpperCase()} {featured.isOpen?'OPEN':'OPENS SOON'}</div>
               <div style={{color:'rgba(255,255,255,0.45)',fontSize:10,marginTop:3}}>{featured.label}</div>
             </div>
           )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,margin:'14px 0 18px'}}>
             {states.map(s=>(
               <div key={s.name} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                <div style={{width:46,height:46,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:s.isOpen?`${a}1f`:'rgba(255,255,255,0.03)',border:s.isOpen?`2px solid ${a}`:'2px solid rgba(255,255,255,0.12)',boxShadow:s.isOpen?`0 0 18px ${a}66`:'none',opacity:s.isOpen?1:0.55}}>{s.flag}</div>
-                <span style={{color:'rgba(255,255,255,0.75)',fontSize:8.5,fontWeight:800,letterSpacing:1.5,fontFamily:'Orbitron'}}>{s.name.toUpperCase()}</span>
+                <div style={{width:46,height:46,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:s.isOpen?`${a}1f`:'rgba(255,255,255,0.03)',border:s.isOpen?`2px solid ${a}`:'2px solid rgba(255,255,255,0.12)',boxShadow:s.isOpen?`0 0 18px ${a}66`:'none',opacity:s.isOpen?1:0.55,overflow:'hidden'}}><FlagIcon code={s.flagCode} size={26}/></div>
+                <span style={{color:'rgba(255,255,255,0.75)',fontSize:8.5,fontWeight:800,letterSpacing:1.5,fontFamily:ORB}}>{s.name.toUpperCase()}</span>
                 <span style={{color:s.isOpen?a:'rgba(255,255,255,0.35)',fontSize:8,letterSpacing:0.5}}>{s.isOpen?'OPEN · '+s.label.replace('Closes in ',''):s.label}</span>
               </div>
             ))}
@@ -5277,11 +5284,11 @@ const HomeView = ({
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
             <div style={{display:'flex',alignItems:'center',gap:7,padding:'8px 14px',borderRadius:999,background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.35)'}}>
               <span style={{width:6,height:6,borderRadius:'50%',background:'#ef4444',boxShadow:'0 0 8px #ef4444'}}/>
-              <span style={{color:'#fff',fontSize:9.5,fontWeight:800,letterSpacing:1.5,fontFamily:'Orbitron'}}>HIGH IMPACT · {highImpact.length}</span>
+              <span style={{color:'#fff',fontSize:9.5,fontWeight:800,letterSpacing:1.5,fontFamily:ORB}}>HIGH IMPACT · {highImpact.length}</span>
             </div>
             {countdown!==null && (
               <div style={{padding:'8px 14px',borderRadius:999,border:`1px solid ${a}66`,background:`${a}14`,boxShadow:`0 0 16px ${a}22`}}>
-                <span style={{color:a,fontSize:10.5,fontWeight:800,fontFamily:'Orbitron',letterSpacing:1}}>⏱ {fmtCd(countdown)}</span>
+                <span style={{color:a,fontSize:10.5,fontWeight:800,fontFamily:ORB,letterSpacing:1}}>⏱ {fmtCd(countdown)}</span>
               </div>
             )}
             <button onClick={load} aria-label="Refresh" style={{marginLeft:'auto',width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',color:'white',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -5292,7 +5299,7 @@ const HomeView = ({
           {/* Day tabs */}
           <div style={{display:'flex',gap:8,marginBottom:14}}>
             {[['today','TODAY'],['tomorrow','TOMORROW'],['week','ALL WEEK']].map(([k,l])=>(
-              <button key={k} onClick={()=>setTab(k)} style={{padding:'8px 16px',borderRadius:999,border:tab===k?`1px solid ${a}`:'1px solid rgba(255,255,255,0.12)',background:tab===k?`${a}1f`:'rgba(255,255,255,0.03)',color:tab===k?a:'rgba(255,255,255,0.55)',fontSize:9.5,fontWeight:800,letterSpacing:1.5,fontFamily:'Orbitron',cursor:'pointer',boxShadow:tab===k?`0 0 16px ${a}33`:'none'}}>{l}</button>
+              <button key={k} onClick={()=>setTab(k)} style={{padding:'8px 16px',borderRadius:999,border:tab===k?`1px solid ${a}`:'1px solid rgba(255,255,255,0.12)',background:tab===k?`${a}1f`:'rgba(255,255,255,0.03)',color:tab===k?a:'rgba(255,255,255,0.55)',fontSize:9.5,fontWeight:800,letterSpacing:1.5,fontFamily:ORB,cursor:'pointer',boxShadow:tab===k?`0 0 16px ${a}33`:'none'}}>{l}</button>
             ))}
           </div>
 
@@ -5310,12 +5317,12 @@ const HomeView = ({
               const cur = (e.currency||'').toUpperCase();
               return (
                 <React.Fragment key={e.id||i}>
-                  {showDay && <div style={{color:a,fontSize:9,fontWeight:800,letterSpacing:2.5,fontFamily:'Orbitron',margin:'8px 0 0'}}>{dayLabel}</div>}
+                  {showDay && <div style={{color:a,fontSize:9,fontWeight:800,letterSpacing:2.5,fontFamily:ORB,margin:'8px 0 0'}}>{dayLabel}</div>}
                   <div style={{background:'linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012))',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
                         <span style={{color:'rgba(255,255,255,0.5)',fontSize:11,fontWeight:600,minWidth:36}}>{time}</span>
-                        <span style={{color:a,fontSize:10,fontWeight:900,fontFamily:'Orbitron',letterSpacing:1}}>{cur}</span>
+                        <span style={{color:a,fontSize:10,fontWeight:900,fontFamily:ORB,letterSpacing:1}}>{cur}</span>
                         <span style={{color:'white',fontSize:12.5,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||e.title}</span>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:44}}>
@@ -5324,7 +5331,7 @@ const HomeView = ({
                         {e.previous && <span style={{color:'rgba(255,255,255,0.35)',fontSize:9.5}}>PREV {e.previous}</span>}
                       </div>
                     </div>
-                    <span style={{fontSize:18,flexShrink:0}}>{CUR_FLAG[cur]||'🏳️'}</span>
+                    {CUR_FLAG_CODE[cur] ? <FlagIcon code={CUR_FLAG_CODE[cur]} size={26}/> : <span style={{fontSize:18,flexShrink:0}}>🏳️</span>}
                   </div>
                 </React.Fragment>
               );
