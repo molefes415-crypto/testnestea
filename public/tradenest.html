@@ -5181,13 +5181,19 @@ const HomeView = ({
 
 
     // ====== Fundamentals / News Calendar View ======
+    const flagImg = (code, size) => `https://flagcdn.com/w${size||80}/${code}.png`;
     const NEWS_SESSIONS = [
-      { name:'Sydney',   flag:'🇦🇺', openUTC:21, closeUTC:6  },
-      { name:'Tokyo',    flag:'🇯🇵', openUTC:0,  closeUTC:9  },
-      { name:'London',   flag:'🇬🇧', openUTC:8,  closeUTC:17 },
-      { name:'New York', flag:'🇺🇸', openUTC:13, closeUTC:22 },
+      { name:'Sydney',   flagCode:'au', openUTC:21, closeUTC:6  },
+      { name:'Tokyo',    flagCode:'jp', openUTC:0,  closeUTC:9  },
+      { name:'London',   flagCode:'gb', openUTC:8,  closeUTC:17 },
+      { name:'New York', flagCode:'us', openUTC:13, closeUTC:22 },
     ];
-    const CUR_FLAG = { AUD:'🇦🇺', NZD:'🇳🇿', JPY:'🇯🇵', GBP:'🇬🇧', USD:'🇺🇸', EUR:'🇪🇺', CHF:'🇨🇭', CAD:'🇨🇦', CNY:'🇨🇳', ZAR:'🇿🇦' };
+    const CUR_FLAG_CODE = { AUD:'au', NZD:'nz', JPY:'jp', GBP:'gb', USD:'us', EUR:'eu', CHF:'ch', CAD:'ca', CNY:'cn', ZAR:'za' };
+    const FlagIcon = ({ code, size, round }) => (
+      <img src={flagImg(code, 80)} alt={code} width={size} height={round?size:Math.round(size*0.75)}
+        style={{borderRadius:round?'50%':4,objectFit:'cover',display:'block',flexShrink:0}}
+        onError={(e)=>{e.currentTarget.style.display='none';}}/>
+    );
     const sessionState = (s, now) => {
       const h = now.getUTCHours() + now.getUTCMinutes()/60;
       const isOpen = s.openUTC < s.closeUTC ? (h >= s.openUTC && h < s.closeUTC) : (h >= s.openUTC || h < s.closeUTC);
@@ -5207,7 +5213,7 @@ const HomeView = ({
       const [loading, setLoading] = useState(true);
       const [tab, setTab] = useState('week'); // today | tomorrow | week
       const [now, setNow] = useState(new Date());
-      useEffect(() => { const t = setInterval(()=>setNow(new Date()), 30000); return ()=>clearInterval(t); }, []);
+      useEffect(() => { const t = setInterval(()=>setNow(new Date()), 1000); return ()=>clearInterval(t); }, []);
       const load = async () => {
         setLoading(true);
         try {
