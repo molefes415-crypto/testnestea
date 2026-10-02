@@ -9,50 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
-import { Route as ApiPublicPaypalRouteImport } from './routes/api/public/paypal'
-import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
-import { Route as ApiPublicPayfastRouteImport } from './routes/api/public/payfast'
-import { Route as ApiPublicNewsRouteImport } from './routes/api/public/news'
-import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
-import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vision'
+import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
+import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
+import { Route as ApiPublicNewsRouteImport } from './routes/api/public/news'
+import { Route as ApiPublicPayfastRouteImport } from './routes/api/public/payfast'
+import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
+import { Route as ApiPublicPaypalRouteImport } from './routes/api/public/paypal'
+import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
-  id: '/api/public/paypal-webhook',
-  path: '/api/public/paypal-webhook',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaypalRoute = ApiPublicPaypalRouteImport.update({
-  id: '/api/public/paypal',
-  path: '/api/public/paypal',
+const ApiPublicAiVisionRoute = ApiPublicAiVisionRouteImport.update({
+  id: '/api/public/ai-vision',
+  path: '/api/public/ai-vision',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPayfastItnRoute = ApiPublicPayfastItnRouteImport.update({
-  id: '/api/public/payfast-itn',
-  path: '/api/public/payfast-itn',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPayfastRoute = ApiPublicPayfastRouteImport.update({
-  id: '/api/public/payfast',
-  path: '/api/public/payfast',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicNewsRoute = ApiPublicNewsRouteImport.update({
-  id: '/api/public/news',
-  path: '/api/public/news',
+const ApiPublicAnalyzeChartRoute = ApiPublicAnalyzeChartRouteImport.update({
+  id: '/api/public/analyze-chart',
+  path: '/api/public/analyze-chart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCheckSubscriptionRoute =
@@ -61,14 +46,29 @@ const ApiPublicCheckSubscriptionRoute =
     path: '/api/public/check-subscription',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAnalyzeChartRoute = ApiPublicAnalyzeChartRouteImport.update({
-  id: '/api/public/analyze-chart',
-  path: '/api/public/analyze-chart',
+const ApiPublicNewsRoute = ApiPublicNewsRouteImport.update({
+  id: '/api/public/news',
+  path: '/api/public/news',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAiVisionRoute = ApiPublicAiVisionRouteImport.update({
-  id: '/api/public/ai-vision',
-  path: '/api/public/ai-vision',
+const ApiPublicPayfastRoute = ApiPublicPayfastRouteImport.update({
+  id: '/api/public/payfast',
+  path: '/api/public/payfast',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPayfastItnRoute = ApiPublicPayfastItnRouteImport.update({
+  id: '/api/public/payfast-itn',
+  path: '/api/public/payfast-itn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaypalRoute = ApiPublicPaypalRouteImport.update({
+  id: '/api/public/paypal',
+  path: '/api/public/paypal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
+  id: '/api/public/paypal-webhook',
+  path: '/api/public/paypal-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -163,13 +163,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -177,46 +170,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/paypal-webhook': {
-      id: '/api/public/paypal-webhook'
-      path: '/api/public/paypal-webhook'
-      fullPath: '/api/public/paypal-webhook'
-      preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/paypal': {
-      id: '/api/public/paypal'
-      path: '/api/public/paypal'
-      fullPath: '/api/public/paypal'
-      preLoaderRoute: typeof ApiPublicPaypalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/payfast-itn': {
-      id: '/api/public/payfast-itn'
-      path: '/api/public/payfast-itn'
-      fullPath: '/api/public/payfast-itn'
-      preLoaderRoute: typeof ApiPublicPayfastItnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/payfast': {
-      id: '/api/public/payfast'
-      path: '/api/public/payfast'
-      fullPath: '/api/public/payfast'
-      preLoaderRoute: typeof ApiPublicPayfastRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/news': {
-      id: '/api/public/news'
-      path: '/api/public/news'
-      fullPath: '/api/public/news'
-      preLoaderRoute: typeof ApiPublicNewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/check-subscription': {
-      id: '/api/public/check-subscription'
-      path: '/api/public/check-subscription'
-      fullPath: '/api/public/check-subscription'
-      preLoaderRoute: typeof ApiPublicCheckSubscriptionRouteImport
+    '/api/public/ai-vision': {
+      id: '/api/public/ai-vision'
+      path: '/api/public/ai-vision'
+      fullPath: '/api/public/ai-vision'
+      preLoaderRoute: typeof ApiPublicAiVisionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/analyze-chart': {
@@ -226,11 +191,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAnalyzeChartRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/ai-vision': {
-      id: '/api/public/ai-vision'
-      path: '/api/public/ai-vision'
-      fullPath: '/api/public/ai-vision'
-      preLoaderRoute: typeof ApiPublicAiVisionRouteImport
+    '/api/public/check-subscription': {
+      id: '/api/public/check-subscription'
+      path: '/api/public/check-subscription'
+      fullPath: '/api/public/check-subscription'
+      preLoaderRoute: typeof ApiPublicCheckSubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/news': {
+      id: '/api/public/news'
+      path: '/api/public/news'
+      fullPath: '/api/public/news'
+      preLoaderRoute: typeof ApiPublicNewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payfast': {
+      id: '/api/public/payfast'
+      path: '/api/public/payfast'
+      fullPath: '/api/public/payfast'
+      preLoaderRoute: typeof ApiPublicPayfastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payfast-itn': {
+      id: '/api/public/payfast-itn'
+      path: '/api/public/payfast-itn'
+      fullPath: '/api/public/payfast-itn'
+      preLoaderRoute: typeof ApiPublicPayfastItnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/paypal': {
+      id: '/api/public/paypal'
+      path: '/api/public/paypal'
+      fullPath: '/api/public/paypal'
+      preLoaderRoute: typeof ApiPublicPaypalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/paypal-webhook': {
+      id: '/api/public/paypal-webhook'
+      path: '/api/public/paypal-webhook'
+      fullPath: '/api/public/paypal-webhook'
+      preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
