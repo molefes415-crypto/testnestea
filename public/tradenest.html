@@ -4907,6 +4907,9 @@ const HomeView = ({
     // Shown when the mentor portal reports the email as NOT active.
     // Payment is created + signed server-side and only unlocked once PayFast's
     // ITN confirms it on our server — the browser never decides success.
+    const ANDROID_PAY_LINK = 'https://www.paypal.com/ncp/payment/Z84EFQS8WBKCY';
+    const PAY_IS_ANDROID = typeof window !== 'undefined' && (window.Capacitor?.getPlatform?.() === 'android' || /Android/i.test(window.navigator?.userAgent||''));
+    const API_ORIGIN = (typeof window !== 'undefined' && /^https?:/.test(window.location.protocol)) ? '' : 'https://tradnestea.app';
     const PayFastPaywall = ({ adminId, email, onPaid, onCancel }) => {
       const [status, setStatus] = useState('ready'); // ready | processing | verifying | done | error | cancelled
       const [msg, setMsg] = useState('');
@@ -4914,6 +4917,12 @@ const HomeView = ({
 
       // ===== PayFast subscription (R580 / month, server-signed + ITN verified) =====
       const openPayFast = async () => {
+        if (PAY_IS_ANDROID) {
+          setOpened(true);
+          setMsg('Complete the payment on PayPal, then come back and tap CHECK PAYMENT STATUS.');
+          try { window.open(ANDROID_PAY_LINK, '_blank') || (window.location.href = ANDROID_PAY_LINK); } catch(_) { window.location.href = ANDROID_PAY_LINK; }
+          return;
+        }
         setStatus('processing');
         setMsg('Opening secure PayFast checkout…');
         try {
@@ -4969,9 +4978,17 @@ const HomeView = ({
         setMsg('Verifying your payment…');
         for (let i = 0; i < tries; i++) {
           try {
+            let d;
+            if (PAY_IS_ANDROID) {
+              // Android pays via PayPal link — verified server-side by email.
+              const r = await fetch(`${API_ORIGIN}/api/public/check-subscription?admin_id=${encodeURIComponent(adminId||'')}&email=${encodeURIComponent(email||'')}`, { headers: { accept: 'application/json' } });
+              const s = await r.json().catch(()=>({}));
+              d = { paid: !!(s && s.active) };
+            } else {
             const qs = pid ? `payment_id=${encodeURIComponent(pid)}` : `email=${encodeURIComponent(email)}`;
             const r = await fetch(`/api/public/payfast?action=status&${qs}`, { headers: { accept: 'application/json' } });
-            const d = await r.json().catch(()=>({}));
+            d = await r.json().catch(()=>({}));
+            }
             if (d && d.paid) {
               try {
                 localStorage.setItem('mobi_activated','1');
