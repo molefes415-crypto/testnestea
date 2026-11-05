@@ -43,7 +43,6 @@ export async function depositVault(vault: Vault, account: Address, amount: strin
   const address = getAddress(vault.address);
   const shares = await client.readContract({ address, abi: erc4626Abi, functionName: "previewDeposit", args: [quantity] });
   if (shares <= 0n) throw new Error("Vault would return no shares. Deposit blocked.");
-  const simulation = await client.simulateContract({ account, address, abi: erc4626Abi, functionName: "deposit", args: [quantity, account] }).catch(() => null);
   const allowance = await client.readContract({ address: details.asset, abi: erc20Abi, functionName: "allowance", args: [account, address] });
   if (allowance < quantity) {
     onState("Approve the exact token amount in your wallet");
@@ -54,7 +53,7 @@ export async function depositVault(vault: Vault, account: Address, amount: strin
     if (receipt.status !== "success") throw new Error("Token approval failed.");
   }
   if (await wallet.getChainId() !== vault.chainId || (await wallet.getAddresses())[0]?.toLowerCase() !== account.toLowerCase()) throw new Error("Wallet changed. Deposit cancelled.");
-  const checked = simulation ?? await client.simulateContract({ account, address, abi: erc4626Abi, functionName: "deposit", args: [quantity, account] });
+  const checked = await client.simulateContract({ account, address, abi: erc4626Abi, functionName: "deposit", args: [quantity, account] });
   onState("Confirm the deposit in your wallet");
   const hash = await wallet.writeContract({ ...checked.request, chain: null });
   onState(`Deposit submitted: ${hash}`);

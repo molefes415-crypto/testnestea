@@ -1,6 +1,6 @@
 # Pigi vault browsing and deposits
 
-- [ ] Show live Pigi vaults with yield, chain, risk, search, and filters.
-- [ ] Connect an injected Web3 wallet and support reviewed standard ERC-4626 deposits only after on-chain validation.
-- [ ] Test vault parsing and deposit restrictions, and check desktop/mobile browsing.
-- [ ] Verify a real deposit only with an authorized funded wallet; no transaction may be sent by the agent.
+- [x] Show live Pigi vaults with yield, chain, risk, search, and filters.
+- [x] Add injected-wallet connection and a guarded standard ERC-4626 deposit flow; current feed rows remain view-only when valid contract metadata is missing.
+- [x] Test vault parsing and deposit restrictions, and check desktop/mobile browsing with 20 live rows.
+- [ ] Validate live on-chain deposits: blocked by unverified protocol-specific deposit contracts/metadata and absence of an authorized funded wallet. No transaction was sent.
