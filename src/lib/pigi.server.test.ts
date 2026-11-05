@@ -1,6 +1,14 @@
-/// <reference types="bun" />
-import { describe, expect, test } from "bun:test";
+import { describe, it as test } from "node:test";
+import assert from "node:assert/strict";
 import { fetchPigiVaults } from "./pigi.server";
+
+function expect(value: unknown) {
+  return {
+    toEqual: (expected: unknown) => assert.deepEqual(value, expected),
+    toBe: (expected: unknown) => assert.equal(value, expected),
+    rejects: { toThrow: (message: string) => assert.rejects(value as Promise<unknown>, (error: unknown) => error instanceof Error && error.message.includes(message)) },
+  };
+}
 
 describe("Pigi vault connection", () => {
   test("exchanges the key before requesting twenty vaults with the returned token", async () => {
