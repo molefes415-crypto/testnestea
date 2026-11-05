@@ -1,21 +1,8 @@
 import { createPublicClient, createWalletClient, custom, erc20Abi, erc4626Abi, getAddress, parseUnits, type Address, type EIP1193Provider } from "viem";
 import { supportsStandardDeposit, type Vault } from "./vaults";
 
-export function injectedProvider(): EIP1193Provider | undefined {
-  return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
-}
-export async function connectWallet() {
-  const provider = injectedProvider();
-  if (!provider) throw new Error("Open this page in MetaMask’s browser or install a compatible wallet.");
-  const wallet = createWalletClient({ transport: custom(provider) });
-  const [account] = await wallet.requestAddresses();
-  if (!account) throw new Error("No wallet account selected.");
-  return account;
-}
-export async function inspectDeposit(vault: Vault, account: Address) {
+export async function inspectDeposit(vault: Vault, account: Address, provider: EIP1193Provider) {
   if (!supportsStandardDeposit(vault)) throw new Error("This protocol requires its own deposit flow; direct deposits are unavailable.");
-  const provider = injectedProvider();
-  if (!provider) throw new Error("Connect a wallet first.");
   const wallet = createWalletClient({ transport: custom(provider) });
   if (await wallet.getChainId() !== vault.chainId) await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: `0x${vault.chainId.toString(16)}` }] });
   const client = createPublicClient({ transport: custom(provider) });
@@ -30,12 +17,10 @@ export async function inspectDeposit(vault: Vault, account: Address) {
   ]);
   return { asset, decimals, symbol, balance, maximum };
 }
-export async function depositVault(vault: Vault, account: Address, amount: string, onState: (state: string) => void) {
-  const details = await inspectDeposit(vault, account);
+export async function depositVault(vault: Vault, account: Address, amount: string, onState: (state: string) => void, provider: EIP1193Provider) {
+  const details = await inspectDeposit(vault, account, provider);
   const quantity = parseUnits(amount, details.decimals);
   if (quantity <= 0n || quantity > details.balance || quantity > details.maximum) throw new Error("Amount must be positive and within your balance and the vault’s deposit limit.");
-  const provider = injectedProvider();
-  if (!provider) throw new Error("Wallet disconnected.");
   const wallet = createWalletClient({ transport: custom(provider) });
   const client = createPublicClient({ transport: custom(provider) });
   const [current] = await wallet.getAddresses();
