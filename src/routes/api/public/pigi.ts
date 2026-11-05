@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/public/pigi")({
           return json(await fetchPigiVaults(apiKey));
         } catch (error) {
           if (error instanceof PigiError) {
-            return json({ success: false, error: error.message, provider_status: error.status }, 502);
+            return json({ success: false, error: error.message, provider_status: error.status }, error.status === 504 ? 504 : 502);
           }
           return json({ success: false, error: "Pigi Finance is temporarily unavailable." }, 502);
         }
