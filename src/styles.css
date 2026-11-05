@@ -142,3 +142,20 @@
     color: var(--color-foreground);
   }
 }
+
+.vault-theme {
+  --background: oklch(0.16 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.20 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --primary: oklch(0.78 0.16 160);
+  --primary-foreground: oklch(0.18 0.02 160);
+  --muted-foreground: oklch(0.70 0 0);
+  --border: oklch(0.31 0 0);
+  --input: oklch(0.36 0 0);
+  --accent: oklch(0.28 0 0);
+  --accent-foreground: oklch(0.96 0 0);
+  --ring: oklch(0.78 0.16 160);
+  font-family: "Arial", sans-serif;
+  letter-spacing: 0;
+}

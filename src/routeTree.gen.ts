@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as VaultsRouteImport } from './routes/vaults'
 import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vision'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VaultsRoute = VaultsRouteImport.update({
+  id: '/vaults',
+  path: '/vaults',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicAiVisionRoute = ApiPublicAiVisionRouteImport.update({
@@ -81,6 +87,7 @@ const ApiPublicPigiRoute = ApiPublicPigiRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/vaults': typeof VaultsRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/vaults': typeof VaultsRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/vaults': typeof VaultsRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sitemap.xml'
+    | '/vaults'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/sitemap.xml'
+    | '/vaults'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/sitemap.xml'
+    | '/vaults'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  VaultsRoute: typeof VaultsRoute
   ApiPublicAiVisionRoute: typeof ApiPublicAiVisionRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vaults': {
+      id: '/vaults'
+      path: '/vaults'
+      fullPath: '/vaults'
+      preLoaderRoute: typeof VaultsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/ai-vision': {
@@ -259,6 +279,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  VaultsRoute: VaultsRoute,
   ApiPublicAiVisionRoute: ApiPublicAiVisionRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,

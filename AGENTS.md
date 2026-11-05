@@ -10,3 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Pigi Finance vault reads use a server-only key-to-JWT exchange behind the existing TradeNest API-key boundary; never expose provider credentials or tokens to clients.
+- The vault browser uses a public server function projecting only public Pigi analytics; the existing external Pigi endpoint stays API-key protected.
+- Wallet execution uses injected EIP-1193 wallets and viem; only explicit standard-vault protocol candidates passing on-chain asset and deposit checks may execute ERC-4626 deposits, with exact-amount approvals and receipt checks.
