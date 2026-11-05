@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Pigi Finance vault reads use a server-only key-to-JWT exchange behind the existing TradeNest API-key boundary; never expose provider credentials or tokens to clients.
