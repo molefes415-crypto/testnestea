@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { Layers } from "lucide-react";
 
 const CANONICAL = "https://testnestea.lovable.app/";
 const TITLE = "TradeNest EA Trading Dashboard";
@@ -71,6 +74,9 @@ function Index() {
           background: "#080808",
         }}
       />
+      <div className="vault-theme fixed right-4 top-4 z-50">
+        <Button asChild><Link to="/vaults"><Layers/>Yield vaults</Link></Button>
+      </div>
     </>
   );
 }
