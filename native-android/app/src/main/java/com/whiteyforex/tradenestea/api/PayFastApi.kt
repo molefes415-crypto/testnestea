@@ -116,17 +116,6 @@ data class CancelPaymentRequest(val payment_id: String)
 
 object PayFastCheckout {
 
-    /** Android clients pay through this PayPal link (Android only). */
-    const val ANDROID_PAYMENT_LINK = "https://www.paypal.com/ncp/payment/Z84EFQS8WBKCY"
-
-    /** Opens the Android PayPal payment link in the browser. */
-    fun openAndroidPayment(context: Context) {
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse(ANDROID_PAYMENT_LINK))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-    }
-
     private val api = PayFastApiService.create()
 
     /** Step 1: ask our server for a signed payment. */
