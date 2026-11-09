@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { botPerformance, readDeals, readPositions, positionSide, floatingPerformance } from "./mt5-performance";
+import { botPerformance, readDeals, readPositions, positionSide, floatingPerformance, readAccountHistory, accountPerformance } from "./mt5-performance";
 const deal = (ticket, position_id, entry, profit, comment = "mobi ea", extra = {}) => ({ ticket, position_id, entry, profit, comment, symbol: "XAUUSD.m", type: 0, volume: 0.1, ...extra });
 test("bot overall earnings and accuracy exclude manual trades and include broker costs", () => {
   const result = botPerformance([deal(1, 10, 0, 0, "mobi ea", {commission:-2}), deal(2, 10, 1, 102), deal(3, 20, 0, 0), deal(4, 20, 1, -40, "", {swap:-5}), deal(5, 30, 0, 0, "manual"), deal(6, 30, 1, 900, "manual")], [], ["mobi ea"]);
@@ -30,4 +30,15 @@ test("live trading profit remains positive when separately reported swap makes n
   const result = floatingPerformance(readPositions([{ticket:1,symbol:"XAUUSD.m",volume:0.01,profit:5.67,swap:-20}]));
   expect(result.profit).toBe(5.67);
   expect(result.swap).toBe(-20);
+});
+test("entire account earnings include manual trades and fees, exclude deposits and need no position references", () => {
+  const history = readAccountHistory([{ticket:1,symbol:"XAUUSD.m",side:"buy",volume:0.1,profit:100,commission:-2,entry:1,comment:"manual"},{ticket:2,symbol:"BTCUSDm",side:"sell",volume:0.1,profit:-40,swap:-5,entry:1},{ticket:3,type:2,profit:5000}]);
+  const stats = accountPerformance(history);
+  expect(stats.net).toBe(53); expect(stats.tradingProfit).toBe(60); expect(stats.costs).toBe(-7);
+  expect(stats.history).toHaveLength(2); expect(stats.accuracy).toBe(50);
+});
+test("history without entry classification still has verified earnings but no fabricated win rate", () => {
+  const row={ticket:1,symbol:"XAUUSD",side:"buy",volume:0.1,profit:20};
+  const stats=accountPerformance(readAccountHistory([row,row]));
+  expect(stats.net).toBe(20); expect(stats.accuracy).toBeNull(); expect(stats.closes).toBeNull();
 });

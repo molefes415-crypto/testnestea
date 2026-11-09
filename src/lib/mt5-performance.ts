@@ -1,6 +1,7 @@
 export type Position = { ticket: number; identifier?: number; symbol: string; type?: number; volume: number; profit: number; swap?: number; comment?: string; price_open?: number; price_current?: number; sl?: number; tp?: number };
 export type Deal = { ticket: number; position_id: number; symbol: string; type: number; entry: number; volume: number; profit: number; commission?: number; swap?: number; fee?: number; comment?: string; time?: number };
 export type ClosedTrade = { id: number; symbol: string; bot: string; net: number; time?: number; volume: number; side: string };
+export type AccountDeal = Omit<Deal, "position_id" | "entry"> & { position_id?: number; entry?: number };
 
 function rows(data: unknown, key: string): Record<string, unknown>[] {
   const list = Array.isArray(data) ? data : data && typeof data === "object" ? (data as Record<string, unknown>)[key] : undefined;
@@ -46,6 +47,27 @@ export function readDeals(data: unknown): Deal[] {
     if (row.entry === 2) throw new Error("Reversed positions require additional broker history details before performance can be calculated.");
     return row as Deal;
   });
+}
+export function readAccountHistory(data: unknown): AccountDeal[] {
+  return rows(data, "deals").map((row): Record<string, unknown> => {
+    const type = tradeType(row);
+    if (type === undefined) throw new Error("Broker history must identify trading records separately from deposits before earnings can be verified.");
+    return { ...row, type };
+  }).filter(row => row.type === 0 || row.type === 1).map(row => {
+    for (const key of ["ticket", "volume", "profit"]) number(row, key);
+    for (const key of ["commission", "swap", "fee"]) if (row[key] !== undefined) number(row, key);
+    if (typeof row.symbol !== "string") throw new Error("Gateway history is missing its exact symbol.");
+    return row as AccountDeal;
+  });
+}
+export function accountPerformance(deals: AccountDeal[]) {
+  const unique = [...new Map(deals.map(d => [d.ticket, d])).values()];
+  const history = unique.map(d => ({ ...d, net: d.profit + (d.commission ?? 0) + (d.swap ?? 0) + (d.fee ?? 0) })).sort((a,b) => (b.time ?? 0) - (a.time ?? 0));
+  const exits = history.filter(d => d.entry === 1 || d.entry === 2 || d.entry === 3);
+  const wins = exits.filter(d => d.net > 0).length;
+  const losses = exits.filter(d => d.net < 0).length;
+  const classified = history.every(d => typeof d.entry === "number");
+  return { history, net: history.reduce((s,d) => s+d.net,0), tradingProfit: history.reduce((s,d) => s+d.profit,0), costs: history.reduce((s,d) => s+d.net-d.profit,0), grossProfit: history.reduce((s,d) => s+Math.max(d.profit,0),0), grossLoss: history.reduce((s,d) => s+Math.min(d.profit,0),0), wins: classified ? wins : null, losses: classified ? losses : null, closes: classified ? exits.length : null, breakeven: classified ? exits.length-wins-losses : null, accuracy: classified && exits.length ? wins/exits.length*100 : null };
 }
 export function botPerformance(deals: Deal[], positions: Position[], names: string[]) {
   const groups = new Map<number, Deal[]>();

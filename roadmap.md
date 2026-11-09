@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [ ] Show entire account trade history and realised earnings, including manual trades and fees but excluding deposits; missing position references must not block account earnings.
+
 - [x] Correct refresh flicker and separate floating profit from swap in Performance; delayed-refresh browser checks retain the card and positive profit, session removal clears old data, and six calculation tests pass. Live profit comparison still requires the broker session.
 
 - [x] Add Performance beside Home with the shared account card, open positions, bot-only closed history, net earnings, win rate and losses; seven calculation/account tests and desktop/mobile navigation checks passed using fixtures without placing trades.
