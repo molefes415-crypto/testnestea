@@ -224,12 +224,12 @@ export function MT5Connection() {
         </header>
         {accountAlerts}
         {account ? <section className="mt5-account-block mb-5 px-5 pb-3 pt-8 text-center" aria-label="Active account">
-          {/demo/i.test(account.server) && <span className="mt5-account-ribbon">Demo</span>}
+          <span className={`mt5-account-ribbon${/demo/i.test(account.server) ? "" : " mt5-account-ribbon-live"}`}>{/demo/i.test(account.server) ? "Demo" : "Live"}</span>
           <BrokerLogo server={account.server} large />
           <h2 className="mt-4 text-xl font-semibold break-words">{account.name || "MetaTrader 5"}</h2>
           <p className="mt-1 text-base text-primary">{brokerName(account.server)}</p>
           <p className="mt-4 break-words text-sm text-muted-foreground">{account.login} — {account.server}</p>
-          <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="size-3" />Connected</p>
+          <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="mt5-connected-check size-3" />Connected</p>
           <p className="mt-4 text-3xl font-medium">{formatMoney(account)}</p>
           <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
             <div><dt className="text-xs text-muted-foreground">Equity</dt><dd className="mt-1">{account.equity === undefined ? "—" : account.equity.toFixed(2)} {account.currency}</dd></div>
@@ -243,7 +243,7 @@ export function MT5Connection() {
             const info = details[a.token];
             const s = status[a.token] ?? "checking";
             return <li key={a.token} className="mt5-account-block">
-              {/demo/i.test(a.server) && <span className="mt5-account-ribbon pointer-events-none">Demo</span>}
+              <span className={`mt5-account-ribbon pointer-events-none${/demo/i.test(a.server) ? "" : " mt5-account-ribbon-live"}`}>{/demo/i.test(a.server) ? "Demo" : "Live"}</span>
               <Button variant="ghost" className="mt5-account-select gap-4" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
                 <BrokerLogo server={a.server} />
                 <span className="min-w-0 flex-1"><span className="block break-words text-lg font-semibold">{info?.name || `MT5 Account ${a.login}`}</span><span className="mt-1 block text-base text-primary">{brokerName(a.server)}</span><span className="mt-1 block break-words text-sm text-muted-foreground">{a.login} — {a.server}</span><span className="mt-3 block text-xl font-normal text-muted-foreground">{s === "verified" && info ? formatMoney(info) : s === "expired" ? "Session expired" : "Checking…"}</span></span>
