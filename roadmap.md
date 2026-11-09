@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Add only Apple Wallet scroll-linked depth, overlap and selection motion; fixture-tested scrolling, switching, unlinking, mobile fit and reduced-motion support with unchanged account appearance and gateway logic.
+
 - [x] Keep the selected main account above a swipe-up saved-account chooser (fixture-tested mobile scrolling, stationary main account, switching and unlinking).
 
 - [x] Restyle logged-in accounts as an overlapping Apple Wallet stack; verified with fixture accounts on desktop/mobile, including switching, unlinking and add/back navigation (live broker access remains unverified).
