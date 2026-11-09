@@ -39,10 +39,10 @@ function AccountCardFace({ login, server, info, status }: { login: number; serve
   const demo = /demo/i.test(server);
   const money = (value?: number) => value === undefined || status !== "verified" ? "—" : new Intl.NumberFormat("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   return <span className="mt5-debit-face">
-    <span className="mt5-debit-header"><span className="mt5-debit-broker">{brokerName(server)}</span><BrokerLogo server={server} /></span>
+    <span className="mt5-debit-header"><span className="min-w-0"><span className="mt5-debit-login" aria-label="Account login first four digits">{firstFourLoginDigits(login)}</span><span className="mt5-debit-broker">{brokerName(server)}</span></span><BrokerLogo server={server} /></span>
     <span className={`mt5-debit-connection ${status === "checking" ? "" : connected ? "mt5-connected-check" : "mt5-disconnected-check"}`} title={status === "checking" ? "Checking connection" : connected ? "Connected" : "Disconnected"} aria-label={status === "checking" ? "Checking connection" : connected ? "Connected" : "Disconnected"}>{connected ? <Wifi /> : status === "checking" ? <RefreshCw className="animate-spin" /> : <WifiOff />}</span>
     <span className="mt5-debit-metrics">{([ ["Balance", info?.balance], ["Equity", info?.equity], ["Margin", info?.margin] ] as const).map(([label, value]) => <span key={label}><span className="mt5-debit-label">{label}</span><span className="mt5-debit-value">{money(value)}</span><span className="mt5-debit-currency">{status === "verified" ? info?.currency : ""}</span></span>)}</span>
-    <span className="mt5-debit-footer"><span className="min-w-0"><span className="mt5-debit-holder">{info?.name || "—"}</span><span className="mt5-debit-login" aria-label="Account login first four digits">{firstFourLoginDigits(login)}</span></span><span className={`mt5-debit-type${demo ? " mt5-debit-type-demo" : ""}`}>{demo ? "Demo" : "Live"}</span></span>
+    <span className="mt5-debit-footer"><span className="min-w-0"><span className="mt5-debit-holder">{info?.name || "—"}</span></span><span className={`mt5-debit-type${demo ? " mt5-debit-type-demo" : ""}`}>{demo ? "Demo" : "Live"}</span></span>
   </span>;
 }
 
