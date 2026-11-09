@@ -3038,6 +3038,25 @@ const HomeView = ({
       );
     };
 
+    // ====== Auto scan symbol + strategy picks (stored on this device) ======
+    const AUTO_STRATS = [{id:'germa66',label:'GERMA66 V6+'},{id:'smc',label:'SMC'},{id:'ict',label:'ICT'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'all',label:'All'}];
+    const AutoScanPicks = ({ allowedSymbols }) => {
+      const list = Object.keys(allowedSymbols || {});
+      const [picks, setPicks] = useState(() => { try { const v = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } });
+      const [strat, setStrat] = useState(() => localStorage.getItem('autoScanStrategy') || 'germa66');
+      const toggle = s => setPicks(p => { const n = p.includes(s) ? p.filter(x => x !== s) : [...p, s]; try { localStorage.setItem('autoScanSymbols', JSON.stringify(n)); } catch {} return n; });
+      const pickStrat = id => { setStrat(id); try { localStorage.setItem('autoScanStrategy', id); } catch {} };
+      return (
+        <div className="tn-autoscan-picks">
+          <p>Auto scan symbols {picks.length ? '' : '(none picked = all allowed symbols)'}</p>
+          <div>{list.length ? list.map(s => <button key={s} aria-pressed={picks.includes(s)} className={picks.includes(s)?'selected':''} onClick={()=>toggle(s)}>{s}</button>) : <span>Allow symbols in Quotes first.</span>}</div>
+          <p>Auto scan strategy</p>
+          <div>{AUTO_STRATS.map(st => <button key={st.id} aria-pressed={strat===st.id} className={strat===st.id?'selected':''} onClick={()=>pickStrat(st.id)}>{st.label}</button>)}</div>
+          <span>When the robot is started, the scanner analyses these symbols every 3 minutes and places trades on its own.</span>
+        </div>
+      );
+    };
+
     // ====== MetaTrader View ======
     const MetaTraderView = ({ themeColor, backgroundImage, backgroundVideo, performance = false }) => {
       const frame = useRef(null);
@@ -3048,7 +3067,7 @@ const HomeView = ({
 
     // ====== Settings View ======
     const SettingsView = ({ themeColor, onColorChange, themeName, currentFont, onFontChange, onEffect, onOpenSettings, onOpenChartAnalyzer, botSettings, interfaceMode, onInterfaceModeChange, isListening, voiceTranscript, onToggleVoice,
-      autoScanEnabled, onAutoScanChange, onOpenFundamentals,
+      autoScanEnabled, onAutoScanChange, onOpenFundamentals, allowedSymbols,
       glassStyle, onGlassStyleChange, heroStyle, onHeroStyleChange, cardImage, onCardImageChange, cardShape, onCardShapeChange, textCase, onTextCaseChange, background, onBackgroundChange, customBgImage, onCustomBgImage, customBgVideo, onCustomBgVideo, buttonStyle, onButtonStyleChange }) => {
       const tc = themeColor || colorMap.graphite;
       const a = tc.accent;
@@ -3269,6 +3288,7 @@ const HomeView = ({
                 <div style={{position:'absolute',top:3,left:autoScanEnabled?23:3,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'all .25s'}}/>
               </div>
             </button>
+            {autoScanEnabled && <AutoScanPicks allowedSymbols={allowedSymbols} accent={a}/>}
             <button onClick={onOpenChartAnalyzer} style={{width:'100%',marginTop:10,padding:'12px',borderRadius:12,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.75)',fontWeight:700,cursor:'pointer'}}>
               📈 Open Chart Scanner (manual)
             </button>
@@ -3513,13 +3533,11 @@ const HomeView = ({
 
       return (
         <div data-tn-scanner="1" style={{position:'fixed',inset:0,zIndex:250,background:'radial-gradient(120% 60% at 50% 0%, rgba(34,211,238,0.10) 0%, transparent 55%), radial-gradient(80% 50% at 100% 100%, rgba(255,45,85,0.10) 0%, transparent 60%), #05070d',display:'flex',flexDirection:'column'}} className="animate-fade-in">
-          <div className="scanner-header"><div><h2>TRADENEST SCANNER</h2><p>AI VISION · NEWS CALENDAR</p></div><button className="scanner-close" aria-label="Close scanner" onClick={onClose}><XIcon size={22}/></button></div>
-          <div className="scanner-tabs"><button aria-pressed={scannerTab==='chart'} className={scannerTab==='chart'?'selected':''} onClick={()=>setScannerTab('chart')}>CHART</button><button aria-pressed={scannerTab==='news'} className={scannerTab==='news'?'selected':''} onClick={()=>setScannerTab('news')}>NEWS</button></div>
-          {scannerTab==='news' && <iframe className="scanner-news-frame" src="/fundamentals" title="Scanner fundamentals"/>}
-          <div style={{flex:1,overflowY:'auto',display:scannerTab==='chart'?'block':'none'}}>
+          <div className="scanner-header"><div><h2>TRADENEST SCANNER</h2><p>AI VISION · LIVE BROKER PRICES</p></div><button className="scanner-close" aria-label="Close scanner" onClick={onClose}><XIcon size={22}/></button></div>
+          <div style={{flex:1,overflowY:'auto'}}>
             <div className="scanner-body">
               <div className="scanner-field"><label>SYMBOL</label><div className="scanner-pills">{allowedList.map(s=><button key={s} aria-pressed={symbol===s} className={symbol===s?'selected':''} onClick={()=>{setSymbol(s);setResult(null);}}>{s}</button>)}</div>{!allowedList.length && <p>No allowed symbols selected.</p>}</div>
-              <div className="scanner-field"><label>STRATEGY</label><div className="scanner-pills">{[{id:'ict',label:'ICT'},{id:'smc',label:'SMC'},{id:'crt',label:'Candlestick Patterns'},{id:'trend_following',label:'Trend Following'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'order_blocks',label:'Order Blocks'},{id:'fvg',label:'Fair Value Gaps'}].map(st=><button key={st.id} aria-pressed={strategy===st.id} className={strategy===st.id?'selected':''} onClick={()=>{setStrategy(st.id);setVaultStrategies([]);}}>{st.label}</button>)}</div></div>
+              <div className="scanner-field"><label>STRATEGY</label><div className="scanner-pills">{[{id:'germa66',label:'GERMA66 V6+'},{id:'ict',label:'ICT'},{id:'smc',label:'SMC'},{id:'crt',label:'Candlestick Patterns'},{id:'trend_following',label:'Trend Following'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'order_blocks',label:'Order Blocks'},{id:'fvg',label:'Fair Value Gaps'}].map(st=><button key={st.id} aria-pressed={strategy===st.id} className={strategy===st.id?'selected':''} onClick={()=>{setStrategy(st.id);setVaultStrategies([]);}}>{st.label}</button>)}</div></div>
               <div className="scanner-field"><label>TIMEFRAME</label><div className="scanner-pills">{[...TIMEFRAMES,{id:'auto',label:'AUTO'}].map(tf=><button key={tf.id} aria-pressed={timeframe===tf.id} className={timeframe===tf.id?'selected':''} onClick={()=>setTimeframe(tf.id)}>{tf.label}</button>)}</div></div>
               {!preview && <button className="scanner-upload" onClick={()=>galleryRef.current?.click()}><span className="scanner-plus">+</span><strong>UPLOAD YOUR CHART</strong><span>Screenshot from MT4/MT5/TradingView</span></button>}
               {!preview && <button className="scanner-camera" onClick={()=>cameraRef.current?.click()}><CameraIcon/> Capture chart</button>}
@@ -3786,7 +3804,7 @@ const HomeView = ({
                   <label style={{fontSize:10,color:'rgba(255,255,255,0.35)',letterSpacing:2,fontWeight:700,marginBottom:8,display:'block',textTransform:'uppercase',fontFamily:'Orbitron'}}>Ask the AI (optional)</label>
                   <textarea value={userPrompt} onChange={e=>setUserPrompt(e.target.value)} rows={3}
                     placeholder="e.g. I have a $50 account, find the safest scalp setup. Or: focus on liquidity grabs and ignore news."
-                    style={{width:'100%',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',color:'white',fontSize:13,outline:'none',boxSizing:'border-box',resize:'vertical',fontFamily:'inherit',lineHeight:1.45}}/>
+                    className="scanner-prompt"/>
                 </div>
               )}
 
@@ -3838,7 +3856,7 @@ const HomeView = ({
               <input ref={galleryRef} type="file" accept="image/*" onChange={handleFile} style={{display:'none'}}/>
 
               {!result && (
-                <button onClick={analyzeChart} disabled={analyzing} style={{width:'100%',padding:16,borderRadius:12,background:analyzing?'rgba(255,255,255,0.04)':'linear-gradient(135deg,#06b6d4,#e11d48)',color:'white',border:analyzing?'1px solid rgba(255,255,255,0.06)':'none',fontSize:12,letterSpacing:2,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontFamily:'Orbitron',fontWeight:700,boxShadow:analyzing?'none':'0 6px 26px rgba(225,29,72,0.35)'}}>
+                <button className="scanner-analyze" onClick={analyzeChart} disabled={analyzing}>
                   {analyzing ? <><div style={{width:16,height:16,border:'2px solid rgba(34,211,238,0.2)',borderTop:'2px solid #22d3ee',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>Analyzing live market…</> : <><SparklesIcon/> Analyze {preview?'Screenshot + Live Chart':'Live Chart'}</>}
                 </button>
               )}
@@ -3848,61 +3866,24 @@ const HomeView = ({
 
 
 
-                  {/* === Signal header card (like reference) === */}
+                  {/* === Signal generated card === */}
                   {(() => {
                     const isBuy = result.direction === 'BUY';
-                    const conf = result.confidence || 0;
-                    const tier = conf >= 75 ? 'HIGH' : conf >= 55 ? 'MED' : 'LOW';
-                    const tierColor = tier==='HIGH' ? '#22c55e' : tier==='MED' ? '#eab308' : '#ef4444';
-                    const accent = isBuy ? '#22c55e' : '#ef4444';
-                    const accentSoft = isBuy ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+                    const conf = Math.max(0, Math.min(100, Number(result.confidence) || 0));
+                    const tier = conf >= 75 ? 'HIGH' : conf >= 55 ? 'MEDIUM' : 'LOW';
+                    const dir = isBuy ? 'buy' : result.direction === 'SELL' ? 'sell' : 'neutral';
+                    const fmt = v => v == null || v === '' ? '—' : String(v);
                     return (
-                      <div style={{background:'rgba(10,12,20,0.85)',border:`1px solid ${accentSoft}`,borderRadius:18,padding:16,boxShadow:`0 0 28px ${accentSoft}`}}>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14}}>
-                          <div style={{display:'flex',alignItems:'center',gap:10}}>
-                            <div style={{width:42,height:42,borderRadius:'50%',background:`radial-gradient(circle at 30% 30%, ${accent}, #0a0a0a 75%)`,border:`2px solid ${accent}`,boxShadow:`0 0 14px ${accent}`,display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontFamily:'Orbitron',fontWeight:900,fontSize:14}}>AI</div>
-                            <div>
-                              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                                <span style={{color:'white',fontFamily:'Orbitron',fontWeight:800,fontSize:13,letterSpacing:1}}>Mobie Scanner</span>
-                                <span style={{width:7,height:7,borderRadius:'50%',background:accent,boxShadow:`0 0 8px ${accent}`}}/>
-                              </div>
-                              <span style={{fontSize:10,color:'rgba(255,255,255,0.45)',letterSpacing:1}}>Signal generated just now</span>
-                            </div>
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:6,padding:'8px 14px',borderRadius:999,border:`1px solid ${accent}`,background:accentSoft,color:accent,fontFamily:'Orbitron',fontWeight:900,fontSize:13,letterSpacing:2,boxShadow:`0 0 14px ${accentSoft}`}}>
-                            {isBuy ? '↗' : '↘'} {result.direction}
-                          </div>
+                      <div className={`scanner-signal scanner-signal-${dir}`}>
+                        <div className="scanner-signal-top">
+                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='germa66'?'GERMA66 V6+':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
+                          <div className="scanner-signal-ring" style={{'--conf':conf}}><span>{conf}%</span><small>CONF</small></div>
                         </div>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                          <span style={{color:'white',fontFamily:'Orbitron',fontWeight:900,fontSize:22,letterSpacing:1}}>{symbol}</span>
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <span style={{padding:'4px 10px',borderRadius:8,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.65)',fontFamily:'Orbitron',fontWeight:700,fontSize:11,letterSpacing:1}}>{result.timeframe || 'AUTO'}</span>
-                            <span style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:8,border:`1px solid ${tierColor}`,color:tierColor,fontFamily:'Orbitron',fontWeight:800,fontSize:11,letterSpacing:1.5,background:'rgba(0,0,0,0.3)'}}>🏆 {tier}</span>
-                          </div>
-                        </div>
-                        {/* Entry / TP / SL row */}
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
-                          {[
-                            {l:'ENTRY',v:result.entry,c:'#22c55e',i:'◎'},
-                            {l:'TAKE PROFIT',v:result.tp,c:'#22c55e',i:'⊙'},
-                            {l:'STOP LOSS',v:result.sl,c:'#ef4444',i:'🛡'},
-                          ].map(card=>(
-                            <div key={card.l} style={{background:'rgba(0,0,0,0.45)',border:`1px solid ${card.c}33`,borderRadius:14,padding:'14px 8px',textAlign:'center',boxShadow:`inset 0 0 14px ${card.c}11`}}>
-                              <div style={{fontSize:18,color:card.c,marginBottom:6,textShadow:`0 0 8px ${card.c}`}}>{card.i}</div>
-                              <p style={{fontSize:8,color:`${card.c}cc`,letterSpacing:2,marginBottom:6,fontWeight:800,fontFamily:'Orbitron'}}>{card.l}</p>
-                              <p style={{fontSize:14,fontWeight:900,color:'white',fontFamily:'Orbitron',letterSpacing:0.5}}>{card.v}</p>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Confidence */}
-                        <div style={{marginBottom:4}}>
-                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                            <span style={{fontSize:10,color:'rgba(255,255,255,0.55)',fontFamily:'Orbitron',letterSpacing:2,fontWeight:700}}>Confidence</span>
-                            <span style={{fontSize:11,color:accent,fontFamily:'Orbitron',fontWeight:800}}>{conf}%</span>
-                          </div>
-                          <div style={{height:6,background:'rgba(255,255,255,0.06)',borderRadius:6,overflow:'hidden'}}>
-                            <div style={{height:'100%',width:conf+'%',background:`linear-gradient(90deg, ${accent}, ${accent}cc)`,borderRadius:6,boxShadow:`0 0 10px ${accent}`,transition:'width 1s ease-out'}}/>
-                          </div>
+                        <div className="scanner-signal-dir">{isBuy ? '▲' : dir==='sell' ? '▼' : '■'} {result.direction}</div>
+                        <div className="scanner-signal-levels">
+                          <div><small>ENTRY</small><b>{fmt(result.entry)}</b></div>
+                          <div className="tp"><small>TAKE PROFIT</small><b>{fmt(result.tp)}</b></div>
+                          <div className="sl"><small>STOP LOSS</small><b>{fmt(result.sl)}</b></div>
                         </div>
                       </div>
                     );
@@ -5379,12 +5360,15 @@ const HomeView = ({
       useEffect(() => {
         if (!autoScanEnabled) { console.log('[AUTOSCAN] Auto Scanner is OFF in Settings — no scanning'); return; }
         if (!selectedEA) return;
-        const botOn = botRunning && (showDraggableIcon || !!tradeDelayTimer);
+        const botOn = !!botRunning;
         if (!botOn) { console.log('[AUTOSCAN] Bot is OFF — auto-scan disabled'); return; }
         if (!scannerAccount) return;
 
         // Only scan symbols the user activated in Quotes. If none, do nothing.
-        const allowedList = Object.keys(allowedSymbols||{}).filter(s => !selectedEA.symbols?.length || selectedEA.symbols.includes(s));
+        const eligible = Object.keys(allowedSymbols||{}).filter(s => !selectedEA.symbols?.length || selectedEA.symbols.includes(s));
+        let picked = []; try { picked = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); } catch {}
+        const allowedList = Array.isArray(picked) && picked.length ? eligible.filter(s => picked.includes(s)) : eligible;
+        const autoStrategy = localStorage.getItem('autoScanStrategy') || 'germa66';
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
         autoScanRanRef.current = true;
         const broker = selectedEA?.broker || detectConnectedBroker();
@@ -5413,7 +5397,7 @@ const HomeView = ({
             setScanBanner({ title: `${botName} · ${base}`, subtitle: `Bid ${liveMarket.bid} · Ask ${liveMarket.ask} · Spread ${liveMarket.spread}` });
             const resp = await fetch('/api/public/analyze-chart', {
               method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
-              body: JSON.stringify({ symbol: base, liveMarket, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'broker_quotes', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
+              body: JSON.stringify({ symbol: base, liveMarket, strategy: autoStrategy, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'broker_quotes', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
             });
             const data = await resp.json().catch(()=>({}));
             if (!current()) return false;
@@ -5668,7 +5652,7 @@ const HomeView = ({
           case 'metatrader': return <MetaTraderView themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
           case 'performance': return <MetaTraderView key="performance" performance themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
           case 'fundamentals': return <iframe src="/fundamentals" title="Fundamentals and economic calendar" className="tn-fundamentals-frame" />;
-          case 'settings': return <SettingsView onOpenFundamentals={()=>setActiveTab('fundamentals')} autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
+          case 'settings': return <SettingsView allowedSymbols={allowedSymbols} onOpenFundamentals={()=>setActiveTab('fundamentals')} autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
         }
       };
