@@ -282,6 +282,7 @@
     </div>
   </div>
 
+  <script src="/mt5-live-scanner.js"></script>
   <script type="text/babel">
     // Subscription bypass removed — /api/public/check-subscription now hits the real portal
     // so email activation on tradenestea.com is enforced. Live licence + mentor data is
@@ -289,6 +290,7 @@
 
 
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
+    const liveBrokerScanner = window.TNLiveScanner.createLiveScanner({ getToken: () => localStorage.getItem('mt_accountId_mt5') || '' });
 
     // Persistent per-device identifier — sent alongside the license key so the portal
     // can bind/track activations. Generated once per browser/PWA install.
@@ -3443,12 +3445,15 @@ const HomeView = ({
         const effectiveSource = image ? dataSource : 'candles';
         setAnalyzing(true); setResult(null);
         try {
+          const liveMarket = await liveBrokerScanner.snapshot(symbol);
+          const scanToken = localStorage.getItem('mt_accountId_mt5');
           const resp = await fetch('/api/public/analyze-chart', {
             method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
-            body: JSON.stringify({ imageBase64:image, symbol, strategy: vaultStrategies.length ? vaultStrategies.join(',') : strategy, vaultStrategies, tradeStyle, session, timeframe, userPrompt, dataSource: effectiveSource, orderType, trailStop, confidenceThreshold: 55, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
+            body: JSON.stringify({ imageBase64:image, liveMarket, symbol, strategy: vaultStrategies.length ? vaultStrategies.join(',') : strategy, vaultStrategies, tradeStyle, session, timeframe, userPrompt, dataSource: image ? effectiveSource : 'broker_quotes', orderType, trailStop, confidenceThreshold: 55, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
           });
           if(!resp.ok){ const err=await resp.json().catch(()=>({})); throw new Error(err.error||`Error ${resp.status}`); }
           const data = await resp.json();
+          if (scanToken !== localStorage.getItem('mt_accountId_mt5')) throw new Error('Account changed. Analyse again on the selected account.');
           if (data && data.fallback) { toast({title:'Live data unavailable',description:data.error||'Try a major pair or upload a screenshot.',variant:'destructive'}); }
           else { setResult(data); }
         } catch(err){ toast({title:'Analysis Failed',description:err.message,variant:'destructive'}); }
@@ -5369,6 +5374,13 @@ const HomeView = ({
       // ===== Auto AI-scan banner + auto-execute (opt-in from Settings) =====
       const [scanBanner, setScanBanner] = useState(null); // { title, subtitle } | null
       const autoScanRanRef = useRef(false);
+      const [scannerAccount, setScannerAccount] = useState(() => localStorage.getItem('mt_accountId_mt5') || '');
+      useEffect(() => {
+        const check = () => setScannerAccount(localStorage.getItem('mt_accountId_mt5') || '');
+        const timer = setInterval(check, 1000);
+        window.addEventListener('storage', check);
+        return () => { clearInterval(timer); window.removeEventListener('storage', check); };
+      }, []);
       const [autoScanEnabled, setAutoScanEnabled] = useState(() => { try { return localStorage.getItem('autoScanEnabled') === '1'; } catch { return false; } });
       const handleAutoScanChange = (v) => {
         setAutoScanEnabled(v);
@@ -5389,31 +5401,51 @@ const HomeView = ({
         } catch { return 'XAUUSD'; }
       };
       useEffect(() => {
-        if (autoScanRanRef.current) return;
         if (!autoScanEnabled) { console.log('[AUTOSCAN] Auto Scanner is OFF in Settings — no scanning'); return; }
         if (!selectedEA) return;
         const botOn = botRunning && (showDraggableIcon || !!tradeDelayTimer);
         if (!botOn) { console.log('[AUTOSCAN] Bot is OFF — auto-scan disabled'); return; }
+        if (!scannerAccount) return;
 
         // Only scan symbols the user activated in Quotes. If none, do nothing.
-        const allowedList = Object.keys(allowedSymbols||{});
+        const allowedList = Object.keys(allowedSymbols||{}).filter(s => !selectedEA.symbols?.length || selectedEA.symbols.includes(s));
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
         autoScanRanRef.current = true;
         const broker = selectedEA?.broker || detectConnectedBroker();
         const FOCUS = allowedList; // strictly the user's allowed symbols from the EA
         const botName = (botSettings.name || selectedEA?.name || 'Mobi AI').toUpperCase();
         let cancelled = false;
+        let timer;
+        let sampleTimer;
+        let sampling = false;
+        let terminal = false;
+        const current = () => !cancelled && localStorage.getItem('mt_accountId_mt5') === scannerAccount;
+        const samplePrices = async () => {
+          if (!current() || sampling) return;
+          sampling = true;
+          try { for (const symbol of FOCUS) { if (!current()) break; await liveBrokerScanner.snapshot(symbol); } }
+          catch (error) { if (current()) setScanBanner({title:'Broker prices unavailable',subtitle:error.message}); }
+          finally { sampling = false; }
+        };
 
         const scanOne = async (base) => {
           const rawSymbol = applyBrokerSuffix(base, broker);
           setScanBanner({ title: `${botName} · Sniper Scan ${base}`, subtitle: `Analysing ${base} · low DD sniper` });
           try {
+            const liveMarket = await liveBrokerScanner.snapshot(base);
+            if (!current()) return false;
+            setScanBanner({ title: `${botName} · ${base}`, subtitle: `Bid ${liveMarket.bid} · Ask ${liveMarket.ask} · Spread ${liveMarket.spread}` });
             const resp = await fetch('/api/public/analyze-chart', {
               method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
-              body: JSON.stringify({ symbol: base, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'candles', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
+              body: JSON.stringify({ symbol: base, liveMarket, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'broker_quotes', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
             });
             const data = await resp.json().catch(()=>({}));
-            if (data && (data.direction === 'BUY' || data.direction === 'SELL') && (data.confidence||0) >= 72) {
+            if (!current()) return false;
+            if (!resp.ok || data.error) {
+              if ([401,402,403,404].includes(resp.status)) { terminal = true; clearInterval(sampleTimer); }
+              throw new Error(data.error || `AI scan failed (${resp.status})`);
+            }
+            if (data && data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL') && (data.confidence||0) >= 72) {
               setScanBanner({ title: `${botName} ${data.direction} ${base}`, subtitle: `Conf ${data.confidence}% · TP ${data.tp} · SL ${data.sl}` });
               try { sendPhoneNotification(`🎯 ${data.direction} ${base}`, `Conf ${data.confidence}% · TP ${data.tp} · SL ${data.sl}`); } catch(_) {}
               setPendingSignal({
@@ -5428,29 +5460,24 @@ const HomeView = ({
               });
               return true;
             }
-          } catch(_) {}
+          } catch(error) { if (current()) setScanBanner({title:'Scan unavailable',subtitle:error.message}); }
           return false;
         };
 
-        (async () => {
+        sampleTimer = setInterval(samplePrices, 5000);
+        const scanCycle = async () => {
           for (const base of FOCUS) {
-            if (cancelled) return;
+            if (!current() || terminal) return;
             await scanOne(base);
             await new Promise(r=>setTimeout(r, 1500));
           }
-          setTimeout(()=>setScanBanner(null), 3500);
-          const iv = setInterval(async () => {
-            if (cancelled) return clearInterval(iv);
-            // Stop the loop if the bot has been switched off in the meantime
-            const stillOn = botRunning && (showDraggableIcon || !!tradeDelayTimer);
-            if (!stillOn || !autoScanEnabled) { console.log('[AUTOSCAN] Stopping loop'); clearInterval(iv); autoScanRanRef.current = false; return; }
-            for (const base of FOCUS) { if (cancelled) return; await scanOne(base); await new Promise(r=>setTimeout(r,1200)); }
-          }, 180000);
-        })();
+          if (current() && !terminal) timer = setTimeout(scanCycle, 180000);
+        };
+        scanCycle();
 
-        return () => { cancelled = true; };
+        return () => { cancelled = true; clearTimeout(timer); clearInterval(sampleTimer); autoScanRanRef.current = false; liveBrokerScanner.reset(); };
         // eslint-disable-next-line
-      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled, botRunning]);
+      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled, botRunning, scannerAccount]);
 
 
       const handleStartTrading = (ea) => {
