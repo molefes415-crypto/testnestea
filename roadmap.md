@@ -1,5 +1,6 @@
 # MT5 gateway connection
 
+- [x] Finish the fundamentals page with live calendar filters, SAST times, forecast/previous/actual values and manually requested AI outlook; real calendar returned 101 events, AI returned three outlooks, desktop/mobile checks passed, and Settings navigation passed with a fixture profile. Viewing news never triggers trades.
 - [x] Feed selected-account live bid/ask and sampled quotes into manual and automatic AI scans; exact-symbol/account-switch tests pass, browser quote-to-scanner fixtures pass, and a real AI request returned NEUTRAL. Real broker scanning remains unverified without an available MT5 session.
 - [ ] Load the full broker symbol catalogue and historical candles — the supplied single-file gateway documents neither endpoint; needs the host's supported contract.
 
