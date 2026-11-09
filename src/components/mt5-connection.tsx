@@ -223,15 +223,13 @@ export function MT5Connection() {
           <Button variant="ghost" size="icon" aria-label="Add MT5 account" title="Add MT5 account" onClick={() => { setMessage(""); setNotice(""); setView("login"); }}><Plus className="size-7" /></Button>
         </header>
         {accountAlerts}
-        {account ? <section className="mt5-account-block mt5-active-account mb-4 px-4 pb-2 pt-5 text-center" aria-label="Active account">
+        {account ? <section className="mt5-account-block mt5-bank-card mb-5" aria-label="Active account">
           <span className={`mt5-account-ribbon${/demo/i.test(account.server) ? "" : " mt5-account-ribbon-live"}`}>{/demo/i.test(account.server) ? "Demo" : "Live"}</span>
-          <BrokerLogo server={account.server} large />
-          <h2 className="mt-2 text-lg font-semibold break-words">{account.name || "MetaTrader 5"}</h2>
-          <p className="mt-1 text-base text-primary">{brokerName(account.server)}</p>
-          <p className="mt-2 break-words text-sm text-muted-foreground">{account.login} — {account.server}</p>
-          <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="mt5-connected-check size-3" />Connected</p>
-          <p className="mt-3 text-2xl font-medium">{formatMoney(account)}</p>
-          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-2 text-sm">
+          <div className="mt5-bank-card-heading"><BrokerLogo server={account.server} /><span className="min-w-0"><span className="block break-words text-sm font-semibold text-primary">{brokerName(account.server)}</span><span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="mt5-connected-check size-3" />Connected</span></span></div>
+          <div className="mt5-bank-card-balance"><span className="text-xs text-muted-foreground">Balance</span><p className="mt-1 text-3xl font-semibold break-words">{formatMoney(account)}</p></div>
+          <h2 className="mt-4 break-words text-sm font-medium">{account.name || "MetaTrader 5"}</h2>
+          <p className="mt-1 break-words text-xs text-muted-foreground">{account.login} — {account.server}</p>
+          <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
             <div><dt className="text-xs text-muted-foreground">Equity</dt><dd className="mt-1">{account.equity === undefined ? "—" : account.equity.toFixed(2)} {account.currency}</dd></div>
             <div><dt className="text-xs text-muted-foreground">Margin</dt><dd className="mt-1">{account.margin === undefined ? "—" : account.margin.toFixed(2)} {account.currency}</dd></div>
           </dl>
@@ -242,11 +240,13 @@ export function MT5Connection() {
           {otherAccounts.length === 0 ? <p className="px-2 py-4 text-sm text-muted-foreground">{saved.length ? "No other saved accounts" : "No saved accounts"}</p> : <ul className="space-y-4">{otherAccounts.map(a => {
             const info = details[a.token];
             const s = status[a.token] ?? "checking";
-            return <li key={a.token} className="mt5-account-block">
+            return <li key={a.token} className="mt5-account-block mt5-saved-bank-card">
               <span className={`mt5-account-ribbon pointer-events-none${/demo/i.test(a.server) ? "" : " mt5-account-ribbon-live"}`}>{/demo/i.test(a.server) ? "Demo" : "Live"}</span>
-              <Button variant="ghost" className="mt5-account-select gap-3" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
-                <BrokerLogo server={a.server} />
-                <span className="min-w-0 flex-1"><span className="block break-words text-base font-semibold">{info?.name || `MT5 Account ${a.login}`}</span><span className="mt-1 block text-sm text-primary">{brokerName(a.server)}</span><span className="mt-1 block break-words text-sm text-muted-foreground">{a.login} — {a.server}</span><span className="mt-2 block text-lg font-normal text-muted-foreground">{s === "verified" && info ? formatMoney(info) : s === "expired" ? "Session expired" : "Checking…"}</span></span>
+              <Button variant="ghost" className="mt5-account-select" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
+                <span className="mt5-bank-card-heading"><BrokerLogo server={a.server} /><span className="min-w-0 break-words text-sm font-semibold text-primary">{brokerName(a.server)}</span></span>
+                <span className="mt-3 block break-words text-2xl font-semibold">{s === "verified" && info ? formatMoney(info) : s === "expired" ? "Session expired" : "Checking…"}</span>
+                <span className="mt-3 block break-words text-sm font-medium">{info?.name || `MT5 Account ${a.login}`}</span>
+                <span className="mt-1 block break-words text-xs text-muted-foreground">{a.login} — {a.server}</span>
               </Button>
               <div className="flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : "Verifying session"}</span><Button type="button" variant="ghost" size="sm" disabled={Boolean(busy)} onClick={() => void unlink(a)} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />Unlink</Button></div>
             </li>;
