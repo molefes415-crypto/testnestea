@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Map the seven debit-card reference positions to broker name/logo, balance/equity/margin, holder, first four login digits, account type and colored connection status.
+
 - [x] Make Demo ribbons red, Live ribbons black with red border lines, and connected check circles green.
 
 - [x] Apply theme-aware blurred glass, shared backgrounds, box-free logos, and pill navigation (verified together on mobile and desktop with fixture accounts).

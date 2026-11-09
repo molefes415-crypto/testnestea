@@ -184,6 +184,7 @@
 }
 .mt5-account-ribbon-live { background: var(--account-live-background); border-top: 1px solid var(--account-ribbon-red); border-bottom: 1px solid var(--account-ribbon-red); }
 .mt5-connected-check { color: var(--account-success); }
+.mt5-disconnected-check { color: var(--account-ribbon-red); }
 .mt5-bank-card { padding: 20px 20px 8px; }
 .mt5-bank-card-heading { display: flex; align-items: center; gap: 12px; min-width: 0; padding-right: 30px; }
 .mt5-bank-card-heading img { width: 40px; height: 32px; margin: 0; }
@@ -191,6 +192,21 @@
 .mt5-account-select { display: block; height: auto; min-height: 168px; width: 100%; border-radius: 0; white-space: normal; padding: 18px 20px 10px; text-align: left; }
 .mt5-bank-card::before, .mt5-saved-bank-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); pointer-events: none; }
 .mt5-account-select:hover { background: var(--accent); }
+.mt5-debit-face { position: relative; display: flex; flex-direction: column; min-height: 206px; width: 100%; text-align: left; }
+.mt5-debit-face::before { content: ""; position: absolute; inset: -20px; z-index: -1; background: color-mix(in oklch, var(--primary) 10%, transparent); clip-path: polygon(0 0, 25% 0, 100% 100%, 75% 100%, 0 25%, 0 0, 100% 0, 75% 0, 0 100%, 25% 100%); pointer-events: none; }
+.mt5-debit-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; min-height: 44px; }
+.mt5-debit-broker { font-size: 16px; font-weight: 600; text-transform: uppercase; overflow-wrap: anywhere; }
+.mt5-debit-header img { width: 64px; height: 38px; margin: 0; object-fit: contain; flex-shrink: 0; }
+.mt5-debit-connection { display: flex; align-self: flex-end; height: 28px; align-items: center; }
+.mt5-debit-connection svg { width: 25px; height: 25px; }
+.mt5-debit-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.mt5-debit-label, .mt5-debit-currency { display: block; color: var(--muted-foreground); font-size: 10px; }
+.mt5-debit-value { display: block; margin: 4px 0; font-family: monospace; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.mt5-debit-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.mt5-debit-holder { display: block; font-family: monospace; font-size: 13px; font-weight: 600; text-transform: uppercase; overflow-wrap: anywhere; }
+.mt5-debit-login { display: block; margin-top: 8px; font-family: monospace; font-size: 18px; }
+.mt5-debit-type { flex-shrink: 0; font-size: 22px; font-weight: 700; font-style: italic; padding: 2px 8px; background: var(--account-live-background); border-top: 1px solid var(--account-ribbon-red); border-bottom: 1px solid var(--account-ribbon-red); }
+.mt5-debit-type-demo { color: var(--account-ribbon-red); border-color: transparent; background: transparent; }
 .mt5-account-block img { background: transparent; }
 .mt5-account-block img[alt="Exness logo"] { filter: invert(1); }
 .mt5-account-select img { flex-shrink: 0; }
