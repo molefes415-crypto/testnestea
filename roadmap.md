@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Keep floating profits moving through independent one-second broker position reads without clearing the card or repeatedly loading history; ten tests pass and mobile browser fixtures show +8.21 with four position reads and only one history read. Session removal clears old values. Real broker timing remains unverified without a personal MT5 session; gateway has no documented tick stream.
+
 - [x] Remove the oversized decades-long history request and use the documented default range; request regression test and fixture navigation pass. Live gateway 500 resolution remains unverified without its personal session.
 - [ ] Retrieve verified lifetime account earnings — host must provide a supported full-history range or pagination contract; default history coverage is not lifetime earnings.
 

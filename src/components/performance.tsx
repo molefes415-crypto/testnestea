@@ -7,6 +7,7 @@ import { createMT5Service } from "@/lib/mt5-service";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved } from "@/lib/mt5-saved-accounts";
 import type { MT5Account } from "@/lib/mt5-contract";
 import { accountPerformance, floatingPerformance, readAccountHistory, readPositions, positionSide, type Position, type AccountDeal } from "@/lib/mt5-performance";
+import { startPositionStream } from "@/lib/mt5-position-stream";
 
 export function Performance() {
   const service = useMemo(() => createMT5Service(), []);
@@ -17,6 +18,8 @@ export function Performance() {
   const [historyError, setHistoryError] = useState("");
   const [busy, setBusy] = useState(false);
   const [updated, setUpdated] = useState<Date | null>(null);
+  const [positionError, setPositionError] = useState("");
+  const [positionTime, setPositionTime] = useState<Date | null>(null);
   const sequence = useRef(0);
   const loading = useRef(false);
   const displayedToken = useRef<string | null>(null);
@@ -30,6 +33,7 @@ export function Performance() {
     if (displayedToken.current !== token) {
       displayedToken.current = token;
       setAccount(null); setPositions([]); setDeals([]); setUpdated(null);
+      setPositionTime(null); setPositionError("");
     }
     try {
       if (!token) throw new Error("No connected MT5 account.");
@@ -43,6 +47,7 @@ export function Performance() {
       const nextPositions = readPositions(results[0].value);
       setAccount(info);
       setPositions(nextPositions);
+      setPositionTime(new Date()); setPositionError("");
       try {
         if (results[1].status === "rejected") throw results[1].reason;
         setDeals(readAccountHistory(results[1].value));
@@ -53,7 +58,7 @@ export function Performance() {
   }, [service]);
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 60000);
     const changed = (event: StorageEvent) => {
       if (event.key !== ACTIVE_KEY && event.key !== SAVED_KEY) return;
       if (displayedToken.current === localStorage.getItem(ACTIVE_KEY)) return;
@@ -63,6 +68,16 @@ export function Performance() {
     window.addEventListener("storage", changed);
     return () => { sequence.current++; loading.current = false; clearInterval(timer); window.removeEventListener("storage", changed); };
   }, [refresh]);
+  useEffect(() => {
+    const token = displayedToken.current;
+    if (!account || !token) return;
+    return startPositionStream({
+      active: () => !document.hidden && !loading.current && token === localStorage.getItem(ACTIVE_KEY),
+      read: () => service.positions(token),
+      apply: data => { setPositions(readPositions(data)); setPositionTime(new Date()); setPositionError(""); },
+      failed: e => setPositionError(e instanceof Error ? e.message : "Live broker readings unavailable."),
+    });
+  }, [account?.login, account?.server, service]);
   const stats = accountPerformance(deals);
   const floating = floatingPerformance(positions);
   const available = account && updated && !error && !historyError;
@@ -78,6 +93,8 @@ export function Performance() {
       {error && <div role="alert" className="my-4 text-sm text-destructive">{error} {!account && <Button variant="link" asChild><Link to="/mt5">MetaTrader accounts</Link></Button>}</div>}
       {historyError && <p role="alert" className="my-4 text-sm text-destructive">{historyError}</p>}
       <section className="performance-section" aria-label="Open positions"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Open positions</h2><span className="text-xs text-muted-foreground">{updated && !error ? positions.length : "—"} open</span></div>
+        {positionTime && <p className="mb-3 text-xs text-muted-foreground">{positionError ? "Last broker reading" : "Broker reading"} {positionTime.toLocaleTimeString()}</p>}
+        {positionError && <p role="alert" className="mb-3 text-xs text-destructive">{positionError}</p>}
         {updated && !error && <div className="mb-3 flex justify-between text-sm"><span className="text-muted-foreground">Floating profit / loss · {account?.currency}</span><strong className={tone(floating.profit)}>{signed(floating.profit)}</strong></div>}
         {updated && !error && floating.swap !== 0 && <div className="mb-3 flex justify-between text-xs text-muted-foreground"><span>Swap · {account?.currency}</span><span className={tone(floating.swap)}>{signed(floating.swap)}</span></div>}
         {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(p)} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><div className="text-right"><strong className={tone(p.profit)}>{signed(p.profit)}</strong>{p.swap !== undefined && p.swap !== 0 && <p className="mt-1 text-xs text-muted-foreground">Swap {signed(p.swap)}</p>}</div></article>)}
