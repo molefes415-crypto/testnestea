@@ -307,15 +307,8 @@
     }
     window.getDeviceId = getDeviceId;
 
-    // PHP gateway only. Fail closed until independent session issuance is verified.
-    // Purge the old plaintext broker passwords and MTAPI session handles.
-    try {
-      Object.keys(localStorage).filter(k => /^mt_(credentials_|accountId_|connected_|platform_for_|login_for_)/.test(k) || ['mt_account_info','mt_manager_api_url'].includes(k)).forEach(k => localStorage.removeItem(k));
-    } catch {}
-    window.MT5API = (() => {
-      const blocked = async () => ({ ok:false, data:null, error:'MT5 connection unavailable: session.php requires email and admin_id; an independent client-bound MT5 session is required.' });
-      return { BASE:'https://tradenestea.com/admin/api/mt5/', PROVIDER:'php-gateway', connect:blocked, account:blocked, symbols:blocked, status:blocked, disconnect:blocked, openOrders:blocked, positions:blocked, orderSend:async () => ({ ok:false, data:null, error:'Trading unavailable: no verified MT5 session or documented PHP order endpoint.' }) };
-    })();
+    // Remove legacy password persistence only; preserve personal gateway tokens.
+    try { Object.keys(localStorage).filter(k => k.startsWith('mt_credentials_')).forEach(k => localStorage.removeItem(k)); } catch {}
 
     // ====== SVG Icons (clean, consistent stroke width) ======
     const HomeIcon = () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>);
