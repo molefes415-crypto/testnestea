@@ -1,6 +1,7 @@
 # MT5 gateway connection
 
-- [ ] Add Performance beside Home with the shared account card, live open positions, bot-only closed history, net earnings, win rate and losses; verify calculations and navigation without placing trades.
+- [x] Add Performance beside Home with the shared account card, open positions, bot-only closed history, net earnings, win rate and losses; seven calculation/account tests and desktop/mobile navigation checks passed using fixtures without placing trades.
+- [ ] Verify Performance against a real connected broker account — no personal MT5 session is available in this sandbox; actual broker positions/history remain unverified and totals are limited to returned history.
 
 - [x] Finish the fundamentals page with live calendar filters, SAST times, forecast/previous/actual values and manually requested AI outlook; real calendar returned 101 events, AI returned three outlooks, desktop/mobile checks passed, and Settings navigation passed with a fixture profile. Viewing news never triggers trades.
 - [x] Feed selected-account live bid/ask and sampled quotes into manual and automatic AI scans; exact-symbol/account-switch tests pass, browser quote-to-scanner fixtures pass, and a real AI request returned NEUTRAL. Real broker scanning remains unverified without an available MT5 session.
