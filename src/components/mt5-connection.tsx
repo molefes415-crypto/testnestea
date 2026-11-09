@@ -234,22 +234,25 @@ export function MT5Connection() {
           <Button variant="ghost" size="icon" aria-label="Add MT5 account" title="Add MT5 account" onClick={() => { setMessage(""); setNotice(""); setView("login"); }}><Plus className="size-7" /></Button>
         </header>
         {accountAlerts}
-        {account ? <section className="mt5-account-block mt5-bank-card mb-5" aria-label="Active account">
-          <AccountCardFace login={account.login} server={account.server} info={account} status={status[token] ?? "checking"} />
-          <div className="mt-2 flex justify-end"><Button variant="ghost" size="sm" disabled={Boolean(busy)} aria-label={`Unlink ${account.login}`} onClick={() => { const entry = saved.find(a => a.token === token); if (entry) void unlink(entry); }}><Unlink className="size-4" />Unlink</Button></div>
-        </section> : <section className="mt5-account-block mb-4 py-6 text-center" aria-label="Connection status"><img src={mt5Logo.url} alt="MetaTrader 5" className="mx-auto size-12 object-contain" /><h2 className="mt-3 text-lg font-semibold">MT5 Disconnected</h2><p className="mt-2 text-sm text-muted-foreground">No active account</p></section>}
         <section aria-label="Saved accounts">
-          <h2 className="mb-3 px-2 text-base text-muted-foreground">Connect to:</h2>
-          {otherAccounts.length === 0 ? <p className="px-2 py-4 text-sm text-muted-foreground">{saved.length ? "No other saved accounts" : "No saved accounts"}</p> : <ul className="space-y-4">{otherAccounts.map(a => {
+          <h2 className="mb-5 px-2 text-sm text-muted-foreground">Logged-in accounts</h2>
+          <ul className="mt5-wallet-stack">{otherAccounts.map((a, index) => {
             const info = details[a.token];
             const s = status[a.token] ?? "checking";
-            return <li key={a.token} className="mt5-account-block mt5-saved-bank-card">
+            const collapsed = Boolean(account) || index < otherAccounts.length - 1;
+            return <li key={a.token} className={`mt5-account-block mt5-saved-bank-card mt5-wallet-card${collapsed ? " mt5-wallet-card-collapsed" : ""}`}>
               <Button variant="ghost" className="mt5-account-select" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
                 <AccountCardFace login={a.login} server={a.server} info={info} status={s} />
               </Button>
-              <div className="flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : "Verifying session"}</span><Button type="button" variant="ghost" size="sm" disabled={Boolean(busy)} onClick={() => void unlink(a)} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />Unlink</Button></div>
+              <div className="mt5-wallet-card-actions flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : "Verifying session"}</span><Button type="button" variant="ghost" size={collapsed ? "icon" : "sm"} disabled={Boolean(busy)} onClick={() => void unlink(a)} title={`Unlink ${a.login}`} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />{!collapsed && "Unlink"}</Button></div>
             </li>;
-          })}</ul>}
+          })}
+          {account && <li className="mt5-account-block mt5-bank-card mt5-wallet-card mt5-wallet-card-active" aria-label="Active account">
+            <AccountCardFace login={account.login} server={account.server} info={account} status={status[token] ?? "checking"} />
+            <div className="mt-2 flex items-center justify-between"><span className="text-xs text-primary">Active account</span><Button variant="ghost" size="sm" disabled={Boolean(busy)} aria-label={`Unlink ${account.login}`} onClick={() => { const entry = saved.find(a => a.token === token); if (entry) void unlink(entry); }}><Unlink className="size-4" />Unlink</Button></div>
+          </li>}
+          </ul>
+          {!account && saved.length === 0 && <section className="mt5-account-block py-6 text-center" aria-label="Connection status"><img src={mt5Logo.url} alt="MetaTrader 5" className="mx-auto size-12 object-contain" /><h2 className="mt-3 text-lg font-semibold">MT5 Disconnected</h2><p className="mt-2 text-sm text-muted-foreground">No saved accounts</p></section>}
         </section>
       </div>
     </main>
