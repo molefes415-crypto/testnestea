@@ -103,6 +103,24 @@ export type Database = {
         }
         Relationships: []
       }
+      news_calendar_cache: {
+        Row: {
+          events: Json
+          fetched_at: string
+          id: number
+        }
+        Insert: {
+          events: Json
+          fetched_at?: string
+          id: number
+        }
+        Update: {
+          events?: Json
+          fetched_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
