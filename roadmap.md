@@ -5,5 +5,6 @@
 - [x] Remove obsolete multi-file gateway blocker and test contract/error handling.
 - [x] Review Claude troubleshooting notes; verify gateway health and browser access without resetting accounts.
 - [x] Preserve gateway rejection status and distinguish blocked browser requests from broker failures.
-- [ ] Verify live JustMarkets connection and account reads — gateway health is 200, but PHP allowed_origins omits https://tradnestea.app and https://www.tradnestea.app; demo credentials are unavailable.
+- [ ] Make MT5 linking free — hosted mt5_gateway.php?a=link currently rejects inactive subscriptions; actual PHP handler source is needed to remove only this gate while retaining personal-token isolation.
+- [ ] Verify live JustMarkets connection and account reads — both website origins now pass; subscription-gated linking and unavailable demo credentials prevent verification.
 - [ ] Connect live trading to the main app — wait for a reachable gateway and verified demo connection; the existing app trade path remains disabled.
