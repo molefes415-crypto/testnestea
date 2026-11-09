@@ -3876,7 +3876,7 @@ const HomeView = ({
                     return (
                       <div className={`scanner-signal scanner-signal-${dir}`}>
                         <div className="scanner-signal-top">
-                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='germa66'?'GERMA66 V6+':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
+                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='master'?'MASTER STRATEGY':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
                           <div className="scanner-signal-ring" style={{'--conf':conf}}><span>{conf}%</span><small>CONF</small></div>
                         </div>
                         <div className="scanner-signal-dir">{isBuy ? '▲' : dir==='sell' ? '▼' : '■'} {result.direction}</div>
