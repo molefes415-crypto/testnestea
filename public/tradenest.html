@@ -750,14 +750,14 @@
         { key:'settings', label:'Settings', icon:<SettingsIcon/> },
       ];
       return (
-        <div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:60,padding:'10px 14px calc(env(safe-area-inset-bottom,0px) + 10px)',background:'linear-gradient(180deg, rgba(8,8,12,0.65) 0%, rgba(6,6,9,0.96) 60%)',backdropFilter:'blur(18px) saturate(160%)',WebkitBackdropFilter:'blur(18px) saturate(160%)',borderTop:`1px solid ${a}22`}}>
-          <div style={{maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+        <div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:60,padding:'10px 14px calc(env(safe-area-inset-bottom,0px) + 10px)',pointerEvents:'none'}}>
+          <div role="navigation" aria-label="Main navigation" style={{'--nav-accent':a,'--nav-ink':'#f4f4f4','--nav-muted':'#929292','--nav-surface':'rgba(8,10,10,0.72)',maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'7px 10px',borderRadius:999,background:'var(--nav-surface)',backdropFilter:'blur(18px) saturate(160%)',border:'1px solid color-mix(in srgb,var(--nav-accent) 55%,transparent)',boxShadow:'0 0 22px color-mix(in srgb,var(--nav-accent) 22%,transparent)',pointerEvents:'auto'}}>
             {items.map(it=>{
               const active = activeTab===it.key;
               return (
-                <button key={it.key} onClick={()=>onTabChange(it.key)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:14,border:active?`1px solid ${a}55`:'1px solid transparent',background:active?`linear-gradient(135deg, ${a}1f, ${d}14)`:'transparent',color:active?'white':'rgba(255,255,255,0.55)',cursor:'pointer',boxShadow:active?`0 6px 22px ${g.replace('0.4','0.28')}`:'none',transition:'all .2s'}}>
-                  <span style={{width:30,height:30,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',background:active?`linear-gradient(135deg,${a},${d})`:'rgba(255,255,255,0.04)',color:active?'white':'rgba(255,255,255,0.6)',boxShadow:active?`0 4px 14px ${g.replace('0.4','0.45')}`:'none'}}>{it.icon}</span>
-                  <span style={{fontFamily:'Orbitron',fontSize:9,fontWeight:active?800:600,letterSpacing:1.5}}>{it.label.toUpperCase()}</span>
+                <button key={it.key} aria-current={active?'page':undefined} onClick={()=>onTabChange(it.key)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'7px 2px',borderRadius:999,border:active?'1px solid var(--nav-ink)':'1px solid transparent',background:'transparent',color:active?'var(--nav-accent)':'var(--nav-muted)',cursor:'pointer',transition:'all .2s'}}>
+                  <span style={{width:34,height:34,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',border:active?'1px solid var(--nav-accent)':'1px solid transparent',boxShadow:active?'0 0 16px var(--nav-accent)':'none'}}>{it.icon}</span>
+                  <span style={{fontFamily:'Orbitron',fontSize:9,fontWeight:active?800:600,letterSpacing:0}}>{it.label}</span>
                 </button>
               );
             })}
@@ -3030,9 +3030,12 @@ const HomeView = ({
     };
 
     // ====== MetaTrader View ======
-    const MetaTraderView = () => (
-      <iframe src="/mt5" title="Expert Mobile VPS MT5 connection" style={{width:'100%',height:'calc(100dvh - 80px)',border:0,display:'block'}} />
-    );
+    const MetaTraderView = ({ themeColor, backgroundImage, backgroundVideo }) => {
+      const frame = useRef(null);
+      const sendTheme = () => frame.current?.contentWindow?.postMessage({type:'tn-mt5-appearance',accent:themeColor?.accent || null,image:backgroundImage || null,video:backgroundVideo || null},location.origin);
+      useEffect(()=>{sendTheme(); const ready=e=>{if(e.origin===location.origin && e.source===frame.current?.contentWindow && e.data?.type==='tn-mt5-ready')sendTheme();};window.addEventListener('message',ready);return()=>window.removeEventListener('message',ready);},[themeColor,backgroundImage,backgroundVideo]);
+      return <iframe ref={frame} onLoad={sendTheme} src="/mt5" title="Expert Mobile VPS MT5 connection" style={{width:'100%',height:'calc(100dvh - 104px)',border:0,display:'block',background:'transparent'}} />;
+    };
 
     // ====== Settings View ======
     const SettingsView = ({ themeColor, onColorChange, themeName, currentFont, onFontChange, onEffect, onOpenSettings, onOpenChartAnalyzer, botSettings, interfaceMode, onInterfaceModeChange, isListening, voiceTranscript, onToggleVoice,
@@ -5659,7 +5662,7 @@ const HomeView = ({
             if (interfaceMode==='quantum_neural') return <QuantumNeuralProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             if (interfaceMode==='nexus_pro') return <NexusProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             return <HomeView eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} onColorChange={handleColorChange} themeColor={themeColor} onNavigate={setActiveTab} onStopTrading={handleFullStop} onSwitchMode={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} onEffect={setActiveEffect} onChangePic={img=>{const s={...botSettings,image:img};setBotSettings(s);localStorage.setItem('botSettings',JSON.stringify(s));}} tradeDelaySeconds={tradeDelaySeconds} onOpenChartAnalyzer={handleOpenChartAnalyzer} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} interfaceMode={interfaceMode} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange} cardShape={cardShape}/>;
-          case 'metatrader': return <MetaTraderView isVIP={interfaceMode==='vip'} themeColor={themeColor}/>;
+          case 'metatrader': return <MetaTraderView themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
           case 'settings': return <SettingsView autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
         }
