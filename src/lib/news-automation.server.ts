@@ -1,5 +1,5 @@
 import { createMT5Service } from './mt5-service';
-import { automationSchema, executionTime, validNewsSignal, type AutomationInput } from './news-automation';
+import { automationSchema, executionTime, validNewsSignal, confirmedOrder, type AutomationInput } from './news-automation';
 import { getNewsEvents, type NewsEvent } from './news.server';
 import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 
@@ -72,7 +72,7 @@ export async function executeAutomation(id:string,signals:unknown[]) {
     const {error}=await db.from('news_automation_orders').insert({job_id:id,symbol,ordinal,status:'sending',signal});if(error)continue;
     attempts++;
     try{const result=await service.trade(token,{symbol,side:signal.direction==='BUY'?'buy':'sell',volume:Number(job.lot),sl:signal.sl,tp:signal.tp,comment:'News AI'});
-     const rejected=result.success===false||result.error||typeof result.retcode==='number'&&![10008,10009,10010].includes(result.retcode);
+     const rejected=!confirmedOrder(result);
      await db.from('news_automation_orders').update({status:rejected?'rejected':'sent',result:{retcode:result.retcode??null,ticket:result.order??result.ticket??null}}).eq('job_id',id).eq('symbol',symbol).eq('ordinal',ordinal);
      if(rejected)throw new Error('Broker rejected a scheduled order.');sent++;
     }catch(e){await db.from('news_automation_orders').update({status:'unknown'}).eq('job_id',id).eq('symbol',symbol).eq('ordinal',ordinal).eq('status','sending');throw e;}

@@ -1,7 +1,7 @@
 # MT5 gateway connection
 
-- [ ] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls.
-- [ ] Secure AI-directed closed-app news execution with durable scheduling, verified personal MT5 ownership, unchanged stops, and no duplicate orders; verify safe scheduling without placing real trades.
+- [x] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls; browser validates 10 trades, exact XAUUSD.m selection, 5-minute timing, modal closing and disconnected-account block on mobile/desktop.
+- [ ] Activate secure AI-directed closed-app news execution — code and signed Inngest sleep-until endpoint prepared, but hosted database is paused and migration could not apply; user must explicitly resume Cloud, then apply staged migration and publish/sync Inngest. No real schedule or broker trade has been verified; personal MT5 test session still required.
 
 - [x] Match Fundamentals with market-session flags and calendar periods; redesign chart scanner with pill selectors and upload area, and add Fundamentals beside Performance. Two session tests pass; browser verifies real calendar, filters, image upload preview, ICT/M15 selectors, Chart/News switching, no unsolicited analysis and mobile navigation with no runtime errors. Existing live broker/AI execution is unchanged and not retested with a real account.
 

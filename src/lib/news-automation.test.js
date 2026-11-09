@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { automationSchema, executionTime, validNewsSignal } from "./news-automation";
+import { automationSchema, executionTime, validNewsSignal, confirmedOrder } from "./news-automation";
 test("execution uses exactly the selected seconds before release",()=>{
   expect(executionTime("2026-11-10T12:30:00Z",30,Date.parse("2026-11-10T12:00Z"))).toBe("2026-11-10T12:29:30.000Z");
   expect(executionTime("2026-11-10T12:30:00Z",900,Date.parse("2026-11-10T12:00Z"))).toBe("2026-11-10T12:15:00.000Z");
@@ -18,4 +18,10 @@ test("AI orders require exact symbol, confidence and unchanged valid stops",()=>
   expect(validNewsSignal(signal,"XAUUSD",100,101)).toBeNull();
   expect(validNewsSignal({...signal,sl:100.5},"XAUUSD.m",100,101)).toBeNull();
   expect(validNewsSignal({...signal,confidence:49},"XAUUSD.m",100,101)).toBeNull();
+  expect(validNewsSignal(signal,"XAUUSD.m",NaN,101)).toBeNull();
+});
+test("never claims an ambiguous gateway order succeeded",()=>{
+  expect(confirmedOrder({})).toBe(false);
+  expect(confirmedOrder({retcode:10016})).toBe(false);
+  expect(confirmedOrder({retcode:10009,order:1234})).toBe(true);
 });

@@ -8,6 +8,11 @@ export const automationSchema = z.object({
 }).strict();
 export type AutomationInput = z.infer<typeof automationSchema>;
 export type AutomationJob = { id: string; event_id: string; execute_at: string; symbols: string[]; lot: number; trades: number; status: string; detail: string | null };
+export function confirmedOrder(result: Record<string, unknown>) {
+  if (result.success === false || result.error) return false;
+  if (typeof result.retcode === 'number') return [10008,10009,10010].includes(result.retcode);
+  return typeof (result.order ?? result.ticket) === 'number' && Number(result.order ?? result.ticket) > 0;
+}
 export function executionTime(eventTime: string, seconds: number, now: number) {
   const time = Date.parse(eventTime) - seconds * 1000;
   if (!Number.isFinite(time) || time <= now) throw new Error("That execution moment has already passed.");
