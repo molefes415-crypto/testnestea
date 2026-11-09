@@ -67,6 +67,14 @@ ${b.liveMarket ? `LIVE BROKER DATA (observed quotes, not candles): ${JSON.string
 Use this exact symbol unchanged: ${b.liveMarket.symbol}. Buy at the ask, sell at the bid. Account for spread. These are sampled bid/ask observations, NOT OHLC candles or volume. Never invent candle patterns, volume, order books or external current prices. If the supplied samples/image cannot justify a setup, return NEUTRAL. Do not invent missing SL/TP. Quote observation time is client receipt time, not an exchange tick timestamp.` : ""}
 
 ${styleRules(b.tradeStyle)}
+${/germa66/i.test(b.strategy || "") ? `
+GERMA66 V6+ STRATEGY (master.kaay PC bot — apply strictly):
+- Smart-money Quasimodo: detect liquidity grabs and false breakouts of the prior 15-bar high/low range.
+- Track PreviousHigh/PreviousLow = highest high / lowest low 15 bars back on the current timeframe; read the H1 close.
+- BUY setup: H1 close reclaims back above the swept PreviousLow (false breakdown) → Quasimodo level = PreviousLow.
+- SELL setup: H1 close rejects back below the swept PreviousHigh (false breakout) → Quasimodo level = PreviousHigh.
+- Entry at market (BUY at ask, SELL at bid). SL = 0.35% of price, TP = 0.60% of price. One TP only.
+- If no clear sweep + reclaim/rejection is visible, return NEUTRAL.` : ""}
 
 RULES:
 1. Low drawdown mandate: SL distance must be smaller than TP1 distance (R:R >= 1.5).
@@ -188,6 +196,19 @@ async function callGateway(body: AnalyzeBody) {
     const style = String(body.tradeStyle || "day").toLowerCase();
     const dir = String(p.direction || "").toUpperCase();
     const entry = parseFloat(p.entry) || 0;
+    // GERMA66 V6+ (Quasimodo PC bot): fixed % stops from the executing price — SL 0.35%, TP 0.60%.
+    if (/germa66/i.test(String(body.strategy || "")) && (dir === "BUY" || dir === "SELL")) {
+      const lm = body.liveMarket as any;
+      const px = Number(dir === "BUY" ? lm?.ask : lm?.bid) || entry;
+      if (px > 0) {
+        p.entry = px;
+        p.sl = dir === "BUY" ? px - px * 0.0035 : px + px * 0.0035;
+        p.tp = dir === "BUY" ? px + px * 0.006 : px - px * 0.006;
+        p.stopLoss = p.sl;
+        p.takeProfit = [p.tp];
+        p.strategy = "GERMA66 V6+";
+      }
+    }
     if (!body.liveMarket && style !== "swing" && entry > 0 && (dir === "BUY" || dir === "SELL")) {
       const pct = style === "scalp" ? 0.0025 : 0.006; // 0.25% scalp, 0.6% day
       if (!p.sl || parseFloat(p.sl) <= 0) {
