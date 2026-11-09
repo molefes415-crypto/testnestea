@@ -56,10 +56,23 @@ function norm(e: any): NewsEvent | null {
 /** Portal news.php first, FinanceCalendar direct as fallback. Cached 5 min. */
 export async function getNewsEvents(): Promise<NewsEvent[]> {
   if (cache && Date.now() - cache.at < 300_000) return cache.events;
+  // Shared cache across workers: the free calendar feed rate-limits aggressively.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let stored: NewsEvent[] = [];
+  try {
+    const { data } = await supabaseAdmin.from("news_calendar_cache").select("events, fetched_at").eq("id", 1).maybeSingle();
+    if (data) {
+      stored = (data.events as unknown as NewsEvent[]) ?? [];
+      if (stored.length && Date.now() - new Date(data.fetched_at).getTime() < 30 * 60_000) {
+        cache = { at: Date.now(), events: stored };
+        return stored;
+      }
+    }
+  } catch (e) { console.error("News cache read failed", e); }
   let raw: any[] = [];
   // 1) ForexFactory weekly feed — has forecast + previous for every event.
-  for (let attempt = 0; attempt < 2 && !raw.length; attempt++) try {
-    const r = await fetch(`https://nfs.faireconomy.media/ff_calendar_thisweek.json?_=${Math.floor(Date.now() / 300_000)}`, {
+  for (let attempt = 0; attempt < 1 && !raw.length; attempt++) try {
+    const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
       headers: { "user-agent": "Mozilla/5.0 (TradeNest News Calendar)", accept: "application/json" },
     });
     if (!r.ok) console.error(`News feed HTTP ${r.status}`);
@@ -100,9 +113,13 @@ export async function getNewsEvents(): Promise<NewsEvent[]> {
   if (!events.length) {
     // Never cache an empty result; serve the last good calendar if we have one.
     if (cache?.events.length) return cache.events;
+    if (stored.length) { cache = { at: Date.now(), events: stored }; return stored; }
     throw new Error("News calendar is temporarily unavailable. Tap refresh to try again.");
   }
   cache = { at: Date.now(), events };
+  try {
+    await supabaseAdmin.from("news_calendar_cache").upsert({ id: 1, events: events as any, fetched_at: new Date().toISOString() });
+  } catch (e) { console.error("News cache write failed", e); }
   return events;
 }
 
