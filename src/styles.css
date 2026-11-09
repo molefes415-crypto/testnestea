@@ -306,6 +306,7 @@
 .fundamentals-impact-high { background: var(--news-high); }
 .fundamentals-impact-medium { background: var(--news-medium); }
 .fundamentals-impact-low { background: var(--news-low); }
+.fundamentals-page section[aria-label="Economic releases"] { max-height: 55dvh; overflow-y: auto; overscroll-behavior: contain; }
 @media (max-width: 640px) { .fundamentals-event { grid-template-columns: 90px minmax(0, 1fr); gap: 12px; } .fundamentals-event dl { grid-column: 2; } }
 @media (prefers-reduced-motion: reduce) {
   .mt5-wallet-scroll .mt5-wallet-card { transform: none; opacity: 1; will-change: auto; }
