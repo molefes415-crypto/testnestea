@@ -15,7 +15,7 @@ export function executionTime(eventTime: string, seconds: number, now: number) {
 }
 export function validNewsSignal(data: unknown, symbol: string, bid: number, ask: number) {
   const signal = z.object({ symbol:z.literal(symbol), direction:z.enum(["BUY","SELL"]), sl:z.number().positive(), tp:z.number().positive(), confidence:z.number().min(50).max(100) }).safeParse(data);
-  if (!signal.success || bid <= 0 || ask < bid) return null;
+  if (!signal.success || !Number.isFinite(bid) || !Number.isFinite(ask) || bid <= 0 || ask < bid) return null;
   const s = signal.data;
   if (s.direction === "BUY" ? s.sl >= bid || s.tp <= ask : s.sl <= ask || s.tp >= bid) return null;
   return s;
