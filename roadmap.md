@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [ ] Match the Fundamentals reference with market-session flags and calendar periods; redesign chart scanner like image two and add Fundamentals beside Performance without changing trading contracts.
+
 - [x] Keep floating profits moving through independent one-second broker position reads without clearing the card or repeatedly loading history; ten tests pass and mobile browser fixtures show +8.21 with four position reads and only one history read. Session removal clears old values. Real broker timing remains unverified without a personal MT5 session; gateway has no documented tick stream.
 
 - [x] Remove the oversized decades-long history request and use the documented default range; request regression test and fixture navigation pass. Live gateway 500 resolution remains unverified without its personal session.
