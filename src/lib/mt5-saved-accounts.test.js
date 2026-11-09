@@ -2,8 +2,9 @@ import { test, expect } from "bun:test";
 import { parseSaved, upsertSaved, removeSaved, firstFourLoginDigits } from "./mt5-saved-accounts";
 
 test("account cards reveal only the first four login digits", () => {
-  expect(firstFourLoginDigits(2002245610)).toBe("2002");
-  expect(firstFourLoginDigits(4096842)).toBe("4096");
+  expect(firstFourLoginDigits(2002245610)).toBe("2002***");
+  expect(firstFourLoginDigits(4096842)).toBe("4096***");
+  expect(firstFourLoginDigits(12345678)).toBe("1234***");
 });
 
 test("saved accounts never keep the password", () => {
