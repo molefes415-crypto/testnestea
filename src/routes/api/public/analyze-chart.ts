@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { validateLiveMarket, hasLivePriceHistory, guardLiveAnalysis, type LiveMarket } from "@/lib/mt5-live-analysis";
 
 const MODELS = [
   "google/gemini-2.5-flash",
@@ -8,6 +9,7 @@ const MODELS = [
 
 
 type AnalyzeBody = {
+  liveMarket?: LiveMarket;
   imageBase64?: string | null;
   symbol?: string;
   strategy?: string;
@@ -57,6 +59,8 @@ CONTEXT:
 - Order type requested: ${b.orderType || "instant"} (instant | buy_limit | sell_limit | buy_stop | sell_stop)
 - Trailing stop: ${b.trailStop ? "YES — include trailStart & trailStep" : "no"}
 - User note: ${b.userPrompt || "(none)"}
+${b.liveMarket ? `LIVE BROKER DATA (observed quotes, not candles): ${JSON.stringify(b.liveMarket)}
+Use this exact symbol unchanged: ${b.liveMarket.symbol}. Buy at the ask, sell at the bid. Account for spread. These are sampled bid/ask observations, NOT OHLC candles or volume. Never invent candle patterns, volume, order books or external current prices. If the supplied samples/image cannot justify a setup, return NEUTRAL. Do not invent missing SL/TP. Quote observation time is client receipt time, not an exchange tick timestamp.` : ""}
 
 ${styleRules(b.tradeStyle)}
 
@@ -179,7 +183,7 @@ async function callGateway(body: AnalyzeBody) {
     const style = String(body.tradeStyle || "day").toLowerCase();
     const dir = String(p.direction || "").toUpperCase();
     const entry = parseFloat(p.entry) || 0;
-    if (style !== "swing" && entry > 0 && (dir === "BUY" || dir === "SELL")) {
+    if (!body.liveMarket && style !== "swing" && entry > 0 && (dir === "BUY" || dir === "SELL")) {
       const pct = style === "scalp" ? 0.0025 : 0.006; // 0.25% scalp, 0.6% day
       if (!p.sl || parseFloat(p.sl) <= 0) {
         p.sl = dir === "BUY" ? entry * (1 - pct) : entry * (1 + pct);
@@ -196,7 +200,7 @@ async function callGateway(body: AnalyzeBody) {
     }
     if (!p.lotSize) p.lotSize = 0.01;
     if (!p.orderType) p.orderType = body.orderType || "instant";
-    return parsed;
+    return body.liveMarket ? guardLiveAnalysis(parsed, body.liveMarket) : parsed;
   }
   throw new Error(lastErr || "All models failed");
 }
@@ -227,6 +231,13 @@ export const Route = createFileRoute("/api/public/analyze-chart")({
             }
           }
           const body = (await request.json()) as AnalyzeBody;
+          if (body.liveMarket !== undefined) {
+            try { body.liveMarket = validateLiveMarket(body.liveMarket, body.symbol || ""); }
+            catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Invalid broker quote" }, { status: 400, headers: CORS }); }
+            if (!body.imageBase64 && !hasLivePriceHistory(body.liveMarket)) {
+              return Response.json({ direction: "NEUTRAL", symbol: body.symbol, confidence: 0, accurate: false, reason: "Collecting live broker quotes. A single bid/ask snapshot is not enough to analyse price movement.", liveMarket: body.liveMarket }, { headers: CORS });
+            }
+          }
           let rel: any[] = [];
           try {
             const { getNewsEvents, relevantEvents, fundamentalsText } = await import("@/lib/news.server");
