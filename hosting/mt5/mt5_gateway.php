@@ -66,6 +66,24 @@ function gw(string $method, string $path, array $headers = [], ?string $body = n
     return [$st, $resp];
 }
 
+/** Independent broker login check (proof the caller knows the trading password). Session is closed straight after. */
+function broker_password_ok(int $login, string $password, string $server): bool {
+    $url = 'https://mt5.mtapi.io/ConnectEx?' . http_build_query(['user' => $login, 'password' => $password, 'server' => $server]);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 10]);
+    $resp = curl_exec($ch);
+    $st = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($st !== 200 || !is_string($resp)) return false;
+    $id = trim($resp, " \t\n\r\"");
+    if ($id === '' || $id[0] === '{' || !preg_match('/^[A-Za-z0-9-]{8,}$/', $id)) return false;
+    $dc = curl_init('https://mt5.mtapi.io/Disconnect?' . http_build_query(['id' => $id]));
+    curl_setopt_array($dc, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10]);
+    curl_exec($dc);
+    curl_close($dc);
+    return true;
+}
+
 $action = $_GET['a'] ?? '';
 
 // ====== HEALTH: connectivity + admin key test (safe to open in a browser, shows no secrets) ======
@@ -103,9 +121,22 @@ if ($action === 'link' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
     [$st, $raw] = gw('POST', '/admin/accounts', $adminHdr, $payload, 220);
 
-    // Never delete an existing terminal based on a client-supplied email label.
-    // Existing sessions remain accessible only with their personal token.
-    if ($st === 409) out(['detail' => 'This MT5 account is already linked. Use its existing personal token or disconnect that session first.'], 409);
+    // Re-link of an already-linked account. The email label is NOT proof of ownership;
+    // only a broker-verified trading password is. Verify it first, then replace the old terminal.
+    if ($st === 409) {
+        if (!broker_password_ok($login, $password, $server)) {
+            out(['detail' => 'This MT5 account is already linked. Enter its correct trading password to log in again.'], 401);
+        }
+        [$ls, $lraw] = gw('GET', '/admin/accounts', $adminHdr, null, 20);
+        $existing = null;
+        foreach ((array) json_decode($lraw, true) as $a) {
+            if ((int) ($a['login'] ?? 0) === $login && strcasecmp((string) ($a['server'] ?? ''), $server) === 0) { $existing = $a; break; }
+        }
+        if ($existing && !empty($existing['account_id'])) {
+            gw('DELETE', '/admin/accounts/' . rawurlencode((string) $existing['account_id']), $adminHdr, null, 30);
+        }
+        [$st, $raw] = gw('POST', '/admin/accounts', $adminHdr, $payload, 220);
+    }
     out($raw, $st);   // success => { account_id, token, account }
 }
 

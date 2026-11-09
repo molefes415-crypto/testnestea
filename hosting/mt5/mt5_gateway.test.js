@@ -8,9 +8,13 @@ test('MT5 linking does not require an active app subscription', () => {
   expect(source).toContain("gw('POST', '/admin/accounts', $adminHdr, $payload, 220)");
 });
 
-test('an email label cannot authorize deletion of another existing terminal', () => {
-  expect(source).not.toContain("gw('DELETE', '/admin/accounts/");
-  expect(source).toContain("if ($st === 409) out(");
+test('re-linking replaces a terminal only after the broker verifies the password', () => {
+  const block = source.slice(source.indexOf('if ($st === 409)'));
+  const check = block.indexOf('broker_password_ok(');
+  const del = block.indexOf("gw('DELETE', '/admin/accounts/");
+  expect(check).toBeGreaterThan(-1);
+  expect(del).toBeGreaterThan(check);
+  expect(block.slice(0, del)).not.toContain("'label'");
   expect(source).toContain("if ($token === '') out(['detail' => 'Missing token'], 401)");
   expect(source).toContain("$hdr = ['Authorization: Bearer ' . $token]");
 });
