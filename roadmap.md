@@ -1,8 +1,8 @@
 # MT5 gateway connection
 
-- [ ] Resolve Automate News activation error — user approved resuming Cloud; wait for healthy status, apply prepared private schedule schema, and verify workflow availability without placing trades.
+- [x] Resolve paused-database blocker for Automate News — Cloud resumed and healthy; private schedule/order schema applied and browser access revoked, verified through database reads; five safety tests pass. No order placed.
 - [x] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls; browser validates 10 trades, exact XAUUSD.m selection, 5-minute timing, modal closing and disconnected-account block on mobile/desktop.
-- [ ] Activate secure AI-directed closed-app news execution — code and signed Inngest sleep-until endpoint prepared, but hosted database is paused and migration could not apply; user must explicitly resume Cloud, then apply staged migration and publish/sync Inngest. No real schedule or broker trade has been verified; personal MT5 test session still required.
+- [ ] Activate secure AI-directed closed-app news execution — database ready; published /api/public/news-workflows returns 404 and preview returns 401, so publish updated app and sync Inngest before claiming activation. No registered Inngest app, real schedule or broker trade verified; personal MT5 test session still required.
 
 - [x] Match Fundamentals with market-session flags and calendar periods; redesign chart scanner with pill selectors and upload area, and add Fundamentals beside Performance. Two session tests pass; browser verifies real calendar, filters, image upload preview, ICT/M15 selectors, Chart/News switching, no unsolicited analysis and mobile navigation with no runtime errors. Existing live broker/AI execution is unchanged and not retested with a real account.
 
