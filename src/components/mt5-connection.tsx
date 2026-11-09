@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckCircle2, Eye, EyeOff, LockKeyhole, RefreshCw, Unlink, UserRound } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, Plus, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createMT5Service } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
+import mt5Logo from "@/assets/mt5.png.asset.json";
 
 type Status = "checking" | "verified" | "expired";
 
@@ -22,6 +23,8 @@ export function MT5Connection() {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState("");
+  const [view, setView] = useState<"accounts" | "login">("accounts");
+  const [details, setDetails] = useState<Record<string, MT5Account>>({});
 
   function persist(list: SavedMT5Account[]) {
     setSaved(list);
@@ -30,6 +33,7 @@ export function MT5Connection() {
   function activate(t: string, info: MT5Account) {
     setToken(t);
     setAccount(info);
+    setDetails(d => ({ ...d, [t]: info }));
     localStorage.setItem(ACTIVE_KEY, t);
     localStorage.setItem("mt_connected_mt5", "true");
   }
@@ -59,6 +63,7 @@ export function MT5Connection() {
         .then(info => {
           if (info.login !== a.login) throw new Error("mismatch");
           setStatus(s => ({ ...s, [a.token]: "verified" }));
+          setDetails(d => ({ ...d, [a.token]: info }));
           if (a.token === active) activate(a.token, info);
         })
         .catch(() => {
@@ -90,6 +95,7 @@ export function MT5Connection() {
       setNotice(`Login verified · ${info.server} · ${info.login}`);
       setServer("");
       setAccountNumber("");
+      setView("accounts");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
     } finally {
@@ -112,8 +118,8 @@ export function MT5Connection() {
       setStatus(s => ({ ...s, [a.token]: "expired" }));
       setServer(a.server);
       setAccountNumber(String(a.login));
+      setView("login");
       setMessage(`Session for ${a.login} expired. Enter its trading password above to log in again.`);
-      document.getElementById("mt5-password")?.focus();
     } finally {
       setBusy("");
     }
@@ -139,14 +145,77 @@ export function MT5Connection() {
     setBusy("");
   }
 
+  const formatMoney = (info: MT5Account) => `${new Intl.NumberFormat("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(info.balance)} ${info.currency}`;
+  const otherAccounts = saved.filter(a => a.token !== token);
+  const accountAlerts = <>{message && <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">{message}</div>}{notice && <div role="status" className="mb-4 text-sm text-primary">{notice}</div>}</>;
+
+  if (view === "accounts") return (
+    <main className="mt5-workspace mt5-accounts min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-lg px-3 pb-8">
+        <header className="flex h-18 items-center gap-3 px-2">
+          <h1 className="flex-1 text-xl font-semibold">Accounts</h1>
+          <ShieldCheck className="size-6 text-muted-foreground" aria-label="Personal account access" />
+          <Button variant="ghost" size="icon" aria-label="Refresh accounts" title="Refresh accounts" disabled={Boolean(busy) || saved.length === 0} onClick={async () => {
+            setBusy("refresh");
+            await Promise.all(saved.map(async a => {
+              try {
+                const info = await service.account(a.token);
+                if (info.login !== a.login) throw new Error("Account mismatch");
+                setDetails(d => ({ ...d, [a.token]: info }));
+                setStatus(s => ({ ...s, [a.token]: "verified" }));
+                if (a.token === token) activate(a.token, info);
+              } catch {
+                setStatus(s => ({ ...s, [a.token]: "expired" }));
+                if (a.token === token) clearActive();
+              }
+            }));
+            setBusy("");
+          }}><RefreshCw className={busy === "refresh" ? "animate-spin" : ""} /></Button>
+          <Button variant="ghost" size="icon" aria-label="Add MT5 account" title="Add MT5 account" onClick={() => { setMessage(""); setNotice(""); setView("login"); }}><Plus className="size-7" /></Button>
+        </header>
+        {accountAlerts}
+        {account ? <section className="mt5-account-block mb-5 px-5 pb-3 pt-8 text-center" aria-label="Active account">
+          {/demo/i.test(account.server) && <span className="mt5-account-ribbon">Demo</span>}
+          <BrokerLogo server={account.server} large />
+          <h2 className="mt-4 text-xl font-semibold break-words">{account.name || "MetaTrader 5"}</h2>
+          <p className="mt-1 text-base text-primary">{brokerName(account.server)}</p>
+          <p className="mt-4 break-words text-sm text-muted-foreground">{account.login} — {account.server}</p>
+          <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="size-3" />Connected</p>
+          <p className="mt-4 text-3xl font-medium">{formatMoney(account)}</p>
+          <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+            <div><dt className="text-xs text-muted-foreground">Equity</dt><dd className="mt-1">{account.equity === undefined ? "—" : account.equity.toFixed(2)} {account.currency}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Margin</dt><dd className="mt-1">{account.margin === undefined ? "—" : account.margin.toFixed(2)} {account.currency}</dd></div>
+          </dl>
+          <div className="mt-2 flex justify-end"><Button variant="ghost" size="sm" disabled={Boolean(busy)} aria-label={`Unlink ${account.login}`} onClick={() => { const entry = saved.find(a => a.token === token); if (entry) void unlink(entry); }}><Unlink className="size-4" />Unlink</Button></div>
+        </section> : <section className="mt5-account-block mb-5 py-9 text-center" aria-label="Connection status"><img src={mt5Logo.url} alt="MetaTrader 5" className="mx-auto size-14 object-contain" /><h2 className="mt-4 text-lg font-semibold">MT5 Disconnected</h2><p className="mt-2 text-sm text-muted-foreground">No active account</p></section>}
+        <section aria-label="Saved accounts">
+          <h2 className="mb-3 px-2 text-base text-muted-foreground">Connect to:</h2>
+          {otherAccounts.length === 0 ? <p className="px-2 py-4 text-sm text-muted-foreground">{saved.length ? "No other saved accounts" : "No saved accounts"}</p> : <ul className="space-y-4">{otherAccounts.map(a => {
+            const info = details[a.token];
+            const s = status[a.token] ?? "checking";
+            return <li key={a.token} className="mt5-account-block">
+              {/demo/i.test(a.server) && <span className="mt5-account-ribbon pointer-events-none">Demo</span>}
+              <Button variant="ghost" className="mt5-account-select gap-4" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
+                <BrokerLogo server={a.server} />
+                <span className="min-w-0 flex-1"><span className="block break-words text-lg font-semibold">{info?.name || `MT5 Account ${a.login}`}</span><span className="mt-1 block text-base text-primary">{brokerName(a.server)}</span><span className="mt-1 block break-words text-sm text-muted-foreground">{a.login} — {a.server}</span><span className="mt-3 block text-xl font-normal text-muted-foreground">{s === "verified" && info ? formatMoney(info) : s === "expired" ? "Session expired" : "Checking…"}</span></span>
+              </Button>
+              <div className="flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : "Verifying session"}</span><Button type="button" variant="ghost" size="sm" disabled={Boolean(busy)} onClick={() => void unlink(a)} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />Unlink</Button></div>
+            </li>;
+          })}</ul>}
+        </section>
+      </div>
+    </main>
+  );
+
   return (
     <main className="mt5-workspace min-h-screen bg-background px-5 py-8 text-foreground">
       <div className="mx-auto max-w-lg">
+        <div className="mb-4 flex items-center gap-3"><Button type="button" variant="ghost" size="icon" aria-label="Back to accounts" onClick={() => setView("accounts")}><ArrowLeft /></Button><h1 className="text-base font-semibold">Add account</h1></div>
         <div className="mt5-neon-header py-5 text-center font-bold text-primary">MT5 ACCOUNT</div>
         <div className="py-6 text-center">
           <div role="status" className="mb-6 flex items-center justify-center gap-2 text-xs font-semibold uppercase text-muted-foreground"><span className="size-2 rounded-full bg-primary" />{loading ? "Verifying login…" : account ? `MT5 Connected · ${account.login}` : "MT5 Disconnected"}</div>
-          <img src="/__l5e/assets-v1/1a3dc16d-74a5-4cbc-bd83-6c1a712d29e8/mt5.png" alt="MT5" className="mx-auto mb-5 size-22 rounded-lg object-contain" />
-          <h1 className="mt5-neon-title text-base font-black uppercase">MT5 Login Details</h1>
+          <img src={mt5Logo.url} alt="MT5" className="mx-auto mb-5 size-22 rounded-lg object-contain" />
+          <h2 className="mt5-neon-title text-base font-black uppercase">MT5 Login Details</h2>
         </div>
         <form onSubmit={connect} className="space-y-4">
           <div className="space-y-2"><label htmlFor="broker-server" className="text-sm font-medium">Broker server</label><Input id="broker-server" value={server} onChange={e => setServer(e.target.value)} required maxLength={150} autoComplete="off" className="mt5-neon-field h-14 bg-card" placeholder="Search MT5 Broker Server..." /></div>
