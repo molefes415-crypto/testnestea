@@ -184,7 +184,8 @@
 }
 .mt5-account-ribbon-live { background: var(--account-live-background); border-top: 1px solid var(--account-ribbon-red); border-bottom: 1px solid var(--account-ribbon-red); }
 .mt5-connected-check { color: var(--account-success); }
-.mt5-account-select { height: auto; min-height: 144px; width: 100%; justify-content: flex-start; align-items: flex-start; border-radius: 0; white-space: normal; padding: 22px 42px 18px 20px; text-align: left; }
+.mt5-active-account > img { height: 48px; width: 72px; }
+.mt5-account-select { height: auto; min-height: 120px; width: 100%; justify-content: flex-start; align-items: flex-start; border-radius: 0; white-space: normal; padding: 16px 42px 10px 16px; text-align: left; }
 .mt5-account-select:hover { background: var(--accent); }
 .mt5-account-block img { background: transparent; }
 .mt5-account-block img[alt="Exness logo"] { filter: invert(1); }
