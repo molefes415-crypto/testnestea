@@ -7,6 +7,10 @@ const MODELS = [
   "openai/gpt-5-mini",
 ];
 
+class ScannerFailure extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
 
 type AnalyzeBody = {
   liveMarket?: LiveMarket;
@@ -154,7 +158,8 @@ async function callGateway(body: AnalyzeBody) {
     if (!resp.ok) {
       const t = await resp.text().catch(() => "");
       lastErr = `Gateway ${resp.status}: ${t.slice(0, 200)}`;
-      // Retry next model on rate-limit / model errors; abort on auth issues.
+      if (body.liveMarket) throw new ScannerFailure("AI analysis is unavailable. " + (resp.status === 402 ? "AI credits need attention." : resp.status === 403 ? "AI access was denied." : `Request failed (${resp.status}).`), resp.status);
+      // Preserve legacy handling for screenshot-only callers.
       if (resp.status === 401 || resp.status === 403) throw new Error(lastErr);
       continue;
     }
@@ -254,7 +259,7 @@ export const Route = createFileRoute("/api/public/analyze-chart")({
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           return new Response(JSON.stringify({ error: msg, fallback: true }), {
-            status: 200,
+            status: err instanceof ScannerFailure ? err.status : 200,
             headers: { "content-type": "application/json", ...CORS },
           });
         }
