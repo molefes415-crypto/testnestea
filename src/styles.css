@@ -147,7 +147,7 @@
   --background: oklch(0.13 0 0);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.21 0 0);
-  --primary: oklch(0.65 0.24 25);
+  --primary: var(--mt5-theme-accent, oklch(0.65 0.24 25));
   --primary-foreground: oklch(0.96 0 0);
   --muted-foreground: oklch(0.7 0 0);
   --border: oklch(0.32 0 0);
@@ -169,13 +169,12 @@
 .mt5-accounts {
   --background: oklch(0.15 0 0);
   --card: oklch(0.23 0 0);
-  --primary: oklch(0.73 0.14 245);
+  --primary: var(--mt5-theme-accent, oklch(0.73 0.14 245));
   --account-success: oklch(0.7 0.17 135);
   --account-ribbon-text: oklch(0.99 0 0);
-  --broker-logo-surface: oklch(0.97 0 0);
   font-family: Roboto, Arial, sans-serif;
 }
-.mt5-account-block { position: relative; overflow: hidden; border-radius: 2px; background: var(--card); }
+.mt5-account-block { position: relative; overflow: hidden; border-radius: 8px; background: color-mix(in oklch, var(--card) 65%, transparent); backdrop-filter: blur(12px) saturate(140%); border: 1px solid color-mix(in oklch, var(--primary) 28%, var(--border)); box-shadow: var(--mt5-glow); }
 .mt5-account-ribbon {
   position: absolute; right: -29px; top: 17px; width: 112px;
   transform: rotate(45deg); text-align: center; padding: 3px 0;
@@ -183,6 +182,14 @@
 }
 .mt5-account-select { height: auto; min-height: 144px; width: 100%; justify-content: flex-start; align-items: flex-start; border-radius: 0; white-space: normal; padding: 22px 42px 18px 20px; text-align: left; }
 .mt5-account-select:hover { background: var(--accent); }
-.mt5-account-block img { background: var(--broker-logo-surface); padding: 5px; border-radius: 3px; }
+.mt5-account-block img { background: transparent; }
+.mt5-account-block img[alt="Exness logo"] { filter: invert(1); }
 .mt5-account-select img { flex-shrink: 0; }
 .mt5-accounts header button svg { width: 22px; height: 22px; }
+.mt5-workspace { position: relative; isolation: isolate; background: transparent; }
+.mt5-background { position: fixed; inset: 0; z-index: -2; background-color: var(--background); background-size: cover; background-position: center; }
+.mt5-background video { width: 100%; height: 100%; object-fit: cover; }
+.mt5-background::after { content: ""; position: absolute; inset: 0; background: color-mix(in oklch, var(--background) 35%, transparent); }
+.mt5-neon-field { background: color-mix(in oklch, var(--card) 55%, transparent); backdrop-filter: blur(12px) saturate(140%); border-color: color-mix(in oklch, var(--primary) 45%, var(--border)); }
+.mt5-workspace form label { color: var(--primary); }
+.mt5-workspace form button[type="submit"] { background: var(--primary); color: var(--background); }
