@@ -218,3 +218,55 @@
 .mt5-neon-field { background: color-mix(in oklch, var(--card) 55%, transparent); backdrop-filter: blur(12px) saturate(140%); border-color: color-mix(in oklch, var(--primary) 45%, var(--border)); }
 .mt5-workspace form label { color: var(--primary); }
 .mt5-workspace form button[type="submit"] { background: var(--primary); color: var(--background); }
+
+/* Neon treatment for the MT5 account cards: glowing accent edges, lit text, pulsing status. */
+.mt5-account-block {
+  border: 1px solid color-mix(in oklch, var(--primary) 55%, var(--border));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent),
+    0 0 16px color-mix(in oklch, var(--primary) 34%, transparent),
+    0 0 44px color-mix(in oklch, var(--primary) 14%, transparent),
+    inset 0 0 20px color-mix(in oklch, var(--primary) 10%, transparent);
+}
+.mt5-bank-card {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 26%, transparent),
+    0 0 22px color-mix(in oklch, var(--primary) 45%, transparent),
+    0 0 60px color-mix(in oklch, var(--primary) 20%, transparent),
+    inset 0 0 26px color-mix(in oklch, var(--primary) 14%, transparent);
+}
+.mt5-account-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, color-mix(in oklch, var(--primary) 28%, transparent) 46%, transparent 60%);
+  background-size: 260% 100%;
+  animation: mt5-neon-sweep 7s linear infinite;
+}
+@keyframes mt5-neon-sweep { from { background-position: 180% 0; } to { background-position: -60% 0; } }
+.mt5-debit-login {
+  color: color-mix(in oklch, var(--primary) 45%, var(--foreground));
+  text-shadow: 0 0 8px color-mix(in oklch, var(--primary) 75%, transparent), 0 0 22px color-mix(in oklch, var(--primary) 45%, transparent);
+}
+.mt5-debit-broker { text-shadow: 0 0 10px color-mix(in oklch, var(--primary) 45%, transparent); }
+.mt5-debit-value { text-shadow: 0 0 8px color-mix(in oklch, var(--primary) 30%, transparent); }
+.mt5-debit-holder { text-shadow: 0 0 8px color-mix(in oklch, var(--primary) 28%, transparent); }
+.mt5-connected-check svg {
+  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--account-success) 85%, transparent)) drop-shadow(0 0 14px color-mix(in oklch, var(--account-success) 50%, transparent));
+  animation: mt5-neon-pulse 2.2s ease-in-out infinite;
+}
+.mt5-disconnected-check svg {
+  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--account-ribbon-red) 85%, transparent)) drop-shadow(0 0 14px color-mix(in oklch, var(--account-ribbon-red) 50%, transparent));
+}
+@keyframes mt5-neon-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.mt5-debit-type {
+  text-shadow: 0 0 10px color-mix(in oklch, var(--account-ribbon-red) 60%, transparent);
+  box-shadow: 0 0 12px color-mix(in oklch, var(--account-ribbon-red) 40%, transparent), inset 0 0 10px color-mix(in oklch, var(--account-ribbon-red) 22%, transparent);
+}
+.mt5-debit-type-demo { text-shadow: 0 0 12px color-mix(in oklch, var(--account-ribbon-red) 80%, transparent); }
+.mt5-accounts header h1 { text-shadow: 0 0 14px color-mix(in oklch, var(--primary) 55%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .mt5-account-block::after, .mt5-connected-check svg { animation: none; }
+}

@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Add neon to the MT5 account cards: glowing accent edges and sheen, lit account number, pulsing green connected glow, red-lit Demo/Live (browser-tested with fixtures at 1280x1800).
+
 - [x] Map the seven debit-card reference positions to broker name/logo, balance/equity/margin, holder, first four login digits, account type and colored connection status.
 
 - [x] Make Demo ribbons red, Live ribbons black with red border lines, and connected check circles green.
