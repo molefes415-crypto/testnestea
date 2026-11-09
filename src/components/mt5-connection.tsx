@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, Plus, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { createMT5Service } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
 import mt5Logo from "@/assets/mt5.png.asset.json";
-import justMarketsLogo from "@/assets/brokers/justmarkets.png.asset.json";
+import justMarketsLogo from "@/assets/brokers/justmarkets-transparent.png";
 import exnessLogo from "@/assets/brokers/exness.svg.asset.json";
 import icMarketsLogo from "@/assets/brokers/ic-markets.png.asset.json";
 import pepperstoneLogo from "@/assets/brokers/pepperstone.svg.asset.json";
@@ -15,7 +15,7 @@ import accuMarketsLogo from "@/assets/brokers/accumarkets.png.asset.json";
 import derivLogo from "@/assets/brokers/deriv.png.asset.json";
 
 const brokers = [
-  { pattern: /justmarkets/i, name: "JustMarkets", logo: justMarketsLogo.url },
+  { pattern: /justmarkets/i, name: "JustMarkets", logo: justMarketsLogo },
   { pattern: /exness|exnes/i, name: "Exness", logo: exnessLogo.url },
   { pattern: /razor[\s_-]*markets/i, name: "Razor Markets", logo: razorMarketsLogo.url },
   { pattern: /accu[\s_-]*markets/i, name: "AccuMarkets", logo: accuMarketsLogo.url },
@@ -31,6 +31,29 @@ function BrokerLogo({ server, large = false }: { server: string; large?: boolean
 }
 
 type Status = "checking" | "verified" | "expired";
+
+function MT5Background() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [video, setVideo] = useState<string | null>(null);
+  useEffect(() => {
+    const apply = (data: { accent?: unknown; image?: unknown; video?: unknown }) => {
+      if (typeof data.accent === "string" && CSS.supports("color", data.accent)) document.documentElement.style.setProperty("--mt5-theme-accent", data.accent);
+      const media = (value: unknown) => typeof value === "string" && /^(https?:\/\/|\/|data:image\/|data:video\/|blob:)/.test(value) ? value : null;
+      const image = media(data.image);
+      if (ref.current) ref.current.style.backgroundImage = image ? `url(${JSON.stringify(image)})` : "none";
+      setVideo(media(data.video));
+    };
+    try { apply(JSON.parse(localStorage.getItem("appThemeColor") || "{}")); } catch { /* Use default theme. */ }
+    const receive = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent || event.data?.type !== "tn-mt5-appearance") return;
+      apply(event.data);
+    };
+    window.addEventListener("message", receive);
+    if (window.parent !== window) window.parent.postMessage({ type: "tn-mt5-ready" }, window.location.origin);
+    return () => window.removeEventListener("message", receive);
+  }, []);
+  return <div ref={ref} className="mt5-background" aria-hidden="true">{video && <video src={video} autoPlay loop muted playsInline />}</div>;
+}
 
 export function MT5Connection() {
   const service = useMemo(() => createMT5Service(), []);
@@ -174,6 +197,7 @@ export function MT5Connection() {
 
   if (view === "accounts") return (
     <main className="mt5-workspace mt5-accounts min-h-screen bg-background text-foreground">
+      <MT5Background />
       <div className="mx-auto max-w-lg px-3 pb-8">
         <header className="flex h-18 items-center gap-3 px-2">
           <h1 className="flex-1 text-xl font-semibold">Accounts</h1>
@@ -232,6 +256,7 @@ export function MT5Connection() {
 
   return (
     <main className="mt5-workspace min-h-screen bg-background px-5 py-8 text-foreground">
+      <MT5Background />
       <div className="mx-auto max-w-lg">
         <div className="mb-4 flex items-center gap-3"><Button type="button" variant="ghost" size="icon" aria-label="Back to accounts" onClick={() => setView("accounts")}><ArrowLeft /></Button><h1 className="text-base font-semibold">Add account</h1></div>
         <div className="mt5-neon-header py-5 text-center font-bold text-primary">MT5 ACCOUNT</div>
