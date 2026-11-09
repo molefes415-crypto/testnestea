@@ -671,6 +671,7 @@
 
       const items = [
         { key:'home', label:'Home', icon:<HomeIcon/> },
+        { key:'performance', label:'Performance', icon:<ChartIcon/> },
         { key:'metatrader', label:'MetaTrader', icon:<ChartIcon/> },
         { key:'settings', label:'Settings', icon:<SettingsIcon/> },
       ];
@@ -750,12 +751,13 @@
       const g = tc?.glow || 'rgba(34,211,238,0.4)';
       const items = [
         { key:'home', label:'Home', icon:<HomeIcon/> },
+        { key:'performance', label:'Performance', icon:<ChartIcon/> },
         { key:'metatrader', label:'MetaTrader', icon:<ChartIcon/> },
         { key:'settings', label:'Settings', icon:<SettingsIcon/> },
       ];
       return (
         <div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:60,padding:'10px 14px calc(env(safe-area-inset-bottom,0px) + 10px)',pointerEvents:'none'}}>
-          <div role="navigation" aria-label="Main navigation" style={{'--nav-accent':a,'--nav-ink':'#f4f4f4','--nav-muted':'#929292','--nav-surface':'rgba(8,10,10,0.72)',maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'7px 10px',borderRadius:999,background:'var(--nav-surface)',backdropFilter:'blur(18px) saturate(160%)',border:'1px solid color-mix(in srgb,var(--nav-accent) 55%,transparent)',boxShadow:'0 0 22px color-mix(in srgb,var(--nav-accent) 22%,transparent)',pointerEvents:'auto'}}>
+          <div role="navigation" aria-label="Main navigation" style={{'--nav-accent':a,'--nav-ink':'#f4f4f4','--nav-muted':'#929292','--nav-surface':'rgba(8,10,10,0.72)',maxWidth:480,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:4,padding:'7px 10px',borderRadius:999,background:'var(--nav-surface)',backdropFilter:'blur(18px) saturate(160%)',border:'1px solid color-mix(in srgb,var(--nav-accent) 55%,transparent)',boxShadow:'0 0 22px color-mix(in srgb,var(--nav-accent) 22%,transparent)',pointerEvents:'auto'}}>
             {items.map(it=>{
               const active = activeTab===it.key;
               return (
@@ -3034,11 +3036,11 @@ const HomeView = ({
     };
 
     // ====== MetaTrader View ======
-    const MetaTraderView = ({ themeColor, backgroundImage, backgroundVideo }) => {
+    const MetaTraderView = ({ themeColor, backgroundImage, backgroundVideo, performance = false }) => {
       const frame = useRef(null);
       const sendTheme = () => frame.current?.contentWindow?.postMessage({type:'tn-mt5-appearance',accent:themeColor?.accent || null,image:backgroundImage || null,video:backgroundVideo || null},location.origin);
       useEffect(()=>{sendTheme(); const ready=e=>{if(e.origin===location.origin && e.source===frame.current?.contentWindow && e.data?.type==='tn-mt5-ready')sendTheme();};window.addEventListener('message',ready);return()=>window.removeEventListener('message',ready);},[themeColor,backgroundImage,backgroundVideo]);
-      return <iframe ref={frame} onLoad={sendTheme} src="/mt5" title="Expert Mobile VPS MT5 connection" style={{width:'100%',height:'calc(100dvh - 104px)',border:0,display:'block',background:'transparent'}} />;
+      return <iframe ref={frame} onLoad={sendTheme} src={performance ? '/performance' : '/mt5'} title={performance ? 'Account Performance' : 'Expert Mobile VPS MT5 connection'} style={{width:'100%',height:'calc(100dvh - 104px)',border:0,display:'block',background:'transparent'}} />;
     };
 
     // ====== Settings View ======
@@ -5693,6 +5695,7 @@ const HomeView = ({
             if (interfaceMode==='nexus_pro') return <NexusProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             return <HomeView eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} onColorChange={handleColorChange} themeColor={themeColor} onNavigate={setActiveTab} onStopTrading={handleFullStop} onSwitchMode={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} onEffect={setActiveEffect} onChangePic={img=>{const s={...botSettings,image:img};setBotSettings(s);localStorage.setItem('botSettings',JSON.stringify(s));}} tradeDelaySeconds={tradeDelaySeconds} onOpenChartAnalyzer={handleOpenChartAnalyzer} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} interfaceMode={interfaceMode} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange} cardShape={cardShape}/>;
           case 'metatrader': return <MetaTraderView themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
+          case 'performance': return <MetaTraderView key="performance" performance themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
           case 'fundamentals': return <iframe src="/fundamentals" title="Fundamentals and economic calendar" className="tn-fundamentals-frame" />;
           case 'settings': return <SettingsView onOpenFundamentals={()=>setActiveTab('fundamentals')} autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
