@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, Eye, EyeOff, LockKeyhole, Plus, RefreshCw, ShieldCheck, Unlink, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useWalletMotion } from "@/hooks/use-wallet-motion";
 import { createMT5Service } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, firstFourLoginDigits, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
@@ -85,12 +86,14 @@ export function MT5Connection() {
   const [notice, setNotice] = useState("");
   const [view, setView] = useState<"accounts" | "login">("accounts");
   const [details, setDetails] = useState<Record<string, MT5Account>>({});
+  const wallet = useWalletMotion(token, view === "accounts");
 
   function persist(list: SavedMT5Account[]) {
     setSaved(list);
     localStorage.setItem(SAVED_KEY, JSON.stringify(list));
   }
   function activate(t: string, info: MT5Account) {
+    wallet.capture();
     setToken(t);
     setAccount(info);
     setDetails(d => ({ ...d, [t]: info }));
@@ -211,7 +214,7 @@ export function MT5Connection() {
   if (view === "accounts") return (
     <main className="mt5-workspace mt5-accounts min-h-screen bg-background text-foreground">
       <MT5Background />
-      <div className="mx-auto max-w-lg px-3 pb-8">
+      <div ref={wallet.root} className="mx-auto max-w-lg px-3 pb-8">
         <header className="flex h-18 items-center gap-3 px-2">
           <h1 className="flex-1 text-xl font-semibold">Accounts</h1>
           <ShieldCheck className="size-6 text-muted-foreground" aria-label="Personal account access" />
@@ -234,7 +237,7 @@ export function MT5Connection() {
           <Button variant="ghost" size="icon" aria-label="Add MT5 account" title="Add MT5 account" onClick={() => { setMessage(""); setNotice(""); setView("login"); }}><Plus className="size-7" /></Button>
         </header>
         {accountAlerts}
-        {account && <section className="mt5-account-block mt5-bank-card mt5-wallet-card mt5-wallet-card-active" aria-label="Active account">
+        {account && <section key={`${account.server}:${account.login}`} data-wallet-id={`${account.server}:${account.login}`} className="mt5-account-block mt5-bank-card mt5-wallet-card mt5-wallet-card-active" aria-label="Active account">
           <AccountCardFace login={account.login} server={account.server} info={account} status={status[token] ?? "checking"} />
           <div className="mt-2 flex items-center justify-between"><span className="text-xs text-primary">Main account</span><Button variant="ghost" size="sm" disabled={Boolean(busy)} aria-label={`Unlink ${account.login}`} onClick={() => { const entry = saved.find(a => a.token === token); if (entry) void unlink(entry); }}><Unlink className="size-4" />Unlink</Button></div>
         </section>}
@@ -244,7 +247,7 @@ export function MT5Connection() {
           <ul className="mt5-wallet-stack">{otherAccounts.map(a => {
             const info = details[a.token];
             const s = status[a.token] ?? "checking";
-            return <li key={a.token} className="mt5-account-block mt5-saved-bank-card mt5-wallet-card">
+            return <li key={a.token} data-wallet-id={`${a.server}:${a.login}`} className="mt5-account-block mt5-saved-bank-card mt5-wallet-card">
               <Button variant="ghost" className="mt5-account-select" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
                 <AccountCardFace login={a.login} server={a.server} info={info} status={s} />
               </Button>
