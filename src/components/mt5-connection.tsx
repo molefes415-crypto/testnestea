@@ -6,6 +6,23 @@ import { createMT5Service } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
 import mt5Logo from "@/assets/mt5.png.asset.json";
+import justMarketsLogo from "@/assets/brokers/justmarkets.png.asset.json";
+import exnessLogo from "@/assets/brokers/exness.svg.asset.json";
+import icMarketsLogo from "@/assets/brokers/ic-markets.png.asset.json";
+import pepperstoneLogo from "@/assets/brokers/pepperstone.svg.asset.json";
+
+const brokers = [
+  { pattern: /justmarkets/i, name: "JustMarkets", logo: justMarketsLogo.url },
+  { pattern: /exness/i, name: "Exness", logo: exnessLogo.url },
+  { pattern: /icmarkets|ic markets/i, name: "IC Markets", logo: icMarketsLogo.url },
+  { pattern: /pepperstone/i, name: "Pepperstone", logo: pepperstoneLogo.url },
+  { pattern: /metaquotes/i, name: "MetaQuotes Software Corp.", logo: mt5Logo.url },
+];
+function brokerName(server: string) { return brokers.find(b => b.pattern.test(server))?.name ?? server; }
+function BrokerLogo({ server, large = false }: { server: string; large?: boolean }) {
+  const broker = brokers.find(b => b.pattern.test(server));
+  return <img src={broker?.logo ?? mt5Logo.url} alt={broker ? `${broker.name} logo` : "MetaTrader 5"} className={large ? "mx-auto h-16 w-24 object-contain" : "mt-1 h-11 w-12 object-contain"} />;
+}
 
 type Status = "checking" | "verified" | "expired";
 
@@ -226,38 +243,6 @@ export function MT5Connection() {
           <Button type="submit" size="lg" className="mt5-neon-field h-14 w-full bg-card uppercase text-foreground" disabled={loading}><LockKeyhole />{loading ? "Verifying Login…" : "Link MT5 Account Details"}</Button>
         </form>
 
-        {account && <section className="mt-8 border-t border-border pt-6" aria-label="Active account">
-          <h2 className="mb-4 text-sm font-semibold">{account.server} · {account.login}</h2>
-          <dl className="grid grid-cols-3 gap-3 text-sm">{[["Balance", account.balance], ["Equity", account.equity], ["Margin", account.margin]].map(([label, value]) => <div key={String(label)}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1">{value ?? "—"} {account.currency}</dd></div>)}</dl>
-        </section>}
-
-        <section className="mt-8 border-t border-border pt-6" aria-label="Saved accounts">
-          <h2 className="mt5-neon-title mb-1 text-sm font-black uppercase">Logged-in Accounts</h2>
-          <p className="mb-4 text-xs text-muted-foreground">Tap an account to switch. Passwords are never saved on this device.</p>
-          {saved.length === 0 ? <p className="text-sm text-muted-foreground">No saved accounts yet. Link one above.</p> : (
-            <ul className="space-y-3">
-              {saved.map(a => {
-                const s = status[a.token] ?? "checking";
-                const active = a.token === token;
-                return (
-                  <li key={a.token} className={`mt5-neon-field flex items-center gap-3 rounded-lg bg-card p-3 ${active ? "ring-2 ring-primary" : ""}`}>
-                    <button type="button" onClick={() => !active && switchTo(a)} disabled={busy === a.token} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                      <UserRound className="size-5 shrink-0 text-primary" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">{a.login}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{a.server}</span>
-                        <span className={`mt-1 flex items-center gap-1 text-xs ${s === "expired" ? "text-destructive" : "text-muted-foreground"}`}>
-                          {busy === a.token ? <><RefreshCw className="size-3 animate-spin" />Checking…</> : active ? <><CheckCircle2 className="size-3 text-primary" />Active</> : s === "verified" ? "Verified · tap to switch" : s === "expired" ? "Session expired · tap to log in again" : "Checking…"}
-                        </span>
-                      </span>
-                    </button>
-                    <Button type="button" variant="ghost" size="sm" disabled={busy === a.token} onClick={() => unlink(a)} aria-label={`Unlink ${a.login}`}><Unlink />Unlink</Button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
       </div>
     </main>
   );
