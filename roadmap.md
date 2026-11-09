@@ -1,5 +1,8 @@
 # MT5 gateway connection
 
+- [x] Remove the oversized decades-long history request and use the documented default range; request regression test and fixture navigation pass. Live gateway 500 resolution remains unverified without its personal session.
+- [ ] Retrieve verified lifetime account earnings — host must provide a supported full-history range or pagination contract; default history coverage is not lifetime earnings.
+
 - [x] Show entire account trade history and realised earnings, including manual trades and fees but excluding deposits; missing position references no longer block account earnings. Seventeen tests pass; fixture browser verifies all six deals, net earnings 955 and win rate 66.7%. Real broker history coverage remains unverified.
 
 - [x] Correct refresh flicker and separate floating profit from swap in Performance; delayed-refresh browser checks retain the card and positive profit, session removal clears old data, and six calculation tests pass. Live profit comparison still requires the broker session.
