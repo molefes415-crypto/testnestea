@@ -10,10 +10,16 @@ import justMarketsLogo from "@/assets/brokers/justmarkets.png.asset.json";
 import exnessLogo from "@/assets/brokers/exness.svg.asset.json";
 import icMarketsLogo from "@/assets/brokers/ic-markets.png.asset.json";
 import pepperstoneLogo from "@/assets/brokers/pepperstone.svg.asset.json";
+import razorMarketsLogo from "@/assets/brokers/razor-markets.png.asset.json";
+import accuMarketsLogo from "@/assets/brokers/accumarkets.png.asset.json";
+import derivLogo from "@/assets/brokers/deriv.png.asset.json";
 
 const brokers = [
   { pattern: /justmarkets/i, name: "JustMarkets", logo: justMarketsLogo.url },
-  { pattern: /exness/i, name: "Exness", logo: exnessLogo.url },
+  { pattern: /exness|exnes/i, name: "Exness", logo: exnessLogo.url },
+  { pattern: /razor[\s_-]*markets/i, name: "Razor Markets", logo: razorMarketsLogo.url },
+  { pattern: /accu[\s_-]*markets/i, name: "AccuMarkets", logo: accuMarketsLogo.url },
+  { pattern: /deriv/i, name: "Deriv", logo: derivLogo.url },
   { pattern: /icmarkets|ic markets/i, name: "IC Markets", logo: icMarketsLogo.url },
   { pattern: /pepperstone/i, name: "Pepperstone", logo: pepperstoneLogo.url },
   { pattern: /metaquotes/i, name: "MetaQuotes Software Corp.", logo: mt5Logo.url },
