@@ -32,7 +32,7 @@ export function readPositions(data: unknown): Position[] {
   });
 }
 export function readDeals(data: unknown): Deal[] {
-  return rows(data, "deals").map(row => {
+  return rows(data, "deals").map((row): Record<string, unknown> => {
     const type = tradeType(row);
     if (type === undefined) throw new Error("Broker history does not identify trade direction; bot totals cannot yet be verified.");
     return { ...row, type };
