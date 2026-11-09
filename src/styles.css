@@ -165,3 +165,21 @@
 }
 .mt5-neon-title { text-shadow: 0 0 14px var(--primary); }
 .mt5-workspace { font-family: Orbitron, sans-serif; }
+
+.mt5-accounts {
+  --background: oklch(0.15 0 0);
+  --card: oklch(0.23 0 0);
+  --primary: oklch(0.73 0.14 245);
+  --account-success: oklch(0.7 0.17 135);
+  --account-ribbon-text: oklch(0.99 0 0);
+  font-family: Roboto, Arial, sans-serif;
+}
+.mt5-account-block { position: relative; overflow: hidden; border-radius: 2px; background: var(--card); }
+.mt5-account-ribbon {
+  position: absolute; right: -29px; top: 17px; width: 112px;
+  transform: rotate(45deg); text-align: center; padding: 3px 0;
+  font-size: 11px; font-weight: 600; background: var(--account-success); color: var(--account-ribbon-text);
+}
+.mt5-account-select { height: auto; min-height: 144px; width: 100%; justify-content: flex-start; align-items: flex-start; border-radius: 0; white-space: normal; padding: 22px 42px 18px 20px; text-align: left; }
+.mt5-account-select:hover { background: var(--accent); }
+.mt5-account-select img { flex-shrink: 0; }
