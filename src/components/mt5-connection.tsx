@@ -35,7 +35,7 @@ function BrokerLogo({ server, large = false }: { server: string; large?: boolean
 
 type Status = "checking" | "verified" | "expired";
 
-function AccountCardFace({ login, server, info, status }: { login: number; server: string; info?: MT5Account; status: Status }) {
+export function AccountCardFace({ login, server, info, status }: { login: number; server: string; info?: MT5Account; status: Status }) {
   const connected = status === "verified" && info?.connected !== false;
   const demo = /demo/i.test(server);
   const money = (value?: number) => value === undefined || status !== "verified" ? "—" : new Intl.NumberFormat("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
@@ -47,7 +47,7 @@ function AccountCardFace({ login, server, info, status }: { login: number; serve
   </span>;
 }
 
-function MT5Background() {
+export function MT5Background() {
   const ref = useRef<HTMLDivElement>(null);
   const [video, setVideo] = useState<string | null>(null);
   useEffect(() => {

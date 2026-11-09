@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FundamentalsRouteImport } from './routes/fundamentals'
 import { Route as Mt5RouteImport } from './routes/mt5'
+import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vision'
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
@@ -35,6 +36,11 @@ const FundamentalsRoute = FundamentalsRouteImport.update({
 const Mt5Route = Mt5RouteImport.update({
   id: '/mt5',
   path: '/mt5',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerformanceRoute = PerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/fundamentals': typeof FundamentalsRoute
   '/mt5': typeof Mt5Route
+  '/performance': typeof PerformanceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/fundamentals': typeof FundamentalsRoute
   '/mt5': typeof Mt5Route
+  '/performance': typeof PerformanceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/fundamentals': typeof FundamentalsRoute
   '/mt5': typeof Mt5Route
+  '/performance': typeof PerformanceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/ai-vision': typeof ApiPublicAiVisionRoute
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/'
     | '/fundamentals'
     | '/mt5'
+    | '/performance'
     | '/sitemap.xml'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/fundamentals'
     | '/mt5'
+    | '/performance'
     | '/sitemap.xml'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/fundamentals'
     | '/mt5'
+    | '/performance'
     | '/sitemap.xml'
     | '/api/public/ai-vision'
     | '/api/public/analyze-chart'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FundamentalsRoute: typeof FundamentalsRoute
   Mt5Route: typeof Mt5Route
+  PerformanceRoute: typeof PerformanceRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiPublicAiVisionRoute: typeof ApiPublicAiVisionRoute
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/mt5'
       fullPath: '/mt5'
       preLoaderRoute: typeof Mt5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/performance': {
+      id: '/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof PerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FundamentalsRoute: FundamentalsRoute,
   Mt5Route: Mt5Route,
+  PerformanceRoute: PerformanceRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiPublicAiVisionRoute: ApiPublicAiVisionRoute,
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,

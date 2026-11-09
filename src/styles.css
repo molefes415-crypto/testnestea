@@ -301,6 +301,15 @@
 .mt5-wallet-card-collapsed .mt5-wallet-card-actions { position: absolute; top: 22px; right: 8px; padding: 0; }
 .mt5-wallet-card .mt5-account-select:focus-visible { outline: 2px solid var(--primary); outline-offset: -4px; }
 .fundamentals-page { background: var(--background); font-family: Roboto, Arial, sans-serif; }
+.performance-page { font-family: Roboto, Arial, sans-serif; }
+.performance-profit { color: var(--account-success); }
+.performance-loss { color: var(--account-ribbon-red); }
+.performance-summary { padding: 28px 0 24px; border-bottom: 1px solid var(--border); }
+.performance-net { display: flex; flex-direction: column; gap: 6px; margin-bottom: 26px; }
+.performance-net strong { font-size: 36px; font-family: monospace; overflow-wrap: anywhere; }
+.performance-section { padding: 24px 0; border-bottom: 1px solid var(--border); }
+.performance-trade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, auto); gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent); }
+.performance-trade strong { font-family: monospace; font-size: 16px; overflow-wrap: anywhere; text-align: right; }
 .fundamentals-event { display: grid; grid-template-columns: 110px minmax(0, 1fr) 260px; gap: 16px; align-items: center; }
 .fundamentals-impact { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted-foreground); }
 .fundamentals-impact-high { background: var(--news-high); }
