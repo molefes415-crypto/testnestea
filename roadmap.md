@@ -5,5 +5,7 @@
 - [x] Remove unsafe direct MTAPI credential calls and symbol/stop rewriting from the web app.
 - [x] Test connection failure and trading safety rules.
 - [x] Document exact PHP session issuance blocker and unverified contracts.
-- [ ] Enable live connection, real account/symbol reads and secure per-client token storage — blocked by session.php's email/admin_id requirement and missing PHP source/contracts.
+- [ ] Use the existing user's email/admin_id for MT5 session issuance without changing app login — inspect actual PHP source and token ownership checks first.
+- [ ] Enable live connection, real account/symbol reads and secure per-client token storage — blocked by missing PHP source/contracts.
+- [ ] Verify the existing JustMarkets demo account — requires available demo credentials and a confirmed gateway contract.
 - [ ] Enable gateway trading — blocked by absent documented PHP order endpoint.
