@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { inspectMT5Gateway } from "@/lib/mt5-gateway.functions";
 import { createMT5Service } from "@/lib/mt5-service";
+import { readExistingMT5Identity } from "@/lib/mt5-contract";
 
 export function MT5Connection() {
   const inspect = useServerFn(inspectMT5Gateway);
@@ -20,6 +21,13 @@ export function MT5Connection() {
     setLoading(true);
     setMessage("");
     try {
+      const identity = readExistingMT5Identity(localStorage.getItem("userProfile"));
+      if (!identity) {
+        setMessage("Open MT5 from your signed-in Trade Nest EA app. Your existing email and mentor ID are required.");
+        return;
+      }
+      // The profile is available, but must not be treated as proof of ownership
+      // or submitted to issue a token until session.php's contract is verified.
       const result = await service.connect({ server, accountNumber, password });
       setMessage(result.message);
     } catch (error) {
