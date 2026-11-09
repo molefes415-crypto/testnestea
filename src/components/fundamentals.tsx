@@ -55,7 +55,6 @@ export function Fundamentals() {
   }
   return <main className="mt5-workspace fundamentals-page min-h-screen bg-background text-foreground">
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8">
-      <nav className="news-tabs" aria-label="Scanner views"><Button variant="ghost" onClick={() => { if (window.parent !== window) window.parent.postMessage({type:"tn-open-chart"},window.location.origin); else window.location.assign("/tradenest.html?view=chart"); }}>Chart</Button><Button variant="ghost" className="selected" aria-current="page">News</Button></nav>
       <header className="news-heading"><h1><CalendarDays/> Fundamentals</h1><p>This week's economic calendar</p></header>
       <section className="market-sessions" aria-label="Market sessions"><div className="session-heading"><span>Market sessions</span><div><strong>{openSessions.length} OPEN</strong><p>{next ? `NEXT · ${next.name.toUpperCase()} in ${next.hours}h` : "—"}</p></div></div>
         {featured && <div className="session-featured"><img className={featured.open ? "session-flag is-open" : "session-flag"} src={`/flags/${featured.country}.svg`} alt={`${featured.name} flag`}/><h2>{featured.name} {featured.open ? "Open" : "Closed"}</h2><p>{featured.open ? "Closes" : "Opens"} in {featured.hours}h</p></div>}
