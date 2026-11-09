@@ -90,8 +90,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "TradeNest EA — Automated Trading Suite" },
       { name: "twitter:description", content: "TradeNest EA is an automated trading control suite for MetaTrader — manage robots, signals, and market analysis from one interface." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/99046732-81a0-47d5-bfca-465d5e423caa/id-preview-43f3efeb--db3ec944-7da6-4360-a61c-3f08192e8c20.lovable.app-1784157227019.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/99046732-81a0-47d5-bfca-465d5e423caa/id-preview-43f3efeb--db3ec944-7da6-4360-a61c-3f08192e8c20.lovable.app-1784157227019.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

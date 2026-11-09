@@ -142,3 +142,18 @@
     color: var(--color-foreground);
   }
 }
+
+.mt5-workspace {
+  --background: oklch(0.16 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.21 0 0);
+  --primary: oklch(0.76 0.14 165);
+  --primary-foreground: oklch(0.18 0.02 165);
+  --muted-foreground: oklch(0.7 0 0);
+  --border: oklch(0.32 0 0);
+  --input: oklch(0.36 0 0);
+  --accent: oklch(0.3 0 0);
+  --accent-foreground: oklch(0.96 0 0);
+  --ring: oklch(0.76 0.14 165);
+  --destructive: oklch(0.7 0.18 25);
+}
