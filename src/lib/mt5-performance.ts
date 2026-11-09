@@ -1,4 +1,4 @@
-export type Position = { ticket: number; identifier?: number; symbol: string; type: number; volume: number; profit: number; swap?: number; comment?: string; price_open?: number; price_current?: number; sl?: number; tp?: number };
+export type Position = { ticket: number; identifier?: number; symbol: string; type?: number; volume: number; profit: number; swap?: number; comment?: string; price_open?: number; price_current?: number; sl?: number; tp?: number };
 export type Deal = { ticket: number; position_id: number; symbol: string; type: number; entry: number; volume: number; profit: number; commission?: number; swap?: number; fee?: number; comment?: string; time?: number };
 export type ClosedTrade = { id: number; symbol: string; bot: string; net: number; time?: number; volume: number; side: string };
 
@@ -12,15 +12,31 @@ function number(row: Record<string, unknown>, key: string) {
   if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`Gateway trade record is missing ${key}.`);
   return value;
 }
+function tradeType(row: Record<string, unknown>): number | undefined {
+  const value = row.type ?? row.side;
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string") {
+    if (/^buy$/i.test(value) || value === "0") return 0;
+    if (/^sell$/i.test(value) || value === "1") return 1;
+  }
+  return undefined;
+}
+export function positionSide(position: Position): string {
+  return position.type === 0 ? "BUY" : position.type === 1 ? "SELL" : "—";
+}
 export function readPositions(data: unknown): Position[] {
   return rows(data, "positions").map(row => {
-    for (const key of ["ticket", "type", "volume", "profit"]) number(row, key);
+    for (const key of ["ticket", "volume", "profit"]) number(row, key);
     if (typeof row.symbol !== "string") throw new Error("Gateway position is missing its exact symbol.");
-    return row as Position;
+    return { ...row, type: tradeType(row) } as Position;
   });
 }
 export function readDeals(data: unknown): Deal[] {
-  return rows(data, "deals").filter(row => row.type === 0 || row.type === 1).map(row => {
+  return rows(data, "deals").map((row): Record<string, unknown> => {
+    const type = tradeType(row);
+    if (type === undefined) throw new Error("Broker history does not identify trade direction; bot totals cannot yet be verified.");
+    return { ...row, type };
+  }).filter(row => row.type === 0 || row.type === 1).map(row => {
     for (const key of ["ticket", "position_id", "type", "entry", "volume", "profit"]) number(row, key);
     if (typeof row.symbol !== "string") throw new Error("Gateway history is missing its exact symbol.");
     if (row.entry === 2) throw new Error("Reversed positions require additional broker history details before performance can be calculated.");
