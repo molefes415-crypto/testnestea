@@ -3472,7 +3472,7 @@ const HomeView = ({
 
       // Auto-analyze the live TradingView chart whenever the symbol changes (debounced, only when no image uploaded)
       useEffect(() => {
-        if (!isOpen || localStorage.getItem('autoScanEnabled') !== 'true') return;
+        if (!isOpen || localStorage.getItem('autoScanEnabled') !== '1') return;
         if (image) return; // user has a screenshot — manual analyze only
         const t = setTimeout(() => { analyzeChart(); }, 700);
         return () => clearTimeout(t);
@@ -3481,7 +3481,7 @@ const HomeView = ({
 
       // Auto-refresh signals every 45s (scalp) / 90s (day) to catch reversals
       useEffect(() => {
-        if (!isOpen || image || !autoRefresh || localStorage.getItem('autoScanEnabled') !== 'true') return;
+        if (!isOpen || image || !autoRefresh || localStorage.getItem('autoScanEnabled') !== '1') return;
         const period = tradeStyle==='scalp' ? 45000 : tradeStyle==='swing' ? 300000 : 90000;
         const iv = setInterval(() => { if (!analyzing) analyzeChart(); }, period);
         return () => clearInterval(iv);
