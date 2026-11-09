@@ -3039,11 +3039,11 @@ const HomeView = ({
     };
 
     // ====== Auto scan symbol + strategy picks (stored on this device) ======
-    const AUTO_STRATS = [{id:'germa66',label:'GERMA66 V6+'},{id:'smc',label:'SMC'},{id:'ict',label:'ICT'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'all',label:'All'}];
+    const AUTO_STRATS = [{id:'master',label:'MASTER STRATEGY'},{id:'smc',label:'SMC'},{id:'ict',label:'ICT'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'all',label:'All'}];
     const AutoScanPicks = ({ allowedSymbols }) => {
       const list = Object.keys(allowedSymbols || {});
       const [picks, setPicks] = useState(() => { try { const v = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } });
-      const [strat, setStrat] = useState(() => localStorage.getItem('autoScanStrategy') || 'germa66');
+      const [strat, setStrat] = useState(() => (localStorage.getItem('autoScanStrategy')==='germa66'?'master':(localStorage.getItem('autoScanStrategy')||'master')));
       const toggle = s => setPicks(p => { const n = p.includes(s) ? p.filter(x => x !== s) : [...p, s]; try { localStorage.setItem('autoScanSymbols', JSON.stringify(n)); } catch {} return n; });
       const pickStrat = id => { setStrat(id); try { localStorage.setItem('autoScanStrategy', id); } catch {} };
       return (
@@ -3537,7 +3537,7 @@ const HomeView = ({
           <div style={{flex:1,overflowY:'auto'}}>
             <div className="scanner-body">
               <div className="scanner-field"><label>SYMBOL</label><div className="scanner-pills">{allowedList.map(s=><button key={s} aria-pressed={symbol===s} className={symbol===s?'selected':''} onClick={()=>{setSymbol(s);setResult(null);}}>{s}</button>)}</div>{!allowedList.length && <p>No allowed symbols selected.</p>}</div>
-              <div className="scanner-field"><label>STRATEGY</label><div className="scanner-pills">{[{id:'germa66',label:'GERMA66 V6+'},{id:'ict',label:'ICT'},{id:'smc',label:'SMC'},{id:'crt',label:'Candlestick Patterns'},{id:'trend_following',label:'Trend Following'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'order_blocks',label:'Order Blocks'},{id:'fvg',label:'Fair Value Gaps'}].map(st=><button key={st.id} aria-pressed={strategy===st.id} className={strategy===st.id?'selected':''} onClick={()=>{setStrategy(st.id);setVaultStrategies([]);}}>{st.label}</button>)}</div></div>
+              <div className="scanner-field"><label>STRATEGY</label><div className="scanner-pills">{[{id:'master',label:'MASTER STRATEGY'},{id:'ict',label:'ICT'},{id:'smc',label:'SMC'},{id:'crt',label:'Candlestick Patterns'},{id:'trend_following',label:'Trend Following'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'order_blocks',label:'Order Blocks'},{id:'fvg',label:'Fair Value Gaps'}].map(st=><button key={st.id} aria-pressed={strategy===st.id} className={strategy===st.id?'selected':''} onClick={()=>{setStrategy(st.id);setVaultStrategies([]);}}>{st.label}</button>)}</div></div>
               <div className="scanner-field"><label>TIMEFRAME</label><div className="scanner-pills">{[...TIMEFRAMES,{id:'auto',label:'AUTO'}].map(tf=><button key={tf.id} aria-pressed={timeframe===tf.id} className={timeframe===tf.id?'selected':''} onClick={()=>setTimeframe(tf.id)}>{tf.label}</button>)}</div></div>
               {!preview && <button className="scanner-upload" onClick={()=>galleryRef.current?.click()}><span className="scanner-plus">+</span><strong>UPLOAD YOUR CHART</strong><span>Screenshot from MT4/MT5/TradingView</span></button>}
               {!preview && <button className="scanner-camera" onClick={()=>cameraRef.current?.click()}><CameraIcon/> Capture chart</button>}
@@ -3876,7 +3876,7 @@ const HomeView = ({
                     return (
                       <div className={`scanner-signal scanner-signal-${dir}`}>
                         <div className="scanner-signal-top">
-                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='germa66'?'GERMA66 V6+':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
+                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='master'?'MASTER STRATEGY':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
                           <div className="scanner-signal-ring" style={{'--conf':conf}}><span>{conf}%</span><small>CONF</small></div>
                         </div>
                         <div className="scanner-signal-dir">{isBuy ? '▲' : dir==='sell' ? '▼' : '■'} {result.direction}</div>
@@ -5368,7 +5368,7 @@ const HomeView = ({
         const eligible = Object.keys(allowedSymbols||{}).filter(s => !selectedEA.symbols?.length || selectedEA.symbols.includes(s));
         let picked = []; try { picked = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); } catch {}
         const allowedList = Array.isArray(picked) && picked.length ? eligible.filter(s => picked.includes(s)) : eligible;
-        const autoStrategy = localStorage.getItem('autoScanStrategy') || 'germa66';
+        const autoStrategy = localStorage.getItem('autoScanStrategy') || 'master';
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
         autoScanRanRef.current = true;
         const broker = selectedEA?.broker || detectConnectedBroker();
