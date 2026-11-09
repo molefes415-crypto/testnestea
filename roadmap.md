@@ -1,5 +1,6 @@
 # MT5 gateway connection
 
+- [ ] Resolve Automate News activation error — user approved resuming Cloud; wait for healthy status, apply prepared private schedule schema, and verify workflow availability without placing trades.
 - [x] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls; browser validates 10 trades, exact XAUUSD.m selection, 5-minute timing, modal closing and disconnected-account block on mobile/desktop.
 - [ ] Activate secure AI-directed closed-app news execution — code and signed Inngest sleep-until endpoint prepared, but hosted database is paused and migration could not apply; user must explicitly resume Cloud, then apply staged migration and publish/sync Inngest. No real schedule or broker trade has been verified; personal MT5 test session still required.
 
