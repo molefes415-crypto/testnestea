@@ -16,4 +16,5 @@
 - Render active and saved MT5 account faces through the same presentation helper so field placement and connection indicators stay consistent without changing gateway contracts.
 - Keep wallet scroll and selection animations in a presentation-only hook using native scrolling and browser animations; animate selection only after existing account verification succeeds.
 - Keep live scanner quote sampling in a browser helper using only documented personal-token gateway calls; send price-only snapshots to AI, reject changed accounts, and validate quote freshness and exact symbols before analysis.
+- Fundamentals uses its own content route with a public calendar server function and the existing manually invoked news prediction API; viewing outlooks never triggers trades.
 - Keep externally hosted PHP gateway source in hosting/mt5 with regression tests; client-supplied identity labels must never authorize replacing a terminal, because they are not authenticated ownership proof; replacing an already-linked terminal requires a broker-verified trading password first.

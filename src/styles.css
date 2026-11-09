@@ -59,6 +59,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-news-high: var(--news-high);
+  --color-news-medium: var(--news-medium);
+  --color-news-low: var(--news-low);
 }
 
 :root {
@@ -144,6 +147,9 @@
 }
 
 .mt5-workspace {
+  --news-high: oklch(0.7 0.18 25);
+  --news-medium: oklch(0.8 0.15 85);
+  --news-low: oklch(0.73 0.13 155);
   --background: oklch(0.13 0 0);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.21 0 0);
@@ -294,6 +300,13 @@
 .mt5-wallet-card-collapsed .mt5-wallet-card-actions > span { display: none; }
 .mt5-wallet-card-collapsed .mt5-wallet-card-actions { position: absolute; top: 22px; right: 8px; padding: 0; }
 .mt5-wallet-card .mt5-account-select:focus-visible { outline: 2px solid var(--primary); outline-offset: -4px; }
+.fundamentals-page { background: var(--background); font-family: Roboto, Arial, sans-serif; }
+.fundamentals-event { display: grid; grid-template-columns: 110px minmax(0, 1fr) 260px; gap: 16px; align-items: center; }
+.fundamentals-impact { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted-foreground); }
+.fundamentals-impact-high { background: var(--news-high); }
+.fundamentals-impact-medium { background: var(--news-medium); }
+.fundamentals-impact-low { background: var(--news-low); }
+@media (max-width: 640px) { .fundamentals-event { grid-template-columns: 90px minmax(0, 1fr); gap: 12px; } .fundamentals-event dl { grid-column: 2; } }
 @media (prefers-reduced-motion: reduce) {
   .mt5-wallet-scroll .mt5-wallet-card { transform: none; opacity: 1; will-change: auto; }
 }

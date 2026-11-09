@@ -3041,7 +3041,7 @@ const HomeView = ({
 
     // ====== Settings View ======
     const SettingsView = ({ themeColor, onColorChange, themeName, currentFont, onFontChange, onEffect, onOpenSettings, onOpenChartAnalyzer, botSettings, interfaceMode, onInterfaceModeChange, isListening, voiceTranscript, onToggleVoice,
-      autoScanEnabled, onAutoScanChange,
+      autoScanEnabled, onAutoScanChange, onOpenFundamentals,
       glassStyle, onGlassStyleChange, heroStyle, onHeroStyleChange, cardImage, onCardImageChange, cardShape, onCardShapeChange, textCase, onTextCaseChange, background, onBackgroundChange, customBgImage, onCustomBgImage, customBgVideo, onCustomBgVideo, buttonStyle, onButtonStyleChange }) => {
       const tc = themeColor || colorMap.graphite;
       const a = tc.accent;
@@ -3250,6 +3250,7 @@ const HomeView = ({
           </Section>
 
           {/* AI Auto Scanner */}
+          <Section title="Fundamentals"><button onClick={onOpenFundamentals} className="tn-fundamentals-open">Economic calendar & AI outlook →</button></Section>
           <Section title="AI Scanner">
             <button onClick={()=>onAutoScanChange?.(!autoScanEnabled)} style={{width:'100%',borderRadius:14,padding:'14px',border:autoScanEnabled?`1px solid ${a}`:'1px solid rgba(255,255,255,0.08)',background:autoScanEnabled?`${a}14`:'rgba(255,255,255,0.02)',cursor:'pointer',display:'flex',alignItems:'center',gap:12,color:'white',textAlign:'left'}}>
               <span style={{fontSize:20}}>🤖</span>
@@ -5690,6 +5691,7 @@ const HomeView = ({
             if (interfaceMode==='nexus_pro') return <NexusProHomeView onOpenChartAnalyzer={handleOpenChartAnalyzer} eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} themeColor={themeColor} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange}/>;
             return <HomeView eas={eas} selectedEA={selectedEA} setSelectedEA={handleSwitchEA} onAddEA={handleAddEA} onRemoveEA={handleRemoveEA} onStartTrading={handleStartTrading} showDraggableIcon={showDraggableIcon||!!tradeDelayTimer} botSettings={botSettings} onOpenSettings={()=>setIsSettingsModalOpen(true)} onColorChange={handleColorChange} themeColor={themeColor} onNavigate={setActiveTab} onStopTrading={handleFullStop} onSwitchMode={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} onEffect={setActiveEffect} onChangePic={img=>{const s={...botSettings,image:img};setBotSettings(s);localStorage.setItem('botSettings',JSON.stringify(s));}} tradeDelaySeconds={tradeDelaySeconds} onOpenChartAnalyzer={handleOpenChartAnalyzer} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} interfaceMode={interfaceMode} allowedSymbols={allowedSymbols} onAllowedChange={handleAllowedChange} cardShape={cardShape}/>;
           case 'metatrader': return <MetaTraderView themeColor={themeColor} backgroundImage={activeBg} backgroundVideo={activeVideo}/>;
+          case 'fundamentals': return <iframe src="/fundamentals" title="Fundamentals and economic calendar" className="tn-fundamentals-frame" />;
           case 'settings': return <SettingsView autoScanEnabled={autoScanEnabled} onAutoScanChange={handleAutoScanChange} themeColor={themeColor} onColorChange={handleColorChange} themeName={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect} onOpenSettings={()=>setIsSettingsModalOpen(true)} onOpenChartAnalyzer={handleOpenChartAnalyzer} botSettings={botSettings} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem('interfaceMode',m);}} isListening={isListening} voiceTranscript={voiceTranscript} onToggleVoice={toggleVoiceListening} glassStyle={glassStyle} onGlassStyleChange={setGlassStyle} heroStyle={heroStyle} onHeroStyleChange={setHeroStyle} cardImage={cardImage} onCardImageChange={setCardImage} cardShape={cardShape} onCardShapeChange={setCardShape} textCase={textCase} onTextCaseChange={setTextCase} background={background} onBackgroundChange={setBackground} customBgImage={customBgImage} onCustomBgImage={setCustomBgImage} customBgVideo={customBgVideo} onCustomBgVideo={setCustomBgVideo} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>;
           default: return null;
         }
