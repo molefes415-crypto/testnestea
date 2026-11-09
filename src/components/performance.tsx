@@ -6,7 +6,7 @@ import { AccountCardFace, MT5Background } from "@/components/mt5-connection";
 import { createMT5Service } from "@/lib/mt5-service";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved } from "@/lib/mt5-saved-accounts";
 import type { MT5Account } from "@/lib/mt5-contract";
-import { botPerformance, readDeals, readPositions, positionSide, type Position, type Deal } from "@/lib/mt5-performance";
+import { botPerformance, floatingPerformance, readDeals, readPositions, positionSide, type Position, type Deal } from "@/lib/mt5-performance";
 
 export function Performance() {
   const service = useMemo(() => createMT5Service(), []);
@@ -20,6 +20,7 @@ export function Performance() {
   const [updated, setUpdated] = useState<Date | null>(null);
   const sequence = useRef(0);
   const loading = useRef(false);
+  const displayedToken = useRef<string | null>(null);
   const refresh = useCallback(async () => {
     if (loading.current) return;
     loading.current = true;
@@ -27,7 +28,10 @@ export function Performance() {
     const token = localStorage.getItem(ACTIVE_KEY);
     const current = () => run === sequence.current && token === localStorage.getItem(ACTIVE_KEY);
     setBusy(true); setError(""); setHistoryError("");
-    setAccount(null); setPositions([]); setDeals([]); setUpdated(null);
+    if (displayedToken.current !== token) {
+      displayedToken.current = token;
+      setAccount(null); setPositions([]); setDeals([]); setUpdated(null);
+    }
     try {
       const bots = JSON.parse(localStorage.getItem("savedEAs") || "[]");
       const settings = JSON.parse(localStorage.getItem("botSettings") || "{}");
@@ -37,27 +41,34 @@ export function Performance() {
       const saved = parseSaved(localStorage.getItem(SAVED_KEY)).find(a => a.token === token);
       if (info.connected === false || (saved && (saved.login !== info.login || saved.server.toLowerCase() !== info.server.toLowerCase()))) throw new Error("MT5 account could not be verified. Reconnect in MetaTrader.");
       if (!current()) return;
-      setAccount(info);
       const results = await Promise.allSettled([service.positions(token), service.history(token)]);
       if (!current()) return;
       if (results[0].status === "rejected") throw results[0].reason;
-      setPositions(readPositions(results[0].value));
+      const nextPositions = readPositions(results[0].value);
+      setAccount(info);
+      setPositions(nextPositions);
       try {
         if (results[1].status === "rejected") throw results[1].reason;
         setDeals(readDeals(results[1].value));
-      } catch (e) { setHistoryError(e instanceof Error ? e.message : "Trade history unavailable."); }
+      } catch (e) { setDeals([]); setHistoryError(e instanceof Error ? e.message : "Trade history unavailable."); }
       setUpdated(new Date());
     } catch (e) { if (current()) setError(e instanceof Error ? e.message : "Performance unavailable."); }
-    finally { loading.current = false; if (run === sequence.current) setBusy(false); }
+    finally { if (run === sequence.current) { loading.current = false; setBusy(false); } }
   }, [service]);
   useEffect(() => {
     void refresh();
     const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
-    const changed = () => { sequence.current++; setAccount(null); setPositions([]); setDeals([]); setUpdated(null); void refresh(); };
+    const changed = (event: StorageEvent) => {
+      if (event.key !== ACTIVE_KEY && event.key !== SAVED_KEY) return;
+      if (displayedToken.current === localStorage.getItem(ACTIVE_KEY)) return;
+      sequence.current++; loading.current = false;
+      setAccount(null); setPositions([]); setDeals([]); setUpdated(null); void refresh();
+    };
     window.addEventListener("storage", changed);
-    return () => { sequence.current++; clearInterval(timer); window.removeEventListener("storage", changed); };
+    return () => { sequence.current++; loading.current = false; clearInterval(timer); window.removeEventListener("storage", changed); };
   }, [refresh]);
   const stats = botPerformance(deals, positions, names);
+  const floating = floatingPerformance(positions);
   const available = account && updated && !error && !historyError;
   const money = (value: number) => new Intl.NumberFormat("en", {minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
   const signed = (value: number) => `${value > 0 ? "+" : ""}${money(value)}`;
@@ -67,12 +78,13 @@ export function Performance() {
     <div className="mx-auto max-w-3xl px-4 pb-10">
       <header className="flex h-18 items-center gap-3"><Activity className="text-primary"/><h1 className="flex-1 text-xl font-semibold">Performance</h1><Button variant="ghost" size="icon" aria-label="Refresh performance" title="Refresh performance" disabled={busy} onClick={() => void refresh()}><RefreshCw className={busy ? "animate-spin" : ""}/></Button></header>
       {account && <section className="mt5-account-block mt5-bank-card" aria-label="Connected account"><AccountCardFace login={account.login} server={account.server} info={account} status="verified"/></section>}
-      {busy && <p role="status" className="my-4 text-sm text-muted-foreground">Updating account and trades…</p>}
+      {busy && !account && <p role="status" className="my-4 text-sm text-muted-foreground">Updating account and trades…</p>}
       {error && <div role="alert" className="my-4 text-sm text-destructive">{error} {!account && <Button variant="link" asChild><Link to="/mt5">MetaTrader accounts</Link></Button>}</div>}
       {historyError && <p role="alert" className="my-4 text-sm text-destructive">{historyError}</p>}
       <section className="performance-section" aria-label="Open positions"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Open positions</h2><span className="text-xs text-muted-foreground">{updated && !error ? positions.length : "—"} open</span></div>
-        {updated && !error && <div className="mb-3 flex justify-between text-sm"><span className="text-muted-foreground">Floating profit / loss · {account?.currency}</span><strong className={tone(positions.reduce((n,p) => n+p.profit+(p.swap ?? 0),0))}>{signed(positions.reduce((n,p) => n+p.profit+(p.swap ?? 0),0))}</strong></div>}
-        {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(p)} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><strong className={tone(p.profit + (p.swap ?? 0))}>{signed(p.profit + (p.swap ?? 0))}</strong></article>)}
+        {updated && !error && <div className="mb-3 flex justify-between text-sm"><span className="text-muted-foreground">Floating profit / loss · {account?.currency}</span><strong className={tone(floating.profit)}>{signed(floating.profit)}</strong></div>}
+        {updated && !error && floating.swap !== 0 && <div className="mb-3 flex justify-between text-xs text-muted-foreground"><span>Swap · {account?.currency}</span><span className={tone(floating.swap)}>{signed(floating.swap)}</span></div>}
+        {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(p)} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><div className="text-right"><strong className={tone(p.profit)}>{signed(p.profit)}</strong>{p.swap !== undefined && p.swap !== 0 && <p className="mt-1 text-xs text-muted-foreground">Swap {signed(p.swap)}</p>}</div></article>)}
         {!positions.length && <p className="py-4 text-sm text-muted-foreground">{updated && !error ? "No open positions" : "Open positions unavailable"}</p>}
       </section>
       <section className="performance-section" aria-label="Bot trade history"><h2 className="mb-1 font-semibold">Bot trade history</h2><p className="mb-4 break-words text-xs text-muted-foreground">{names.join(" · ") || "No saved bots"} · Net after broker fees</p>
@@ -84,7 +96,7 @@ export function Performance() {
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">{[["Win rate", available && stats.accuracy !== null ? `${stats.accuracy.toFixed(1)}%` : "—"], ["Winning trades", available ? stats.wins : "—"], ["Losing trades", available ? stats.losses : "—"], ["Closed trades", available ? stats.trades.length : "—"]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-xl font-semibold">{value}</dd></div>)}</dl>
         <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span>Profits <strong className="performance-profit">{available ? signed(stats.grossProfit) : "—"}</strong></span><span>Losses <strong className="performance-loss">{available ? signed(stats.grossLoss) : "—"}</strong></span><span className="text-muted-foreground">Break-even {available ? stats.breakeven : "—"}</span></div>
       </section>
-      {updated && <p className="mt-5 text-xs text-muted-foreground">Updated {updated.toLocaleTimeString()} · {account?.currency}</p>}
+      {updated && <p className="mt-5 text-xs text-muted-foreground">{error ? "Last successful update" : "Updated"} {updated.toLocaleTimeString()} · {account?.currency}</p>}
     </div>
   </main>;
 }

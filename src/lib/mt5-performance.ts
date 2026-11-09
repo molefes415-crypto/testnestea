@@ -24,6 +24,9 @@ function tradeType(row: Record<string, unknown>): number | undefined {
 export function positionSide(position: Position): string {
   return position.type === 0 ? "BUY" : position.type === 1 ? "SELL" : "—";
 }
+export function floatingPerformance(positions: Position[]) {
+  return { profit: positions.reduce((sum, p) => sum + p.profit, 0), swap: positions.reduce((sum, p) => sum + (p.swap ?? 0), 0) };
+}
 export function readPositions(data: unknown): Position[] {
   return rows(data, "positions").map(row => {
     for (const key of ["ticket", "volume", "profit"]) number(row, key);
@@ -37,6 +40,7 @@ export function readDeals(data: unknown): Deal[] {
     if (type === undefined) throw new Error("Broker history does not identify trade direction; bot totals cannot yet be verified.");
     return { ...row, type };
   }).filter(row => row.type === 0 || row.type === 1).map(row => {
+    if (typeof row.position_id !== "number") throw new Error("Broker history is missing position references. Closed bot totals cannot be verified; open positions remain available.");
     for (const key of ["ticket", "position_id", "type", "entry", "volume", "profit"]) number(row, key);
     if (typeof row.symbol !== "string") throw new Error("Gateway history is missing its exact symbol.");
     if (row.entry === 2) throw new Error("Reversed positions require additional broker history details before performance can be calculated.");
