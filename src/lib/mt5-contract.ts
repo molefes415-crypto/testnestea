@@ -1,12 +1,4 @@
-export const MT5_ENDPOINTS = {
-  session: "session.php",
-  connect: "connect.php",
-  account: "account.php",
-  symbols: "symbols.php",
-} as const;
-
-export const MT5_SESSION_BLOCKER =
-  "MT5 connection is not yet verified: the PHP source for session.php and connect.php is needed to confirm token issuance, account ownership and the exact connection contract.";
+export const MT5_GATEWAY_BASE = "https://tradenestea.com/admin/api/mt5_gateway.php";
 
 export type MT5AppIdentity = { email: string; admin_id: string };
 
@@ -26,7 +18,7 @@ export function readExistingMT5Identity(profileJSON: string | null): MT5AppIdent
 }
 
 export type MT5ConnectionInput = { server: string; accountNumber: string; password: string };
-export type MT5Account = { broker: string; accountNumber: string; balance: number; equity: number; margin: number; currency: string };
+export type MT5Account = { login: number; name: string; server: string; balance: number; equity?: number; margin?: number; currency: string; connected?: boolean };
 
 export function validateConnection(input: MT5ConnectionInput) {
   if (!input.server.trim()) throw new Error("Enter your broker server.");

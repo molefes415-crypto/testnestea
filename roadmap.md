@@ -1,12 +1,7 @@
 # MT5 gateway connection
 
-- [x] Inspect existing PHP endpoint methods and failure contracts.
-- [x] Implement connection screen and fail-closed gateway API service.
-- [x] Remove unsafe direct MTAPI credential calls and symbol/stop rewriting from the web app.
-- [x] Test connection failure and trading safety rules.
-- [x] Document exact PHP session issuance blocker and unverified contracts.
-- [x] Read existing userProfile email and mentor ID in the MT5 screen without changing app login.
-- [ ] Submit the existing user's email/admin_id to session.php — blocked by missing PHP source, token success contract and ownership verification.
-- [ ] Enable live connection, real account/symbol reads and secure per-client token storage — blocked by missing PHP source/contracts.
-- [ ] Verify the existing JustMarkets demo account — requires available demo credentials and a confirmed gateway contract.
-- [ ] Enable gateway trading — blocked by absent documented PHP order endpoint.
+- [x] Restore the neon MT5 ACCOUNT / MT5 Login Details appearance.
+- [x] Implement uploaded single-file link/account/proxy contract; never persist the password.
+- [x] Remove obsolete multi-file gateway blocker and test contract/error handling.
+- [ ] Verify live JustMarkets connection and account reads — supplied mt5_gateway.php health URL returns 404; demo credentials are unavailable.
+- [ ] Connect live trading to the main app — wait for a reachable gateway and verified demo connection; the existing app trade path remains disabled.

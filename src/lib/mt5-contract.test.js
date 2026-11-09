@@ -17,17 +17,25 @@ describe("MT5 gateway safety", () => {
   test("stop loss and take profit remain exactly unchanged", () => {
     expect(preserveOrderStops({ stopLoss: 2310.5, takeProfit: 2390.75 })).toEqual({ stopLoss: 2310.5, takeProfit: 2390.75 });
   });
-  test("an unsupported session cannot be reported as connected", async () => {
-    const service = createMT5Service(async () => ({ connected: false, code: "BLOCKED", endpoint: "session.php", message: "email and admin_id required" }));
-    expect((await service.connect({ server: "OtherBroker-Live", accountNumber: "123456", password: "test-only" })).connected).toBe(false);
-    await expect(service.account()).rejects.toThrow("session.php");
-    await expect(service.symbols()).rejects.toThrow("session.php");
-    await expect(service.trade()).rejects.toThrow("no verified client-bound session");
+  test("link uses the exact supplied contract and verifies connected account", async () => {
+    let sent;
+    const service = createMT5Service(async (url, init) => { sent = { url, init }; return Response.json({ account_id: "test", token: "test-token", account: { connected: true, login: 123456 } }); });
+    await service.connect({ server: "JustMarkets-Demo", accountNumber: "123456", password: "test-only" }, { email: "client@example.test", admin_id: "7" });
+    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateway.php?a=link");
+    expect(JSON.parse(sent.init.body)).toEqual({ login: 123456, password: "test-only", server: "JustMarkets-Demo", email: "client@example.test", adminId: "7" });
+    expect(sent.url.includes("test-only")).toBe(false);
   });
-  test("inspection receives no password or client-selected session handle", async () => {
-    let received = [];
-    const service = createMT5Service(async (...args) => { received = args; return { connected: false, code: "BLOCKED", endpoint: "session.php", message: "blocked" }; });
-    await service.connect({ server: "AnyBroker-Live", accountNumber: "123456", password: "test-only" });
-    expect(received).toEqual([]);
+  test("account proxy sends personal token only in the documented header", async () => {
+    let sent;
+    const service = createMT5Service(async (url, init) => { sent = { url, init }; return Response.json({ login: 123456, balance: 1000, server: "JustMarkets-Demo" }); });
+    expect((await service.account("test-token")).balance).toBe(1000);
+    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=account");
+    expect(sent.init.headers.get("X-MT5-Token")).toBe("test-token");
+  });
+  test("offline errors are clear and unsuccessful links never fabricate success", async () => {
+    const offline = createMT5Service(async () => Response.json({ detail: { comment: "Session offline" } }, { status: 409 }));
+    await expect(offline.account("test-token")).rejects.toThrow("Trading server unreachable. Session offline");
+    const incomplete = createMT5Service(async () => Response.json({ account_id: "test" }));
+    await expect(incomplete.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("did not confirm");
   });
 });
