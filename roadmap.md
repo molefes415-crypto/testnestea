@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Match Fundamentals with market-session flags and calendar periods; redesign chart scanner with pill selectors and upload area, and add Fundamentals beside Performance. Two session tests pass; browser verifies real calendar, filters, image upload preview, ICT/M15 selectors, Chart/News switching, no unsolicited analysis and mobile navigation with no runtime errors. Existing live broker/AI execution is unchanged and not retested with a real account.
+
 - [x] Keep floating profits moving through independent one-second broker position reads without clearing the card or repeatedly loading history; ten tests pass and mobile browser fixtures show +8.21 with four position reads and only one history read. Session removal clears old values. Real broker timing remains unverified without a personal MT5 session; gateway has no documented tick stream.
 
 - [x] Remove the oversized decades-long history request and use the documented default range; request regression test and fixture navigation pass. Live gateway 500 resolution remains unverified without its personal session.
