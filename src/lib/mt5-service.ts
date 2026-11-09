@@ -20,7 +20,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
       const message = typeof detail === "string" ? detail : typeof detail?.comment === "string" ? detail.comment : `Gateway request failed (${response.status}).`;
       // Preserve broker detail without reflecting credentials into the UI.
       const safeMessage = [token, typeof body === "object" && body !== null && "password" in body ? String(body.password) : undefined].reduce<string>((text, secret) => secret ? text.split(secret).join("[redacted]") : text, message);
-      throw new Error(response.status === 409 || response.status === 502 ? `Trading server unreachable. ${safeMessage}` : safeMessage);
+      throw new Error(response.status === 404 ? "MT5 gateway not found. The supplied gateway URL returned 404." : response.status === 409 || response.status === 502 ? `Trading server unreachable. ${safeMessage}` : safeMessage);
     }
     if (data === null) throw new Error("Gateway returned an invalid response.");
     return data;
