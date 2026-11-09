@@ -1,5 +1,8 @@
 # MT5 gateway connection
 
+- [ ] Feed selected-account live bid/ask and sampled quotes into manual and automatic AI scans; retain consent, exact symbols and running-bot gates.
+- [ ] Load the full broker symbol catalogue and historical candles — the supplied single-file gateway documents neither endpoint; needs the host's supported contract.
+
 - [x] Add only Apple Wallet scroll-linked depth, overlap and selection motion; fixture-tested scrolling, switching, unlinking, mobile fit and reduced-motion support with unchanged account appearance and gateway logic.
 
 - [x] Keep the selected main account above a swipe-up saved-account chooser (fixture-tested mobile scrolling, stationary main account, switching and unlinking).
