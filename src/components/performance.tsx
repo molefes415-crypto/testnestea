@@ -6,14 +6,13 @@ import { AccountCardFace, MT5Background } from "@/components/mt5-connection";
 import { createMT5Service } from "@/lib/mt5-service";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved } from "@/lib/mt5-saved-accounts";
 import type { MT5Account } from "@/lib/mt5-contract";
-import { botPerformance, floatingPerformance, readDeals, readPositions, positionSide, type Position, type Deal } from "@/lib/mt5-performance";
+import { accountPerformance, floatingPerformance, readAccountHistory, readPositions, positionSide, type Position, type AccountDeal } from "@/lib/mt5-performance";
 
 export function Performance() {
   const service = useMemo(() => createMT5Service(), []);
   const [account, setAccount] = useState<MT5Account | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [names, setNames] = useState<string[]>([]);
+  const [deals, setDeals] = useState<AccountDeal[]>([]);
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,9 +32,6 @@ export function Performance() {
       setAccount(null); setPositions([]); setDeals([]); setUpdated(null);
     }
     try {
-      const bots = JSON.parse(localStorage.getItem("savedEAs") || "[]");
-      const settings = JSON.parse(localStorage.getItem("botSettings") || "{}");
-      setNames([...new Set<string>([settings.name, ...(Array.isArray(bots) ? bots.map(b => b.name) : [])].filter(n => typeof n === "string" && n))]);
       if (!token) throw new Error("No connected MT5 account.");
       const info = await service.account(token);
       const saved = parseSaved(localStorage.getItem(SAVED_KEY)).find(a => a.token === token);
@@ -49,7 +45,7 @@ export function Performance() {
       setPositions(nextPositions);
       try {
         if (results[1].status === "rejected") throw results[1].reason;
-        setDeals(readDeals(results[1].value));
+        setDeals(readAccountHistory(results[1].value));
       } catch (e) { setDeals([]); setHistoryError(e instanceof Error ? e.message : "Trade history unavailable."); }
       setUpdated(new Date());
     } catch (e) { if (current()) setError(e instanceof Error ? e.message : "Performance unavailable."); }
@@ -67,7 +63,7 @@ export function Performance() {
     window.addEventListener("storage", changed);
     return () => { sequence.current++; loading.current = false; clearInterval(timer); window.removeEventListener("storage", changed); };
   }, [refresh]);
-  const stats = botPerformance(deals, positions, names);
+  const stats = accountPerformance(deals);
   const floating = floatingPerformance(positions);
   const available = account && updated && !error && !historyError;
   const money = (value: number) => new Intl.NumberFormat("en", {minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
@@ -87,14 +83,15 @@ export function Performance() {
         {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(p)} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><div className="text-right"><strong className={tone(p.profit)}>{signed(p.profit)}</strong>{p.swap !== undefined && p.swap !== 0 && <p className="mt-1 text-xs text-muted-foreground">Swap {signed(p.swap)}</p>}</div></article>)}
         {!positions.length && <p className="py-4 text-sm text-muted-foreground">{updated && !error ? "No open positions" : "Open positions unavailable"}</p>}
       </section>
-      <section className="performance-section" aria-label="Bot trade history"><h2 className="mb-1 font-semibold">Bot trade history</h2><p className="mb-4 break-words text-xs text-muted-foreground">{names.join(" · ") || "No saved bots"} · Net after broker fees</p>
-        {available && stats.trades.map(t => <article key={t.id} className="performance-trade"><div><h3 className="break-all font-semibold">{t.symbol}</h3><p className="text-xs text-muted-foreground">{t.side} · {t.volume} lots · {t.bot}</p><p className="mt-1 text-xs text-muted-foreground">{t.time ? new Date(t.time * 1000).toLocaleString("en-ZA", {timeZone:"Africa/Johannesburg"}) + " SAST" : "—"}</p></div><div className="text-right"><strong className={tone(t.net)}>{signed(t.net)}</strong><p className="mt-1 text-xs text-muted-foreground">{t.net > 0 ? "Win" : t.net < 0 ? "Loss" : "Break-even"}</p></div></article>)}
-        {(!available || !stats.trades.length) && <p className="py-4 text-sm text-muted-foreground">{available ? "No closed bot trades in available history" : "Bot trade history unavailable"}</p>}
+      <section className="performance-section" aria-label="Account trade history"><h2 className="mb-1 font-semibold">Account trade history</h2><p className="mb-4 break-words text-xs text-muted-foreground">All account trades · Net after broker fees</p>
+        {available && stats.history.map(t => <article key={t.ticket} className="performance-trade"><div><h3 className="break-all font-semibold">{t.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(t)} · {t.volume} lots · #{t.ticket} · {t.comment || "—"}</p><p className="mt-1 text-xs text-muted-foreground">{t.time ? new Date(t.time * 1000).toLocaleString("en-ZA", {timeZone:"Africa/Johannesburg"}) + " SAST" : "—"}</p></div><div className="text-right"><strong className={tone(t.net)}>{signed(t.net)}</strong><p className="mt-1 text-xs text-muted-foreground">{t.net > 0 ? "Win" : t.net < 0 ? "Loss" : "Break-even"}</p></div></article>)}
+        {(!available || !stats.history.length) && <p className="py-4 text-sm text-muted-foreground">{available ? "No account trades in available history" : "Account trade history unavailable"}</p>}
       </section>
-      <section className="performance-summary" aria-label="Bot performance totals">
-        <div className="performance-net"><span className="text-sm text-muted-foreground">Bot net earnings</span><strong className={available ? tone(stats.net) : ""}>{available ? signed(stats.net) : "—"}</strong><span className="text-xs text-muted-foreground">{account?.currency} · Closed trades · Available broker history</span></div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">{[["Win rate", available && stats.accuracy !== null ? `${stats.accuracy.toFixed(1)}%` : "—"], ["Winning trades", available ? stats.wins : "—"], ["Losing trades", available ? stats.losses : "—"], ["Closed trades", available ? stats.trades.length : "—"]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-xl font-semibold">{value}</dd></div>)}</dl>
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span>Profits <strong className="performance-profit">{available ? signed(stats.grossProfit) : "—"}</strong></span><span>Losses <strong className="performance-loss">{available ? signed(stats.grossLoss) : "—"}</strong></span><span className="text-muted-foreground">Break-even {available ? stats.breakeven : "—"}</span></div>
+      <section className="performance-summary" aria-label="Account performance totals">
+        <div className="performance-net"><span className="text-sm text-muted-foreground">Total account net earnings</span><strong className={available ? tone(stats.net) : ""}>{available ? signed(stats.net) : "—"}</strong><span className="text-xs text-muted-foreground">{account?.currency} · Realised trading earnings · Available broker history</span></div>
+        <div className="mb-5 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span>Trading profit <strong className={tone(stats.tradingProfit)}>{available ? signed(stats.tradingProfit) : "—"}</strong></span><span>Fees &amp; swap <strong className={tone(stats.costs)}>{available ? signed(stats.costs) : "—"}</strong></span></div>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">{[["Win rate", available && stats.accuracy !== null ? `${stats.accuracy.toFixed(1)}%` : "—"], ["Winning trades", available ? stats.wins ?? "—" : "—"], ["Losing trades", available ? stats.losses ?? "—" : "—"], ["Closing deals", available ? stats.closes ?? "—" : "—"]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-xl font-semibold">{value}</dd></div>)}</dl>
+        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span>Profits <strong className="performance-profit">{available ? signed(stats.grossProfit) : "—"}</strong></span><span>Losses <strong className="performance-loss">{available ? signed(stats.grossLoss) : "—"}</strong></span><span className="text-muted-foreground">Break-even {available ? stats.breakeven ?? "—" : "—"}</span></div>
       </section>
       {updated && <p className="mt-5 text-xs text-muted-foreground">{error ? "Last successful update" : "Updated"} {updated.toLocaleTimeString()} · {account?.currency}</p>}
     </div>
