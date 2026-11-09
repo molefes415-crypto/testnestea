@@ -58,10 +58,11 @@ export async function getNewsEvents(): Promise<NewsEvent[]> {
   if (cache && Date.now() - cache.at < 300_000) return cache.events;
   let raw: any[] = [];
   // 1) ForexFactory weekly feed — has forecast + previous for every event.
-  try {
-    const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
-      headers: { "user-agent": "TradeNest News Calendar" },
+  for (let attempt = 0; attempt < 2 && !raw.length; attempt++) try {
+    const r = await fetch(`https://nfs.faireconomy.media/ff_calendar_thisweek.json?_=${Math.floor(Date.now() / 300_000)}`, {
+      headers: { "user-agent": "Mozilla/5.0 (TradeNest News Calendar)", accept: "application/json" },
     });
+    if (!r.ok) console.error(`News feed HTTP ${r.status}`);
     if (r.ok) {
       const j: any = await r.json();
       if (Array.isArray(j))
@@ -96,6 +97,11 @@ export async function getNewsEvents(): Promise<NewsEvent[]> {
   }
   const events = raw.map(norm).filter(Boolean) as NewsEvent[];
   events.sort((a, b) => a.time_utc.localeCompare(b.time_utc));
+  if (!events.length) {
+    // Never cache an empty result; serve the last good calendar if we have one.
+    if (cache?.events.length) return cache.events;
+    throw new Error("News calendar is temporarily unavailable. Tap refresh to try again.");
+  }
   cache = { at: Date.now(), events };
   return events;
 }
