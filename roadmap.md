@@ -1,5 +1,8 @@
 # MT5 gateway connection
 
+- [ ] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls.
+- [ ] Secure AI-directed closed-app news execution with durable scheduling, verified personal MT5 ownership, unchanged stops, and no duplicate orders; verify safe scheduling without placing real trades.
+
 - [x] Match Fundamentals with market-session flags and calendar periods; redesign chart scanner with pill selectors and upload area, and add Fundamentals beside Performance. Two session tests pass; browser verifies real calendar, filters, image upload preview, ICT/M15 selectors, Chart/News switching, no unsolicited analysis and mobile navigation with no runtime errors. Existing live broker/AI execution is unchanged and not retested with a real account.
 
 - [x] Keep floating profits moving through independent one-second broker position reads without clearing the card or repeatedly loading history; ten tests pass and mobile browser fixtures show +8.21 with four position reads and only one history read. Session removal clears old values. Real broker timing remains unverified without a personal MT5 session; gateway has no documented tick stream.
