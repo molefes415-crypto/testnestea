@@ -8,6 +8,13 @@
       "when": 1794237817641,
       "tag": "0000_news_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794237849404,
+      "tag": "0001_restrict_news_automation_access",
+      "breakpoints": true
     }
   ]
 }
