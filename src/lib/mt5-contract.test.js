@@ -19,8 +19,8 @@ describe("MT5 gateway safety", () => {
     await expect(service.trade()).rejects.toThrow("no verified client-bound session");
   });
   test("inspection receives no password or client-selected session handle", async () => {
-    let received: unknown[] = [];
-    const service = createMT5Service(async (...args: unknown[]) => { received = args; return { connected: false, code: "BLOCKED", endpoint: "session.php", message: "blocked" }; });
+    let received = [];
+    const service = createMT5Service(async (...args) => { received = args; return { connected: false, code: "BLOCKED", endpoint: "session.php", message: "blocked" }; });
     await service.connect({ server: "AnyBroker-Live", accountNumber: "123456", password: "test-only" });
     expect(received).toEqual([]);
   });
