@@ -5515,11 +5515,27 @@ const HomeView = ({
         setTradeData(null);
       };
 
-      const executeTrade = async ({ quiet }) => {
-        const message = 'Trading unavailable: connect a verified MT5 gateway session first. No PHP order endpoint has been documented.';
-        if (!quiet) toast({title:'Trade not sent',description:message,variant:'destructive'});
-        setExecutionLogs(prev => [...prev, {id:Date.now()+Math.random(),time:new Date().toLocaleTimeString(),step:message}]);
-        return false;
+      const executeTrade = async ({ quiet, symbol, direction, tp, sl, lotSize }) => {
+        const log = (step) => setExecutionLogs(prev => [...prev, {id:Date.now()+Math.random(),time:new Date().toLocaleTimeString(),step}]);
+        const fail = (message) => { if (!quiet) toast({title:'Trade not sent',description:message,variant:'destructive'}); log(message); return false; };
+        const token = localStorage.getItem('mt_accountId_mt5');
+        if (!token) return fail('Link your MT5 account first on the MetaTrader tab.');
+        const side = String(direction||'').toUpperCase().includes('SELL') ? 'sell' : 'buy';
+        const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+        const gw = (p, method='GET', body) => fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=${encodeURIComponent(p)}`, {
+          method, credentials:'omit', headers:{Accept:'application/json','X-MT5-Token':token,...(body?{'Content-Type':'application/json'}:{})},
+          body: body ? JSON.stringify(body) : undefined,
+        }).then(async r => { const d = await r.json().catch(()=>null); if (!r.ok) { const det = d?.detail; throw new Error(typeof det==='string'?det:(det?.comment||`Gateway error ${r.status}`)); } return d; });
+        try {
+          const sym = String(symbol||'').trim();
+          const q = await gw(`quote/${sym}`);
+          if (q?.symbol && q.symbol !== sym) return fail(`Symbol "${sym}" does not exist exactly on your broker.`);
+          const r = await gw('order','POST',{ symbol: sym, side, volume: Number(lotSize)||0.01, sl: num(sl), tp: num(tp), comment: botSettings?.name || 'BOT', deviation: 20 });
+          log(`✅ ${side.toUpperCase()} ${sym} placed${r?.ticket?` #${r.ticket}`:''}`);
+          return true;
+        } catch (e) {
+          return fail(`Broker rejected: ${e.message}`);
+        }
       };
 
       const pushStepLog = (step) => {
