@@ -332,6 +332,19 @@
 .news-periods .selected { color:var(--primary);border-color:var(--primary); }
 .news-filters { color:var(--muted-foreground);font-size:11px;margin-bottom:18px; }
 .news-filters summary { cursor:pointer; }
+.news-automation-panel { --background:var(--scanner-surface); --foreground:var(--scanner-foreground); --card:var(--scanner-background); --primary:var(--scanner-accent); --primary-foreground:var(--scanner-background); --border:var(--scanner-border); --muted-foreground:var(--scanner-muted); background:var(--background);color:var(--foreground);width:calc(100% - 28px);max-height:calc(100dvh - 28px);overflow-y:auto;border:1px solid var(--primary);border-radius:24px;padding:24px;gap:18px; }
+.news-automation-panel header { padding-bottom:16px;border-bottom:1px solid var(--border);padding-right:20px; }
+.automation-eyebrow { color:var(--primary);font-weight:800;font-size:11px;text-transform:uppercase;margin-bottom:10px; }
+.automation-label { display:block;font-size:10px;text-transform:uppercase;font-weight:800;color:var(--muted-foreground);margin-bottom:8px; }
+.automation-input { display:flex;align-items:center;gap:10px;border:1px solid color-mix(in oklch,var(--primary) 40%,var(--border));border-radius:16px;padding:8px 12px;background:var(--card); }
+.automation-input>svg { width:18px;flex-shrink:0;color:var(--primary); }
+.automation-input input { background:transparent;border:0;box-shadow:none;min-width:0;padding:4px;font-size:16px; }
+.automation-input select { background:var(--card);color:var(--foreground);border:0;font-size:12px;max-width:90px; }
+.automation-presets,.automation-symbols { display:flex;gap:8px;flex-wrap:wrap;margin-top:8px; }
+.automation-symbols { max-height:90px;overflow-y:auto; }
+.automation-submit { width:100%;min-height:48px;border-radius:18px;text-transform:uppercase;font-weight:800; }
+.fundamentals-event[role="button"] { cursor:pointer; }
+.fundamentals-event[role="button"]:hover,.fundamentals-event[role="button"]:focus-visible { background:color-mix(in oklch,var(--primary) 6%,transparent);outline:1px solid var(--primary);outline-offset:-1px; }
 .performance-page { font-family: Roboto, Arial, sans-serif; }
 .performance-profit { color: var(--account-success); }
 .performance-loss { color: var(--account-ribbon-red); }
