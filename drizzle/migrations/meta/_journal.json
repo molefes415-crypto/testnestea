@@ -15,6 +15,13 @@
       "when": 1794237849404,
       "tag": "0001_restrict_news_automation_access",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794239329954,
+      "tag": "0002_news_calendar_cache",
+      "breakpoints": true
     }
   ]
 }
