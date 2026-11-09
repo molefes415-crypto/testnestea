@@ -271,9 +271,12 @@
   .mt5-account-block::after, .mt5-connected-check svg { animation: none; }
 }
 
-/* Wallet stack: compact account headers behind the fully visible active card. */
+/* Main account stays above an independently swipeable wallet. */
+.mt5-wallet-chooser { margin-top: 24px; }
+.mt5-wallet-scroll { max-height: clamp(180px, calc(100dvh - 470px), 540px); overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y; scroll-snap-type: y proximity; scrollbar-width: thin; scrollbar-color: var(--primary) transparent; padding: 12px 0; }
+.mt5-wallet-scroll:focus-visible { outline: 2px solid var(--primary); border-radius: 24px; }
 .mt5-wallet-stack { display: flex; flex-direction: column; isolation: isolate; padding: 0 4px 24px; }
-.mt5-wallet-card { flex-shrink: 0; background: color-mix(in oklch, var(--card) 92%, transparent); border-radius: 24px; box-shadow: 0 -3px 14px color-mix(in oklch, var(--account-live-background) 70%, transparent), var(--mt5-glow); }
+.mt5-wallet-card { scroll-snap-align: start; flex-shrink: 0; background: color-mix(in oklch, var(--card) 92%, transparent); border-radius: 24px; box-shadow: 0 -3px 14px color-mix(in oklch, var(--account-live-background) 70%, transparent), var(--mt5-glow); }
 .mt5-wallet-card + .mt5-wallet-card { margin-top: -24px; }
 .mt5-wallet-card-active { border-color: var(--primary); }
 .mt5-wallet-card-collapsed { height: 116px; }
