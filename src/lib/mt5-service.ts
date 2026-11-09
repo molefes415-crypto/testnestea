@@ -11,8 +11,9 @@ export function createMT5Service(request: typeof fetch = fetch) {
     let response: Response;
     try {
       response = await request(url.toString(), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(action === "link" ? 200000 : 30000), redirect: "error", credentials: "omit" });
-    } catch {
-      throw new Error("Trading server unreachable. Check your connection and try again.");
+    } catch (error) {
+      if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) throw new Error("MT5 gateway connection timed out. Try again and check the trading server.");
+      throw new Error("Cannot reach the MT5 gateway. Check your internet connection; the gateway must also allow this app's website address in mt5_config.php allowed_origins.");
     }
     const data = await response.json().catch(() => null);
     if (!response.ok) {
@@ -20,7 +21,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
       const message = typeof detail === "string" ? detail : typeof detail?.comment === "string" ? detail.comment : `Gateway request failed (${response.status}).`;
       // Preserve broker detail without reflecting credentials into the UI.
       const safeMessage = [token, typeof body === "object" && body !== null && "password" in body ? String(body.password) : undefined].reduce<string>((text, secret) => secret ? text.split(secret).join("[redacted]") : text, message);
-      throw new Error(response.status === 404 ? "MT5 gateway not found. The supplied gateway URL returned 404." : response.status === 409 || response.status === 502 ? `Trading server unreachable. ${safeMessage}` : safeMessage);
+      throw new Error(response.status === 404 ? "MT5 gateway not found. The supplied gateway URL returned 404." : `MT5 gateway (${response.status}): ${safeMessage}`);
     }
     if (data === null) throw new Error("Gateway returned an invalid response.");
     return data;
