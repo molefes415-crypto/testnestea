@@ -1,17 +1,61 @@
-import { MT5_SESSION_BLOCKER, validateConnection, type MT5ConnectionInput } from "./mt5-contract";
+import { MT5_GATEWAY_BASE, preserveOrderStops, validateConnection, type MT5Account, type MT5AppIdentity, type MT5ConnectionInput } from "./mt5-contract";
 
-type GatewayInspection = { connected: false; code: string; endpoint: string; message: string };
-
-// Credentials remain in the current form only. No browser persistence, remote
-// URLs, logging, guessed PHP fields, or client-supplied account/session IDs.
-export function createMT5Service(inspect: () => Promise<GatewayInspection>) {
+export function createMT5Service(request: typeof fetch = fetch) {
+  async function call(action: "link" | "proxy" | "health", path?: string, token?: string, method = "GET", body?: unknown) {
+    const url = new URL(MT5_GATEWAY_BASE);
+    url.searchParams.set("a", action);
+    if (path) url.searchParams.set("p", path);
+    const headers = new Headers({ Accept: "application/json" });
+    if (body !== undefined) headers.set("Content-Type", "application/json");
+    if (token) headers.set("X-MT5-Token", token);
+    let response: Response;
+    try {
+      response = await request(url.toString(), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(action === "link" ? 200000 : 30000), redirect: "error", credentials: "omit" });
+    } catch {
+      throw new Error("Trading server unreachable. Check your connection and try again.");
+    }
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = data?.detail;
+      const message = typeof detail === "string" ? detail : typeof detail?.comment === "string" ? detail.comment : `Gateway request failed (${response.status}).`;
+      // Preserve broker detail without reflecting credentials into the UI.
+      const safeMessage = [token, typeof body === "object" && body !== null && "password" in body ? String(body.password) : undefined].reduce<string>((text, secret) => secret ? text.split(secret).join("[redacted]") : text, message);
+      throw new Error(response.status === 409 || response.status === 502 ? `Trading server unreachable. ${safeMessage}` : safeMessage);
+    }
+    if (data === null) throw new Error("Gateway returned an invalid response.");
+    return data;
+  }
+  const proxy = (token: string, path: string, method = "GET", body?: unknown) => {
+    if (!token) throw new Error("Link your MT5 account first.");
+    return call("proxy", path, token, method, body);
+  };
   return {
-    async connect(input: MT5ConnectionInput) {
+    async connect(input: MT5ConnectionInput, identity: MT5AppIdentity) {
       validateConnection(input);
-      return inspect();
+      const login = Number(input.accountNumber);
+      if (!Number.isSafeInteger(login) || login <= 0) throw new Error("Enter a valid MT5 account number.");
+      const data = await call("link", undefined, undefined, "POST", { login, password: input.password, server: input.server.trim(), email: identity.email, adminId: identity.admin_id });
+      if (typeof data.token !== "string" || !data.token || typeof data.account_id !== "string" || data.account?.connected !== true || data.account.login !== login) throw new Error("Gateway did not confirm this MT5 account connection.");
+      return data as { account_id: string; token: string; account: MT5Account };
     },
-    async account(): Promise<never> { throw new Error(MT5_SESSION_BLOCKER); },
-    async symbols(): Promise<never> { throw new Error(MT5_SESSION_BLOCKER); },
-    async trade(): Promise<never> { throw new Error("Trading is unavailable: no verified client-bound session or documented PHP order endpoint."); },
+    async account(token: string): Promise<MT5Account> {
+      const data = await proxy(token, "account");
+      if (typeof data.login !== "number" || typeof data.balance !== "number" || typeof data.server !== "string") throw new Error("Gateway returned incomplete account details.");
+      return data;
+    },
+    positions: (token: string) => proxy(token, "positions"),
+    history: (token: string) => proxy(token, "history"),
+    quote: (token: string, symbol: string) => proxy(token, `quote/${symbol}`),
+    async trade(token: string, order: { symbol: string; side: "buy" | "sell"; volume: number; sl: number | null; tp: number | null; comment: string }) {
+      preserveOrderStops({ stopLoss: order.sl ?? undefined, takeProfit: order.tp ?? undefined });
+      const quote = await proxy(token, `quote/${order.symbol}`);
+      if (quote.symbol !== order.symbol) throw new Error(`Symbol "${order.symbol}" does not exist exactly on the connected broker.`);
+      return proxy(token, "order", "POST", { ...order, deviation: 20 });
+    },
+    modify: (token: string, body: { ticket: number; sl: number | null; tp: number | null }) => proxy(token, "modify", "POST", body),
+    close: (token: string, body: { ticket: number; volume?: number }) => proxy(token, "close", "POST", body),
+    closeAll: (token: string) => proxy(token, "close_all", "POST"),
+    disconnect: (token: string) => proxy(token, "me", "DELETE"),
+    health: () => call("health"),
   };
 }
