@@ -1,6 +1,6 @@
 # MT5 gateway connection
 
-- [ ] Restyle logged-in accounts as an overlapping Apple Wallet stack; preserve verified switching, unlinking, neon and broker details.
+- [x] Restyle logged-in accounts as an overlapping Apple Wallet stack; verified with fixture accounts on desktop/mobile, including switching, unlinking and add/back navigation (live broker access remains unverified).
 
 - [x] Add neon to the MT5 account cards: glowing accent edges and sheen, lit account number, pulsing green connected glow, red-lit Demo/Live (browser-tested with fixtures at 1280x1800).
 
