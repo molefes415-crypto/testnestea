@@ -172,6 +172,7 @@
   --primary: oklch(0.73 0.14 245);
   --account-success: oklch(0.7 0.17 135);
   --account-ribbon-text: oklch(0.99 0 0);
+  --broker-logo-surface: oklch(0.97 0 0);
   font-family: Roboto, Arial, sans-serif;
 }
 .mt5-account-block { position: relative; overflow: hidden; border-radius: 2px; background: var(--card); }
@@ -182,4 +183,6 @@
 }
 .mt5-account-select { height: auto; min-height: 144px; width: 100%; justify-content: flex-start; align-items: flex-start; border-radius: 0; white-space: normal; padding: 22px 42px 18px 20px; text-align: left; }
 .mt5-account-select:hover { background: var(--accent); }
+.mt5-account-block img { background: var(--broker-logo-surface); padding: 5px; border-radius: 3px; }
 .mt5-account-select img { flex-shrink: 0; }
+.mt5-accounts header button svg { width: 22px; height: 22px; }

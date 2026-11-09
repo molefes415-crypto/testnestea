@@ -1,6 +1,6 @@
 # MT5 gateway connection
 
-- [ ] Match the supplied MT5 account-list layout with dark blocks and broker logos; + opens login and verified login returns to accounts.
+- [x] Match the supplied MT5 account-list layout with dark blocks and broker logos; + opens login and verified login returns to accounts (browser-tested with fixtures; live broker login remains unverified).
 
 - [x] Restore the neon MT5 ACCOUNT / MT5 Login Details appearance.
 - [x] Implement uploaded single-file link/account/proxy contract; never persist the password.
