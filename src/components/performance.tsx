@@ -6,7 +6,7 @@ import { AccountCardFace, MT5Background } from "@/components/mt5-connection";
 import { createMT5Service } from "@/lib/mt5-service";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved } from "@/lib/mt5-saved-accounts";
 import type { MT5Account } from "@/lib/mt5-contract";
-import { botPerformance, readDeals, readPositions, type Position, type Deal } from "@/lib/mt5-performance";
+import { botPerformance, readDeals, readPositions, positionSide, type Position, type Deal } from "@/lib/mt5-performance";
 
 export function Performance() {
   const service = useMemo(() => createMT5Service(), []);
@@ -77,7 +77,7 @@ export function Performance() {
       </section>
       <section className="performance-section" aria-label="Open positions"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Open positions</h2><span className="text-xs text-muted-foreground">{updated && !error ? positions.length : "—"} open</span></div>
         {updated && !error && <div className="mb-3 flex justify-between text-sm"><span className="text-muted-foreground">Floating profit / loss · {account?.currency}</span><strong className={tone(positions.reduce((n,p) => n+p.profit+(p.swap ?? 0),0))}>{signed(positions.reduce((n,p) => n+p.profit+(p.swap ?? 0),0))}</strong></div>}
-        {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{p.type === 0 ? "BUY" : "SELL"} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><strong className={tone(p.profit + (p.swap ?? 0))}>{signed(p.profit + (p.swap ?? 0))}</strong></article>)}
+        {positions.map(p => <article key={p.ticket} className="performance-trade"><div><h3 className="font-semibold break-all">{p.symbol}</h3><p className="text-xs text-muted-foreground">{positionSide(p)} · {p.volume} lots · #{p.ticket}</p><p className="mt-1 text-xs text-muted-foreground">{p.comment || "—"}</p></div><strong className={tone(p.profit + (p.swap ?? 0))}>{signed(p.profit + (p.swap ?? 0))}</strong></article>)}
         {!positions.length && <p className="py-4 text-sm text-muted-foreground">{updated && !error ? "No open positions" : "Open positions unavailable"}</p>}
       </section>
       <section className="performance-section" aria-label="Bot trade history"><h2 className="mb-1 font-semibold">Bot trade history</h2><p className="mb-4 break-words text-xs text-muted-foreground">{names.join(" · ") || "No saved bots"} · Net after broker fees</p>
