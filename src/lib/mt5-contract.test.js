@@ -1,8 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { exactBrokerSymbol, preserveOrderStops } from "./mt5-contract";
+import { exactBrokerSymbol, preserveOrderStops, readExistingMT5Identity } from "./mt5-contract";
 import { createMT5Service } from "./mt5-service";
 
 describe("MT5 gateway safety", () => {
+  test("uses the existing app email and mentor ID without introducing a login", () => {
+    expect(readExistingMT5Identity(JSON.stringify({ email: " CLIENT@example.test ", name: "7" }))).toEqual({ email: "client@example.test", admin_id: "7" });
+    expect(readExistingMT5Identity(JSON.stringify({ email: "client@example.test", adminId: "9" }))).toEqual({ email: "client@example.test", admin_id: "9" });
+    expect(readExistingMT5Identity(null)).toBe(null);
+    expect(readExistingMT5Identity("invalid")).toBe(null);
+  });
   test("XAUUSD is not automatically replaced with XAUUSD.m", () => {
     expect(() => exactBrokerSymbol("XAUUSD", ["XAUUSD.m"])).toThrow();
     expect(exactBrokerSymbol(".US30.", [".US30."])).toBe(".US30.");
