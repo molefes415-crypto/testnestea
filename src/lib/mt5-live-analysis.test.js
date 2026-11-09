@@ -21,7 +21,7 @@ test("live AI rejection keeps stops unchanged and prevents execution", () => {
 });
 test("account switch discards an in-flight broker quote", async () => {
   let token = "personal-a";
-  const api = (globalThis as unknown as { TNLiveScanner: { createLiveScanner: (o: object) => { snapshot: (s: string) => Promise<unknown> } } }).TNLiveScanner;
+  const api = globalThis.TNLiveScanner;
   const scanner = api.createLiveScanner({ getToken: () => token, request: async () => { token = "personal-b"; return Response.json({ login: 123, server: "Broker-Live" }); } });
   await expect(scanner.snapshot("XAUUSD.m")).rejects.toThrow("account changed");
 });
