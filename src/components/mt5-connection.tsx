@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { createMT5Service } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
-import mt5Logo from "@/assets/mt5.png.asset.json";
+import mt5LogoUrl from "@/assets/mt5-transparent.png";
 import justMarketsLogo from "@/assets/brokers/justmarkets-transparent.png";
 import exnessLogo from "@/assets/brokers/exness.svg.asset.json";
 import icMarketsLogo from "@/assets/brokers/ic-markets.png.asset.json";
@@ -13,6 +13,8 @@ import pepperstoneLogo from "@/assets/brokers/pepperstone.svg.asset.json";
 import razorMarketsLogo from "@/assets/brokers/razor-markets.png.asset.json";
 import accuMarketsLogo from "@/assets/brokers/accumarkets.png.asset.json";
 import derivLogo from "@/assets/brokers/deriv.png.asset.json";
+
+const mt5Logo = { url: mt5LogoUrl };
 
 const brokers = [
   { pattern: /justmarkets/i, name: "JustMarkets", logo: justMarketsLogo },
