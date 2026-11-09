@@ -34,8 +34,22 @@ describe("MT5 gateway safety", () => {
   });
   test("offline errors are clear and unsuccessful links never fabricate success", async () => {
     const offline = createMT5Service(async () => Response.json({ detail: { comment: "Session offline" } }, { status: 409 }));
-    await expect(offline.account("test-token")).rejects.toThrow("Trading server unreachable. Session offline");
+    await expect(offline.account("test-token")).rejects.toThrow("MT5 gateway (409): Session offline");
     const incomplete = createMT5Service(async () => Response.json({ account_id: "test" }));
     await expect(incomplete.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("did not confirm");
+  });
+  test("account ownership conflicts retain the gateway rejection and never retry linking", async () => {
+    let calls = 0;
+    const service = createMT5Service(async () => { calls++; return Response.json({ detail: "Account already linked by another user" }, { status: 409 }); });
+    await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("MT5 gateway (409): Account already linked by another user");
+    expect(calls).toBe(1);
+  });
+  test("blocked browser requests identify allowed origins without exposing credentials", async () => {
+    const service = createMT5Service(async () => { throw new TypeError("Failed to fetch"); });
+    await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("allowed_origins");
+  });
+  test("gateway rejection redacts a reflected trading password", async () => {
+    const service = createMT5Service(async () => Response.json({ detail: "Login failed test-only" }, { status: 401 }));
+    await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("MT5 gateway (401): Login failed [redacted]");
   });
 });
