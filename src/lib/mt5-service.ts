@@ -1,11 +1,10 @@
 import { MT5_GATEWAY_BASE, preserveOrderStops, validateConnection, type MT5Account, type MT5AppIdentity, type MT5ConnectionInput } from "./mt5-contract";
 
 export function createMT5Service(request: typeof fetch = fetch) {
-  async function call(action: "link" | "proxy" | "health", path?: string, token?: string, method = "GET", body?: unknown, days?: number) {
+  async function call(action: "link" | "proxy" | "health", path?: string, token?: string, method = "GET", body?: unknown) {
     const url = new URL(MT5_GATEWAY_BASE);
     url.searchParams.set("a", action);
     if (path) url.searchParams.set("p", path);
-    if (days !== undefined) url.searchParams.set("days", String(days));
     const headers = new Headers({ Accept: "application/json" });
     if (body !== undefined) headers.set("Content-Type", "application/json");
     if (token) headers.set("X-MT5-Token", token);
@@ -46,10 +45,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
       return data;
     },
     positions: (token: string) => proxy(token, "positions"),
-    history: (token: string) => {
-      if (!token) throw new Error("Link your MT5 account first.");
-      return call("proxy", "history", token, "GET", undefined, Math.ceil(Date.now() / 86400000));
-    },
+    history: (token: string) => proxy(token, "history"),
     quote: (token: string, symbol: string) => proxy(token, `quote/${symbol}`),
     async trade(token: string, order: { symbol: string; side: "buy" | "sell"; volume: number; sl: number | null; tp: number | null; comment: string }) {
       preserveOrderStops({ stopLoss: order.sl ?? undefined, takeProfit: order.tp ?? undefined });
