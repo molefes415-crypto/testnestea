@@ -144,16 +144,25 @@
 }
 
 .mt5-workspace {
-  --background: oklch(0.16 0 0);
+  --background: oklch(0.13 0 0);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.21 0 0);
-  --primary: oklch(0.76 0.14 165);
-  --primary-foreground: oklch(0.18 0.02 165);
+  --primary: oklch(0.65 0.24 25);
+  --primary-foreground: oklch(0.96 0 0);
   --muted-foreground: oklch(0.7 0 0);
   --border: oklch(0.32 0 0);
   --input: oklch(0.36 0 0);
   --accent: oklch(0.3 0 0);
   --accent-foreground: oklch(0.96 0 0);
-  --ring: oklch(0.76 0.14 165);
+  --ring: var(--primary);
   --destructive: oklch(0.7 0.18 25);
+  --mt5-glow: 0 0 20px color-mix(in oklch, var(--primary) 35%, transparent), inset 0 0 12px color-mix(in oklch, var(--primary) 15%, transparent);
+}
+.mt5-neon-header, .mt5-neon-field {
+  border: 1.5px solid var(--primary);
+  box-shadow: var(--mt5-glow);
+  border-radius: 14px;
+}
+.mt5-neon-title { text-shadow: 0 0 14px var(--primary); }
+.mt5-workspace { font-family: Orbitron, sans-serif; }
 }
