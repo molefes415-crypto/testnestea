@@ -10,10 +10,99 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
+      news_automation_orders: {
+        Row: {
+          job_id: string
+          ordinal: number
+          result: Json | null
+          signal: Json
+          status: string
+          symbol: string
+        }
+        Insert: {
+          job_id: string
+          ordinal: number
+          result?: Json | null
+          signal: Json
+          status: string
+          symbol: string
+        }
+        Update: {
+          job_id?: string
+          ordinal?: number
+          result?: Json | null
+          signal?: Json
+          status?: string
+          symbol?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_automation_orders_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "news_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_automations: {
+        Row: {
+          account_login: number
+          account_server: string
+          created_at: string
+          detail: string | null
+          event_data: Json
+          event_id: string
+          execute_at: string
+          id: string
+          lead_seconds: number
+          lot: number
+          owner_key: string
+          status: string
+          symbols: string[]
+          token_cipher: string | null
+          trades: number
+        }
+        Insert: {
+          account_login: number
+          account_server: string
+          created_at?: string
+          detail?: string | null
+          event_data: Json
+          event_id: string
+          execute_at: string
+          id?: string
+          lead_seconds: number
+          lot: number
+          owner_key: string
+          status?: string
+          symbols: string[]
+          token_cipher?: string | null
+          trades: number
+        }
+        Update: {
+          account_login?: number
+          account_server?: string
+          created_at?: string
+          detail?: string | null
+          event_data?: Json
+          event_id?: string
+          execute_at?: string
+          id?: string
+          lead_seconds?: number
+          lot?: number
+          owner_key?: string
+          status?: string
+          symbols?: string[]
+          token_cipher?: string | null
+          trades?: number
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
