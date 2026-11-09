@@ -5,6 +5,10 @@ export type SavedMT5Account = { token: string; login: number; server: string; cu
 export const SAVED_KEY = "mt5_saved_accounts";
 export const ACTIVE_KEY = "mt_accountId_mt5";
 
+export function firstFourLoginDigits(login: number): string {
+  return String(login).slice(0, 4);
+}
+
 export function parseSaved(raw: string | null): SavedMT5Account[] {
   try {
     const list = JSON.parse(raw ?? "[]");
