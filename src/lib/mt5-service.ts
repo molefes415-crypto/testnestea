@@ -1,6 +1,18 @@
 import { MT5_GATEWAY_BASE, preserveOrderStops, validateConnection, type MT5Account, type MT5AppIdentity, type MT5ConnectionInput } from "./mt5-contract";
 
 export function createMT5Service(request: typeof fetch = fetch) {
+  // A host timeout page lacks CORS headers, so the browser reports it as a network error; probe health to tell them apart.
+  async function gatewayOnline() {
+    try {
+      const url = new URL(MT5_GATEWAY_BASE);
+      url.searchParams.set("a", "health");
+      const response = await request(url.toString(), { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10000), redirect: "error", credentials: "omit" });
+      const data = await response.json().catch(() => null);
+      return response.ok && data?.gateway_reachable === true;
+    } catch {
+      return false;
+    }
+  }
   async function call(action: "link" | "proxy" | "health", path?: string, token?: string, method = "GET", body?: unknown) {
     const url = new URL(MT5_GATEWAY_BASE);
     url.searchParams.set("a", action);
@@ -13,6 +25,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
       response = await request(url.toString(), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(action === "link" ? 200000 : 30000), redirect: "error", credentials: "omit" });
     } catch (error) {
       if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) throw new Error("MT5 gateway connection timed out. Try again and check the trading server.");
+      if (action === "link" && await gatewayOnline()) throw new Error("The MT5 gateway is online, but the broker login did not finish in time. The MT5 terminal on the gateway server is starting slowly or stuck; try Connect again in a minute.");
       throw new Error("Cannot reach the MT5 gateway. Check your internet connection; the gateway must also allow this app's website address in mt5_config.php allowed_origins.");
     }
     const data = await response.json().catch(() => null);
