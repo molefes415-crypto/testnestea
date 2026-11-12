@@ -226,7 +226,7 @@ async function callGateway(body: AnalyzeBody) {
     }
     if (!p.lotSize) p.lotSize = 0.01;
     if (!p.orderType) p.orderType = body.orderType || "instant";
-    return body.liveMarket ? guardLiveAnalysis(parsed, body.liveMarket) : parsed;
+    return body.liveMarket ? guardLiveAnalysis(parsed, body.liveMarket, (body.tradeStyle || '').toLowerCase() === 'swing') : parsed;
   }
   throw new Error(lastErr || "All models failed");
 }

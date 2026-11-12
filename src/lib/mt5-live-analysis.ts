@@ -23,7 +23,9 @@ export function hasLivePriceHistory(market: LiveMarket): boolean {
   return market.samples.length >= 20 && Boolean(first && last && last.observedAt - first.observedAt >= 60000);
 }
 
-export function guardLiveAnalysis(result: Record<string, unknown>, market: LiveMarket) {
+export function guardLiveAnalysis(result: Record<string, unknown>, market: LiveMarket, swing = false) {
+  // Swing mode is explicitly stop-free; only direction and symbol must match the live quote.
+  if (swing) { const d = String(result.direction).toUpperCase(); return (d === 'BUY' || d === 'SELL') && result.symbol !== market.symbol ? { ...result, direction: 'NEUTRAL', confidence: 0 } : result; }
   const direction = String(result.direction).toUpperCase();
   const sl = Number(result.sl ?? result.stopLoss);
   const tp = Number(result.tp ?? (Array.isArray(result.takeProfit) ? result.takeProfit[0] : undefined));

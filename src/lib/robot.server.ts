@@ -1,7 +1,7 @@
 import { createMT5Service } from './mt5-service';
 import { owner, encrypt, decrypt, jobsDB, verifyAutomationOwner, scheduleAutomation } from './news-automation.server';
 import { getNewsEvents } from './news.server';
-import { robotStartSchema, symbolCurrencies, signalKey, type RobotSymbol } from './robot';
+import { robotStartSchema, symbolCurrencies, signalKey, shouldCloseSwing, type RobotSymbol } from './robot';
 import { confirmedOrder } from './news-automation';
 
 export async function robotStatus(token: string) {
@@ -59,25 +59,37 @@ export async function analyseAndTrade(id: string, samples: Record<string, { bid:
   const ctx = await load(id); if (!ctx) return { stopped: true };
   const service = createMT5Service(); const results: string[] = [];
   const positions = await service.positions(ctx.token).catch(() => null);
-  const open = new Set((Array.isArray(positions) ? positions : positions?.positions ?? []).map((p: { symbol?: string }) => p.symbol));
+  type Pos = { symbol?: string; ticket?: number; type?: unknown; side?: unknown; comment?: string };
+  const posList: Pos[] = Array.isArray(positions) ? positions : positions?.positions ?? [];
+  const open = new Set(posList.map(p => p.symbol));
+  const sideOf = (p: Pos) => /sell|1/i.test(String(p.side ?? p.type ?? '')) ? 'SELL' as const : 'BUY' as const;
   const base = process.env['PUBLIC_APP_URL'] || 'https://tradnestea.app';
   for (const s of ctx.symbols) {
-    if (open.has(s.symbol)) { results.push(`${s.symbol}: position open, skipped`); continue; }
+    const style = s.style ?? 'day';
+    if (open.has(s.symbol) && style !== 'swing') { results.push(`${s.symbol}: position open, skipped`); continue; }
     const series = samples.map(x => x[s.symbol]).filter(Boolean);
     const live = await service.quote(ctx.token, s.symbol).catch(() => null);
     if (!live || live.symbol !== s.symbol || series.length < 20) { results.push(`${s.symbol}: not enough prices`); continue; }
     const now = Date.now();
     const liveMarket = { source: 'mt5_gateway', symbol: s.symbol, server: ctx.row.account_server, bid: Number(live.bid), ask: Number(live.ask), spread: Number(live.ask) - Number(live.bid), digits: live.digits, observedAt: now, samples: series.map(p => ({ bid: p.bid, ask: p.ask, observedAt: p.observedAt })) };
-    const r = await fetch(`${base}/api/public/analyze-chart`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': process.env['SCANNER_API_KEY'] ?? '' }, body: JSON.stringify({ symbol: s.symbol, liveMarket, strategy: 'master', tradeStyle: 'day', orderType: 'instant', dataSource: 'broker_quotes', confidenceThreshold: 72 }) });
+    const r = await fetch(`${base}/api/public/analyze-chart`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': process.env['SCANNER_API_KEY'] ?? '' }, body: JSON.stringify({ symbol: s.symbol, liveMarket, strategy: 'master', tradeStyle: style, orderType: 'instant', dataSource: 'broker_quotes', confidenceThreshold: 72 }) });
     const data = await r.json().catch(() => ({}));
     const dir = String(data.direction ?? '').toUpperCase(); const sl = Number(data.sl ?? data.stopLoss); const tp = Number(data.tp ?? (Array.isArray(data.takeProfit) ? data.takeProfit[0] : NaN));
-    if (!r.ok || data.symbol !== s.symbol || (dir !== 'BUY' && dir !== 'SELL') || Number(data.confidence) < 72 || !(sl > 0) || !(tp > 0)) { results.push(`${s.symbol}: no accurate setup`); continue; }
+    const conf = Number(data.confidence);
+    if (style === 'swing' && open.has(s.symbol)) {
+      // Auto-close this robot's swing positions when the AI confidently reads the opposite direction.
+      const mine = posList.filter(p => p.symbol === s.symbol && typeof p.ticket === 'number' && shouldCloseSwing(sideOf(p), dir, conf));
+      let closed = 0; for (const p of mine) { try { await service.close(ctx.token, { ticket: p.ticket as number }); closed++; } catch { /* broker refused; try next tick */ } }
+      results.push(`${s.symbol}: swing ${closed ? `closed ${closed}` : 'holding'}`); continue;
+    }
+    const needStops = style !== 'swing';
+    if (!r.ok || data.symbol !== s.symbol || (dir !== 'BUY' && dir !== 'SELL') || conf < 72 || (needStops && (!(sl > 0) || !(tp > 0)))) { results.push(`${s.symbol}: no accurate setup`); continue; }
     const k = signalKey(s.symbol, now);
     const { error } = await ctx.db.from('auto_robot_trades').insert({ robot_id: id, signal_key: k, symbol: s.symbol, direction: dir });
     if (error) continue; // already traded this window
     let sent = 0, lastError = '';
     for (let i = 0; i < s.trades; i++) {
-      try { const res = await service.trade(ctx.token, { symbol: s.symbol, side: dir === 'BUY' ? 'buy' : 'sell', volume: s.lot, sl, tp, comment: String(ctx.row.bot_name).slice(0, 28) }); if (confirmedOrder(res)) sent++; else { lastError = 'Broker rejected order'; break; } }
+      try { const res = await service.trade(ctx.token, { symbol: s.symbol, side: dir === 'BUY' ? 'buy' : 'sell', volume: s.lot, sl: needStops ? sl : null, tp: needStops ? tp : null, comment: String(ctx.row.bot_name).slice(0, 28) }); if (confirmedOrder(res)) sent++; else { lastError = 'Broker rejected order'; break; } }
       catch (e) { lastError = e instanceof Error ? e.message : 'Order failed'; break; } // ambiguous: never retry
     }
     await ctx.db.from('auto_robot_trades').update({ status: sent === s.trades ? 'sent' : sent ? 'partial' : 'failed', detail: { sent, confidence: data.confidence, sl, tp, error: lastError || null } }).eq('robot_id', id).eq('signal_key', k);

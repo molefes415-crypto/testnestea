@@ -1986,13 +1986,14 @@
     };
 
     // ====== Symbol Detail View ======
-    const SymbolDetailView = ({ symbol, initialLotSize="0.01", initialPlatform="MT5", initialNumTrades="1", onBack, onSave, onDelete, themeColor }) => {
+    const SymbolDetailView = ({ symbol, initialLotSize="0.01", initialPlatform="MT5", initialNumTrades="1", initialStyle="day", onBack, onSave, onDelete, themeColor }) => {
       const [lotSize, setLotSize] = useState(initialLotSize);
       const [platform, setPlatform] = useState(initialPlatform);
       const [numTrades, setNumTrades] = useState(initialNumTrades);
+      const [style, setStyle] = useState(initialStyle);
       const tc = themeColor || colorMap.graphite;
       const a = tc.accent;
-      const handleSave = () => { onSave({ lotSize, platform, numTrades }); onBack(); };
+      const handleSave = () => { onSave({ lotSize, platform, numTrades, style }); onBack(); };
       const inputStyle = {width:'100%',border:'1px solid rgba(255,255,255,0.1)',borderRadius:12,padding:'16px 18px',background:'rgba(255,255,255,0.03)',color:'white',fontSize:15,outline:'none',fontWeight:500,boxSizing:'border-box',transition:'border-color 0.3s'};
       return (
         <div style={{minHeight:'100vh',background:'rgba(8,8,8,0.92)',backdropFilter:'blur(2px)',display:'flex',flexDirection:'column',position:'relative',zIndex:5}} className="animate-fade-in">
@@ -2013,6 +2014,17 @@
             <div style={{position:'relative'}}>
               <label style={{position:'absolute',top:-9,left:14,background:'rgba(8,8,8,0.95)',padding:'0 8px',fontSize:10,color:'rgba(255,255,255,0.35)',fontFamily:'Orbitron',letterSpacing:1,fontWeight:600}}>MAX TRADES</label>
               <input type="number" min="1" value={numTrades} onChange={e=>setNumTrades(e.target.value)} style={inputStyle}/>
+            </div>
+
+            {/* Trading style */}
+            <div>
+              <p style={{fontSize:10,color:'rgba(255,255,255,0.35)',fontFamily:'Orbitron',letterSpacing:1,fontWeight:600,marginBottom:8}}>TRADING STYLE</p>
+              <div style={{display:'flex',gap:8}}>
+                {[['scalp','SCALP'],['day','DAY'],['swing','SWING']].map(([v,l])=>(
+                  <button key={v} type="button" onClick={()=>setStyle(v)} style={{flex:1,padding:'12px 0',borderRadius:999,border:`1px solid ${style===v?a:'rgba(255,255,255,0.12)'}`,background:style===v?`${a}33`:'transparent',color:style===v?'white':'rgba(255,255,255,0.5)',fontFamily:'Orbitron',fontWeight:700,fontSize:11,letterSpacing:1.5,cursor:'pointer'}}>{l}</button>
+                ))}
+              </div>
+              <p style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:8}}>{style==='swing'?'Swing trades open without TP or SL. The robot closes them automatically when the AI sees the trend reverse.':style==='scalp'?'Quick trades with tight SL and TP.':'Session trades with SL and TP.'}</p>
             </div>
 
             {/* MT5 only */}
@@ -2076,6 +2088,7 @@
           initialLotSize={sym.lotSize || '0.01'}
           initialPlatform={sym.platform || 'MT5'}
           initialNumTrades={sym.numTrades || '1'}
+                initialStyle={sym.style || 'day'}
           onBack={()=>setViewingSymbol(null)}
           onSave={handleSave}
           onDelete={handleDelete}
@@ -2173,7 +2186,7 @@
                       </div>
                       <div style={{textAlign:'center'}}>
                         <p style={{fontWeight:800,letterSpacing:2,fontSize:18,fontFamily:'Inter',margin:0,textShadow:'0 0 8px rgba(255,255,255,0.25)'}}>{symbol}</p>
-                        <p style={{fontSize:9,color:`${a}dd`,fontFamily:'Orbitron',marginTop:4,letterSpacing:1.5}}>Lot {cfg.lotSize} · {cfg.platform} · {cfg.numTrades}x</p>
+                        <p style={{fontSize:9,color:`${a}dd`,fontFamily:'Orbitron',marginTop:4,letterSpacing:1.5}}>Lot {cfg.lotSize} · {(cfg.style||'day').toUpperCase()} · {cfg.numTrades}x</p>
                       </div>
                       <div style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',width:10,height:10,borderRadius:'50%',background:'#22c55e',boxShadow:'0 0 12px rgba(34,197,94,0.9)'}}/>
                     </button>
@@ -5445,7 +5458,7 @@ const HomeView = ({
         if (!token) { if (start) toast({title:'Connect MT5', description:'Link your MT5 account so the robot can trade while the app is closed.'}); return; }
         try {
           const list = Object.entries(allowedSymbols||{}).filter(([s]) => !ea?.symbols?.length || ea.symbols.includes(s)).slice(0,8)
-            .map(([symbol,c]) => ({ symbol, lot: Math.max(0.01, parseFloat(c?.lotSize)||0.01), trades: Math.min(50, Math.max(1, parseInt(c?.numTrades)||1)) }));
+            .map(([symbol,c]) => ({ symbol, lot: Math.max(0.01, parseFloat(c?.lotSize)||0.01), trades: Math.min(50, Math.max(1, parseInt(c?.numTrades)||1)), style: ['scalp','day','swing'].includes(c?.style) ? c.style : 'day' }));
           if (start && !list.length) { toast({title:'Choose symbols', description:'Allow at least one broker symbol for the robot.'}); return; }
           const r = await fetch('/api/public/robot', { method:'POST', headers:{'content-type':'application/json','x-mt5-token':token}, body: JSON.stringify(start ? { action:'start', config:{ symbols:list, news:true, botName:String(ea?.name||'TRADE NEST EA').slice(0,40) } } : { action:'stop' }) });
           const d = await r.json().catch(()=>({}));
