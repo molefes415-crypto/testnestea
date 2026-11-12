@@ -283,7 +283,7 @@ export function MT5Connection() {
           <div className="space-y-2"><label htmlFor="mt5-server" className="text-sm font-medium">Broker server</label>
             <div className="relative">
               <Input id="mt5-server" readOnly value={server} placeholder="Choose your server" onClick={() => { setPickerOpen(o => !o); setPickerBroker(""); }} className="mt5-neon-field h-14 cursor-pointer bg-card caret-transparent" />
-              {pickerOpen && <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-lg">
+              {pickerOpen && <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto mt5-neon-field rounded-md bg-card p-1 text-foreground shadow-lg backdrop-blur-md">
                 {!pickerBroker ? BROKER_SERVERS.map(b => <button key={b.broker} type="button" onClick={() => setPickerBroker(b.broker)} className="flex w-full items-center justify-between rounded px-3 py-3 text-left text-sm font-semibold hover:bg-muted"><span>{b.broker}</span><span className="text-xs text-muted-foreground">›</span></button>)
                 : <>
                   <button type="button" onClick={() => setPickerBroker("")} className="w-full rounded px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted">‹ {pickerBroker}</button>
