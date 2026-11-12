@@ -25,3 +25,4 @@
 - Keep externally hosted PHP gateway source in hosting/mt5 with regression tests; client-supplied identity labels must never authorize replacing a terminal, because they are not authenticated ownership proof; replacing an already-linked terminal requires a broker-verified trading password first.
 - The economic calendar is cached server-side in a shared database row (30-minute freshness, last good copy served on feed failure) because the free feed rate-limits per IP.
 - Run automatic robot analysis in the browser using locally sampled exact-symbol broker quotes; verify the MT5 account before Start, use the PHP gateway for orders, and never require cloud robot sync. Browser automation stops when the app closes.
+- Coalesce simultaneous same-session/symbol quote reads and retain only recent in-memory samples across robot restarts; account changes clear history and strategy warm-up is never bypassed to force immediate trades.

@@ -3,6 +3,18 @@ import { validateLiveMarket, hasLivePriceHistory, guardLiveAnalysis } from "./mt
 import "../../public/mt5-live-scanner.js";
 
 const now = 1800000000000;
+test("overlapping requests for one symbol share a single account and quote read", async () => {
+  let calls = 0;
+  const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async url => {
+    calls++;
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return Response.json(url.includes("p=account") ? { login: 20021234, server: "JustMarkets-Demo", balance: 200 } : { symbol: "XAUUSD.m", bid: 2500, ask: 2501 });
+  } });
+  const results = await Promise.all([scanner.snapshot("XAUUSD.m"), scanner.snapshot("XAUUSD.m")]);
+  expect(calls).toBe(2);
+  expect(results[0].samples.length).toBe(1);
+  expect(results[1]).toEqual(results[0]);
+});
 test("scanner retries a temporary read failure using the same session and fresh quote", async () => {
   let calls = 0;
   const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async (url, init) => {

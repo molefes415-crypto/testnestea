@@ -4,7 +4,8 @@
     const now = Date.now();
     if (!Number.isFinite(market.bid) || !Number.isFinite(market.ask) || market.bid <= 0 || market.ask < market.bid || now - market.observedAt > 30000) return hold('Waiting for fresh broker prices');
     const samples = market.samples || [];
-    if (samples.length < 40 || samples.at(-1).observedAt - samples[0].observedAt < 180000) return hold('Collecting live prices · at least 3 minutes');
+    const elapsed = samples.length ? samples.at(-1).observedAt - samples[0].observedAt : 0;
+    if (samples.length < 40 || elapsed < 180000) return hold(`Preparing signal · ${samples.length}/40 prices · ${Math.max(0, Math.ceil((180000 - elapsed) / 1000))}s minimum remaining`);
     if (samples.some((p, i) => !Number.isFinite(p.bid) || !Number.isFinite(p.ask) || p.ask < p.bid || now - p.observedAt > 600000 || (i && p.observedAt <= samples[i-1].observedAt))) return hold('Invalid price history');
     const values = samples.map(p => (p.bid + p.ask) / 2);
     const fast = indicators.ema({ period: 9, values });

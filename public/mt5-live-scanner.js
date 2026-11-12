@@ -3,6 +3,7 @@
   function createLiveScanner({ request = fetch, getToken, now = Date.now }) {
     let active = '';
     const samples = new Map();
+    const pending = new Map();
     const assertActive = token => {
       if (!token || token !== getToken()) throw new Error('MT5 account changed. Scan discarded.');
     };
@@ -30,7 +31,7 @@
         return data;
       }
     }
-    async function snapshot(symbol) {
+    async function sample(symbol) {
       const token = getToken();
       if (!token) throw new Error('Connect an MT5 account before scanning live prices.');
       if (active !== token) { samples.clear(); active = token; }
@@ -47,6 +48,13 @@
       return { source: 'mt5_gateway', symbol, server: account.server, bid: quote.bid, ask: quote.ask,
         spread: quote.ask - quote.bid, digits: Number.isInteger(quote.digits) ? quote.digits : undefined,
         observedAt, samples: history };
+    }
+    function snapshot(symbol) {
+      const key = `${getToken()}:${symbol}`;
+      if (pending.has(key)) return pending.get(key);
+      const task = sample(symbol).finally(() => { if (pending.get(key) === task) pending.delete(key); });
+      pending.set(key, task);
+      return task;
     }
     return { snapshot, reset() { samples.clear(); active = ''; } };
   }

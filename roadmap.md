@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Reduce automatic scan overhead: coalesce overlapping symbol reads, remove per-symbol sleep, evaluate every five seconds, keep recent in-memory quotes across Stop/Start, and show measurable warm-up progress. Initial three-minute strategy history remains necessary; immediate historical analysis needs a documented candle endpoint from the external gateway host.
+
 - [x] Retain selected sessions during temporary gateway failures, automatically recheck unavailable accounts while visible and on return, and retry scanner reads once without retrying orders. Genuine token rejection still requires login; real client session remains unavailable for live verification.
 
 - [x] Align local Start with the account-read contract (optional connected flag, explicit false rejected); surface failed account checks and distinguish account/session 404 from unavailable PHP hosting. Live gateway health passes; personal account verification still requires the client's session.

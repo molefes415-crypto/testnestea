@@ -5463,13 +5463,12 @@ const HomeView = ({
           for (const base of FOCUS) {
             if (!current() || terminal) return;
             await scanOne(base);
-            await new Promise(r=>setTimeout(r, 1500));
           }
-          if (current() && !terminal) timer = setTimeout(scanCycle, 15000);
+          if (current() && !terminal) timer = setTimeout(scanCycle, 5000);
         };
         scanCycle();
 
-        return () => { cancelled = true; clearTimeout(timer); clearInterval(sampleTimer); autoScanRanRef.current = false; liveBrokerScanner.reset(); };
+        return () => { cancelled = true; clearTimeout(timer); clearInterval(sampleTimer); autoScanRanRef.current = false; };
         // eslint-disable-next-line
       }, [selectedEA, allowedSymbols, autoScanEnabled, botRunning, scannerAccount]);
 
