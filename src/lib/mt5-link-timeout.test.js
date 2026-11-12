@@ -12,7 +12,7 @@ test("a failed link reports a slow broker login when the gateway health check pa
   await expect(service.connect(input, identity)).rejects.toThrow("broker login did not finish in time");
 });
 
-test("a failed link reports an unreachable gateway when the health check also fails", async () => {
+test("server gateway failure does not blame the client's internet or browser origins", async () => {
   const service = createMT5Service(async () => { throw new TypeError("Failed to fetch"); });
-  await expect(service.connect(input, identity)).rejects.toThrow("Cannot reach the MT5 gateway");
+  await expect(service.connect(input, identity)).rejects.toThrow("robot server could not reach the MT5 gateway");
 });

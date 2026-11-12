@@ -23,3 +23,4 @@
 - Floating positions use a sequential one-second browser polling loop separate from slower history reads; pause hidden tabs, discard account changes, expose failed readings, and never interpolate financial values because the gateway has no documented push stream.
 - Keep externally hosted PHP gateway source in hosting/mt5 with regression tests; client-supplied identity labels must never authorize replacing a terminal, because they are not authenticated ownership proof; replacing an already-linked terminal requires a broker-verified trading password first.
 - The economic calendar is cached server-side in a shared database row (30-minute freshness, last good copy served on feed failure) because the free feed rate-limits per IP.
+- Enable local robot execution only after the server explicitly confirms running; failed sync must not start a countdown or allow local auto trades.

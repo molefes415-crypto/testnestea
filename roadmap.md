@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Prevent failed robot sync from enabling local trading/countdowns; require explicit server running confirmation and distinguish server connectivity errors from browser CORS errors. Live robot session verification remains unavailable without a personal MT5 session.
+
 - [x] Resolve paused-database blocker for Automate News — Cloud resumed and healthy; private schedule/order schema applied and browser access revoked, verified through database reads; five safety tests pass. No order placed.
 - [x] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls; browser validates 10 trades, exact XAUUSD.m selection, 5-minute timing, modal closing and disconnected-account block on mobile/desktop.
 - [ ] Activate secure AI-directed closed-app news execution — database ready; published /api/public/news-workflows returns 404 and preview returns 401, so publish updated app and sync Inngest before claiming activation. No registered Inngest app, real schedule or broker trade verified; personal MT5 test session still required.

@@ -5455,18 +5455,24 @@ const HomeView = ({
 
       const syncCloudRobot = async (start, ea) => {
         const token = localStorage.getItem('mt_accountId_mt5');
-        if (!token) { if (start) toast({title:'Connect MT5', description:'Link your MT5 account so the robot can trade while the app is closed.'}); return; }
+        if (!token) { if (start) toast({title:'Connect MT5', description:'Link your MT5 account so the robot can trade while the app is closed.'}); return false; }
         try {
           const list = Object.entries(allowedSymbols||{}).filter(([s]) => !ea?.symbols?.length || ea.symbols.includes(s)).slice(0,8)
             .map(([symbol,c]) => ({ symbol, lot: Math.max(0.01, parseFloat(c?.lotSize)||0.01), trades: Math.min(50, Math.max(1, parseInt(c?.numTrades)||1)), style: ['scalp','day','swing'].includes(c?.style) ? c.style : 'day' }));
-          if (start && !list.length) { toast({title:'Choose symbols', description:'Allow at least one broker symbol for the robot.'}); return; }
+          if (start && !list.length) { toast({title:'Choose symbols', description:'Allow at least one broker symbol for the robot.'}); return false; }
           const r = await fetch('/api/public/robot', { method:'POST', headers:{'content-type':'application/json','x-mt5-token':token}, body: JSON.stringify(start ? { action:'start', config:{ symbols:list, news:true, botName:String(ea?.name||'TRADE NEST EA').slice(0,40) } } : { action:'stop' }) });
           const d = await r.json().catch(()=>({}));
           if (!r.ok) throw new Error(d.error || 'Robot service unavailable');
+          if (d.running !== start) throw new Error('Robot service did not confirm the requested state.');
           toast({ title: start ? 'Robot running 24/7' : 'Robot stopped', description: start ? 'Trades and high-impact news run on our server, even with the app closed.' : 'Server trading stopped.' });
-        } catch (e) { toast({ title: 'Robot not synced', description: e.message }); }
+          return true;
+        } catch (e) { toast({ title: 'Robot not synced', description: e.message }); return false; }
       };
-      const handleStartTrading = (ea) => {
+      const robotSyncBusy = useRef(false);
+      const handleStartTrading = async (ea) => {
+        if (robotSyncBusy.current) return;
+        robotSyncBusy.current = true;
+        try {
         if(showDraggableIcon||tradeDelayTimer){
           if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);}
           setBotRunning(false);
@@ -5475,7 +5481,7 @@ const HomeView = ({
           toast({title:"Stopped",description:"Trading robot stopped."});
           syncCloudRobot(false);
         } else {
-          syncCloudRobot(true, ea);
+          if (!await syncCloudRobot(true, ea)) return;
           speakText("Trade will execute in 1 minute!");
           setBotRunning(true);
           setShowDraggableIcon(true);setTradeDelaySeconds(60);
@@ -5483,9 +5489,10 @@ const HomeView = ({
           setTradeDelayTimer(interval);
           toast({title:"Scheduled",description:"Execution in 1 minute."});
         }
+        } finally { robotSyncBusy.current = false; }
       };
 
-      const handleFullStop = () => { setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null); toast({title:"Stopped",description:"Trading robot stopped."}); syncCloudRobot(false); syncCloudRobot(false); };
+      const handleFullStop = () => { if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);} setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null); toast({title:"Stopped",description:"Local trading stopped. Confirming server stop…"}); syncCloudRobot(false); };
 
       const handleSwitchEA = (ea) => {
         if (!ea || selectedEA?.id === ea.id) { setSelectedEA(ea); return; }

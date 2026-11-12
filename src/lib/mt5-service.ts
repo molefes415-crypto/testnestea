@@ -26,6 +26,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
     } catch (error) {
       if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) throw new Error("MT5 gateway connection timed out. Try again and check the trading server.");
       if (action === "link" && await gatewayOnline()) throw new Error("The MT5 gateway is online, but the broker login did not finish in time. The MT5 terminal on the gateway server is starting slowly or stuck; try Connect again in a minute.");
+      if (typeof window === "undefined") throw new Error("The robot server could not reach the MT5 gateway. Your app connection may still work; server trading was not confirmed. Try again shortly.");
       throw new Error("Cannot reach the MT5 gateway. Check your internet connection; the gateway must also allow this app's website address in mt5_config.php allowed_origins.");
     }
     const data = await response.json().catch(() => null);
