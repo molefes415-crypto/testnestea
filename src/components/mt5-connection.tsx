@@ -79,6 +79,8 @@ export function MT5Connection() {
   const [saved, setSaved] = useState<SavedMT5Account[]>([]);
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [server, setServer] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerBroker, setPickerBroker] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -278,16 +280,17 @@ export function MT5Connection() {
           <h2 className="mt5-neon-title text-base font-black uppercase">MT5 Login Details</h2>
         </div>
         <form onSubmit={connect} className="space-y-4">
-          <div className="space-y-2"><span id="broker-server-label" className="text-sm font-medium">Broker server</span>
-            <div role="group" aria-labelledby="broker-server-label" className="space-y-2">
-              {BROKER_SERVERS.map(b => <details key={b.broker} className="mt5-neon-field rounded-md bg-card" open={b.servers.includes(server) || undefined}>
-                <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-4 font-semibold"><span>{b.broker}</span><span className="text-xs text-muted-foreground">{b.servers.includes(server) ? server : `${b.servers.length} server${b.servers.length > 1 ? "s" : ""}`}</span></summary>
-                <ul className="max-h-60 overflow-y-auto border-t border-border/40 p-1">
-                  {b.servers.map(sv => <li key={sv}><button type="button" aria-pressed={server === sv} onClick={() => setServer(sv)} className={`w-full rounded px-3 py-2.5 text-left text-sm ${server === sv ? "bg-primary/20 text-primary" : "hover:bg-muted"}`}>{sv}</button></li>)}
-                </ul>
-              </details>)}
+          <div className="space-y-2"><label htmlFor="mt5-server" className="text-sm font-medium">Broker server</label>
+            <div className="relative">
+              <Input id="mt5-server" readOnly value={server} placeholder="Choose your server" onClick={() => { setPickerOpen(o => !o); setPickerBroker(""); }} className="mt5-neon-field h-14 cursor-pointer bg-card caret-transparent" />
+              {pickerOpen && <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-lg">
+                {!pickerBroker ? BROKER_SERVERS.map(b => <button key={b.broker} type="button" onClick={() => setPickerBroker(b.broker)} className="flex w-full items-center justify-between rounded px-3 py-3 text-left text-sm font-semibold hover:bg-muted"><span>{b.broker}</span><span className="text-xs text-muted-foreground">›</span></button>)
+                : <>
+                  <button type="button" onClick={() => setPickerBroker("")} className="w-full rounded px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted">‹ {pickerBroker}</button>
+                  {BROKER_SERVERS.find(b => b.broker === pickerBroker)?.servers.map(sv => <button key={sv} type="button" onClick={() => { setServer(sv); setPickerOpen(false); setPickerBroker(""); }} className={`w-full rounded px-3 py-2.5 text-left text-sm ${server === sv ? "bg-primary/20 text-primary" : "hover:bg-muted"}`}>{sv}</button>)}
+                </>}
+              </div>}
             </div>
-            {server ? <p className="text-xs text-muted-foreground">Selected: <span className="font-semibold text-foreground">{server}</span></p> : <p className="text-xs text-muted-foreground">Tap your broker, then choose its server.</p>}
           </div>
           <div className="space-y-2"><label htmlFor="mt5-account" className="text-sm font-medium">MT5 account number</label><Input id="mt5-account" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} required inputMode="numeric" pattern="[0-9]{1,20}" maxLength={20} autoComplete="off" className="mt5-neon-field h-14 bg-card" placeholder="Login" /></div>
           <div className="space-y-2"><label htmlFor="mt5-password" className="text-sm font-medium">MT5 trading password</label><div className="relative"><Input id="mt5-password" value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} required maxLength={256} autoComplete="off" className="mt5-neon-field h-14 bg-card pr-12" /><Button type="button" variant="ghost" size="icon" title={showPassword ? "Hide password" : "Show password"} aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-1 top-1.5">{showPassword ? <EyeOff /> : <Eye />}</Button></div></div>
