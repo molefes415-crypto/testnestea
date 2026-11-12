@@ -286,6 +286,9 @@
   </div>
 
   <script src="/mt5-live-scanner.js"></script>
+  <script src="/indicator-runtime.js"></script>
+  <script src="/technical-indicators.js"></script>
+  <script src="/mt5-local-robot.js"></script>
   <script type="text/babel">
     // Subscription bypass removed — /api/public/check-subscription now hits the real portal
     // so email activation on tradenestea.com is enforced. Live licence + mentor data is
@@ -3052,11 +3055,11 @@ const HomeView = ({
     };
 
     // ====== Auto scan symbol + strategy picks (stored on this device) ======
-    const AUTO_STRATS = [{id:'master',label:'MASTER STRATEGY'},{id:'smc',label:'SMC'},{id:'ict',label:'ICT'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'all',label:'All'}];
+    const AUTO_STRATS = [{id:'local_trend',label:'Local quote trend'}];
     const AutoScanPicks = ({ allowedSymbols }) => {
       const list = Object.keys(allowedSymbols || {});
       const [picks, setPicks] = useState(() => { try { const v = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } });
-      const [strat, setStrat] = useState(() => (localStorage.getItem('autoScanStrategy')==='germa66'?'master':(localStorage.getItem('autoScanStrategy')||'master')));
+      const [strat, setStrat] = useState('local_trend');
       const toggle = s => setPicks(p => { const n = p.includes(s) ? p.filter(x => x !== s) : [...p, s]; try { localStorage.setItem('autoScanSymbols', JSON.stringify(n)); } catch {} return n; });
       const pickStrat = id => { setStrat(id); try { localStorage.setItem('autoScanStrategy', id); } catch {} };
       return (
@@ -3065,7 +3068,7 @@ const HomeView = ({
           <div>{list.length ? list.map(s => <button key={s} aria-pressed={picks.includes(s)} className={picks.includes(s)?'selected':''} onClick={()=>toggle(s)}>{s}</button>) : <span>Allow symbols in Quotes first.</span>}</div>
           <p>Auto scan strategy</p>
           <div>{AUTO_STRATS.map(st => <button key={st.id} aria-pressed={strat===st.id} className={strat===st.id?'selected':''} onClick={()=>pickStrat(st.id)}>{st.label}</button>)}</div>
-          <span>When the robot is started, the scanner analyses these symbols every 3 minutes and places trades on its own.</span>
+          <span>Live prices · EMA 9/26 · RSI 14</span>
         </div>
       );
     };
@@ -4698,6 +4701,7 @@ const HomeView = ({
       const [showDraggableIcon, setShowDraggableIcon] = useState(false);
       // TRUE only after the user presses START — no signals/trades are taken before that.
       const [botRunning, setBotRunning] = useState(false);
+      const botSessionRef = useRef('');
 
       const [tradingEA, setTradingEA] = useState(null);
       const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -5228,7 +5232,7 @@ const HomeView = ({
       const pollRef = useRef(null);
       useEffect(() => {
         const hasAllowed = Object.keys(allowedSymbols||{}).length > 0;
-        if (selectedEA?.licenseKey && hasAllowed && botRunning) {
+        if (selectedEA?.licenseKey && hasAllowed && botRunning && localStorage.getItem('autoScanEnabled') !== '1') {
           console.log('[SIGNALS] Starting poll for EA', selectedEA?.name, 'key', String(selectedEA.licenseKey).slice(0,6)+'...', 'symbols', Object.keys(allowedSymbols));
           processSignals(selectedEA);
           pollRef.current = setInterval(() => processSignals(selectedEA), 15000);
@@ -5346,7 +5350,13 @@ const HomeView = ({
       const autoScanRanRef = useRef(false);
       const [scannerAccount, setScannerAccount] = useState(() => localStorage.getItem('mt_accountId_mt5') || '');
       useEffect(() => {
-        const check = () => setScannerAccount(localStorage.getItem('mt_accountId_mt5') || '');
+        const check = () => {
+          const token = localStorage.getItem('mt_accountId_mt5') || '';
+          setScannerAccount(token);
+          if (botSessionRef.current && botSessionRef.current !== token) {
+            botSessionRef.current = ''; setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false);
+          }
+        };
         const timer = setInterval(check, 1000);
         window.addEventListener('storage', check);
         return () => { clearInterval(timer); window.removeEventListener('storage', check); };
@@ -5356,7 +5366,7 @@ const HomeView = ({
         setAutoScanEnabled(v);
         try { localStorage.setItem('autoScanEnabled', v ? '1' : '0'); } catch {}
         if (!v) { autoScanRanRef.current = false; setScanBanner(null); }
-        toast({ title: v ? 'Auto Scanner ON' : 'Auto Scanner OFF', description: v ? 'AI will scan your allowed symbols while the robot is running.' : 'AI will only scan when you tap Analyse.' });
+        toast({ title: v ? 'Auto Scanner ON' : 'Auto Scanner OFF', description: v ? 'Local price analysis enabled for your selected symbols.' : 'Local automatic scanning stopped.' });
       };
 
 
@@ -5381,7 +5391,6 @@ const HomeView = ({
         const eligible = Object.keys(allowedSymbols||{}).filter(s => !selectedEA.symbols?.length || selectedEA.symbols.includes(s));
         let picked = []; try { picked = JSON.parse(localStorage.getItem('autoScanSymbols') || '[]'); } catch {}
         const allowedList = Array.isArray(picked) && picked.length ? eligible.filter(s => picked.includes(s)) : eligible;
-        const autoStrategy = localStorage.getItem('autoScanStrategy') || 'master';
         if (allowedList.length === 0) { console.log('[AUTOSCAN] No allowed symbols — auto-scan disabled'); return; }
         autoScanRanRef.current = true;
         const broker = selectedEA?.broker || detectConnectedBroker();
@@ -5392,7 +5401,7 @@ const HomeView = ({
         let sampleTimer;
         let sampling = false;
         let terminal = false;
-        const current = () => !cancelled && localStorage.getItem('mt_accountId_mt5') === scannerAccount;
+        const current = () => !cancelled && botSessionRef.current === scannerAccount && localStorage.getItem('mt_accountId_mt5') === scannerAccount;
         const samplePrices = async () => {
           if (!current() || sampling) return;
           sampling = true;
@@ -5403,33 +5412,45 @@ const HomeView = ({
 
         const scanOne = async (base) => {
           const rawSymbol = applyBrokerSuffix(base, broker);
-          setScanBanner({ title: `${botName} · Sniper Scan ${base}`, subtitle: `Analysing ${base} · low DD sniper` });
+          setScanBanner({ title: `${botName} · ${base}`, subtitle: 'Analysing live quote trend locally' });
           try {
             const liveMarket = await liveBrokerScanner.snapshot(base);
             if (!current()) return false;
             setScanBanner({ title: `${botName} · ${base}`, subtitle: `Bid ${liveMarket.bid} · Ask ${liveMarket.ask} · Spread ${liveMarket.spread}` });
-            const resp = await fetch('/api/public/analyze-chart', {
-              method:'POST', headers:{'Content-Type':'application/json','x-api-key':(window.TN_SCANNER_KEY||'tnea_33837a5f9367c6cfe2a4f4a9f42b2de30acde3c9')},
-              body: JSON.stringify({ symbol: base, liveMarket, strategy: autoStrategy, tradeStyle: 'day', orderType:'instant', trailStop:true, dataSource: 'broker_quotes', confidenceThreshold: 72, licenseKey: (typeof localStorage!=='undefined' ? localStorage.getItem('mobi_license_key') : null) })
-            });
-            const data = await resp.json().catch(()=>({}));
+            const cfg = allowedSymbols[base] || {};
+            const style = cfg.style || 'day';
+            const data = window.TNLocalRobot.analyse(liveMarket, style);
             if (!current()) return false;
-            if (!resp.ok || data.error) {
-              if ([401,402,403,404].includes(resp.status)) { terminal = true; clearInterval(sampleTimer); }
-              throw new Error(data.error || `AI scan failed (${resp.status})`);
-            }
-            if (data && data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL') && (data.confidence||0) >= 72) {
-              setScanBanner({ title: `${botName} ${data.direction} ${base}`, subtitle: `Conf ${data.confidence}% · TP ${data.tp} · SL ${data.sl}` });
-              try { sendPhoneNotification(`🎯 ${data.direction} ${base}`, `Conf ${data.confidence}% · TP ${data.tp} · SL ${data.sl}`); } catch(_) {}
+            setScanBanner({ title: `${botName} · ${base}`, subtitle: data.reason || `${data.strategy} · ${data.direction}` });
+            if (data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL')) {
+              const r = await fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=positions`, { headers: {'X-MT5-Token':scannerAccount}, credentials:'omit' });
+              const positions = await r.json();
+              if (!r.ok || !current()) return false;
+              const list = Array.isArray(positions) ? positions : positions.positions;
+              if (!Array.isArray(list)) throw new Error('Could not verify open positions.');
+              const existing = list.filter(p => p.symbol === base);
+              if (existing.length) {
+                if (style === 'swing') for (const p of existing) {
+                  const side = String(p.side ?? p.type).toLowerCase();
+                  if (p.comment !== (botSettings?.name || 'BOT') || !Number.isSafeInteger(p.ticket) || !(['buy','sell','0','1'].includes(side))) continue;
+                  const opposite = (side === 'buy' || side === '0') ? data.direction === 'SELL' : data.direction === 'BUY';
+                  if (!opposite || !current()) continue;
+                  const closed = await fetch('https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=close', { method:'POST', credentials:'omit', headers:{'Content-Type':'application/json','X-MT5-Token':scannerAccount}, body:JSON.stringify({ticket:p.ticket}) });
+                  if (!closed.ok) throw new Error('Broker did not confirm swing close.');
+                }
+                return false;
+              }
               setPendingSignal({
                 symbol: rawSymbol,
                 direction: data.direction,
                 tp: data.tp, sl: data.sl,
                 orderType: data.orderType || 'instant',
                 trailStart: data.trailStart, trailStep: data.trailStep,
-                lotSize: (localStorage.getItem('customLot') || 0.01),
+                lotSize: parseFloat(cfg.lotSize) || 0.01,
+                numTrades: Math.max(1, Math.min(50, parseInt(cfg.numTrades,10) || 1)),
+                style, token: scannerAccount,
                 platform: 'MT5',
-                signalId: `auto-${base}-${Date.now()}`,
+                signalId: data.signalId,
               });
               return true;
             }
@@ -5444,60 +5465,51 @@ const HomeView = ({
             await scanOne(base);
             await new Promise(r=>setTimeout(r, 1500));
           }
-          if (current() && !terminal) timer = setTimeout(scanCycle, 180000);
+          if (current() && !terminal) timer = setTimeout(scanCycle, 15000);
         };
         scanCycle();
 
         return () => { cancelled = true; clearTimeout(timer); clearInterval(sampleTimer); autoScanRanRef.current = false; liveBrokerScanner.reset(); };
         // eslint-disable-next-line
-      }, [selectedEA, showDraggableIcon, tradeDelayTimer, allowedSymbols, autoScanEnabled, botRunning, scannerAccount]);
+      }, [selectedEA, allowedSymbols, autoScanEnabled, botRunning, scannerAccount]);
 
 
-      const syncCloudRobot = async (start, ea) => {
+      const verifyRobotAccount = async (ea) => {
         const token = localStorage.getItem('mt_accountId_mt5');
-        if (!token) { if (start) toast({title:'Connect MT5', description:'Link your MT5 account so the robot can trade while the app is closed.'}); return false; }
-        try {
-          const list = Object.entries(allowedSymbols||{}).filter(([s]) => !ea?.symbols?.length || ea.symbols.includes(s)).slice(0,8)
-            .map(([symbol,c]) => ({ symbol, lot: Math.max(0.01, parseFloat(c?.lotSize)||0.01), trades: Math.min(50, Math.max(1, parseInt(c?.numTrades)||1)), style: ['scalp','day','swing'].includes(c?.style) ? c.style : 'day' }));
-          if (start && !list.length) { toast({title:'Choose symbols', description:'Allow at least one broker symbol for the robot.'}); return false; }
-          const r = await fetch('/api/public/robot', { method:'POST', headers:{'content-type':'application/json','x-mt5-token':token}, body: JSON.stringify(start ? { action:'start', config:{ symbols:list, news:true, botName:String(ea?.name||'TRADE NEST EA').slice(0,40) } } : { action:'stop' }) });
-          const d = await r.json().catch(()=>({}));
-          if (!r.ok) throw new Error(d.error || 'Robot service unavailable');
-          if (d.running !== start) throw new Error('Robot service did not confirm the requested state.');
-          toast({ title: start ? 'Robot running 24/7' : 'Robot stopped', description: start ? 'Trades and high-impact news run on our server, even with the app closed.' : 'Server trading stopped.' });
-          return true;
-        } catch (e) { toast({ title: 'Robot not synced', description: e.message }); return false; }
+        if (!token) throw new Error('Connect your MT5 account first.');
+        const symbols = Object.keys(allowedSymbols || {}).filter(s => !ea?.symbols?.length || ea.symbols.includes(s));
+        if (!symbols.length) throw new Error('Allow at least one exact broker symbol in Quotes.');
+        const market = await liveBrokerScanner.snapshot(symbols[0]);
+        if (localStorage.getItem('mt_accountId_mt5') !== token || market.symbol !== symbols[0]) throw new Error('MT5 account changed. Start again.');
+        return token;
       };
       const robotSyncBusy = useRef(false);
       const handleStartTrading = async (ea) => {
         if (robotSyncBusy.current) return;
         robotSyncBusy.current = true;
         try {
-        if(showDraggableIcon||tradeDelayTimer){
-          if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);}
-          setBotRunning(false);
-          setPendingSignal(null);
-          setShowDraggableIcon(false);setShowExecution(false);setShowBotPopup(false);setTradingEA(null);
-          toast({title:"Stopped",description:"Trading robot stopped."});
-          syncCloudRobot(false);
-        } else {
-          if (!await syncCloudRobot(true, ea)) return;
-          speakText("Trade will execute in 1 minute!");
+          if (showDraggableIcon || botRunning) { handleFullStop(); return; }
+          const token = await verifyRobotAccount(ea);
+          botSessionRef.current = token;
           setBotRunning(true);
-          setShowDraggableIcon(true);setTradeDelaySeconds(60);
-          const interval=setInterval(()=>{setTradeDelaySeconds(prev=>{if(prev<=1){clearInterval(interval);setTradeDelayTimer(null);handleExecutionComplete();setShowBotPopup(true);return 0;}return prev-1;});},1000);
-          setTradeDelayTimer(interval);
-          toast({title:"Scheduled",description:"Execution in 1 minute."});
-        }
-        } finally { robotSyncBusy.current = false; }
+          setShowDraggableIcon(true);
+          setShowBotPopup(true);
+          toast({title:'Robot started', description: autoScanEnabled ? 'Collecting broker prices for local automatic trading. Keep the app open.' : 'Enable Auto Scanner in Settings for local automatic trading.'});
+        } catch (e) { toast({title:'Robot not started',description:e.message}); }
+        finally { robotSyncBusy.current = false; }
       };
-
-      const handleFullStop = () => { if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);} setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null); toast({title:"Stopped",description:"Local trading stopped. Confirming server stop…"}); syncCloudRobot(false); };
+      const handleFullStop = () => {
+        botSessionRef.current = '';
+        if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);}
+        setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null);
+        toast({title:'Stopped',description:'Automatic trading stopped.'});
+      };
 
       const handleSwitchEA = (ea) => {
         if (!ea || selectedEA?.id === ea.id) { setSelectedEA(ea); return; }
         const wasActive = showDraggableIcon || !!tradeDelayTimer;
         if (wasActive) {
+          botSessionRef.current = ''; setBotRunning(false);
           if (tradeDelayTimer) { clearInterval(tradeDelayTimer); setTradeDelayTimer(null); setTradeDelaySeconds(0); }
           setShowDraggableIcon(false); setShowExecution(false); setShowBotPopup(false); setTradingEA(null);
         }
@@ -5540,11 +5552,12 @@ const HomeView = ({
         setTradeData(null);
       };
 
-      const executeTrade = async ({ quiet, symbol, direction, tp, sl, lotSize }) => {
+      const executeTrade = async ({ quiet, symbol, direction, tp, sl, lotSize, token: expectedToken }) => {
         const log = (step) => setExecutionLogs(prev => [...prev, {id:Date.now()+Math.random(),time:new Date().toLocaleTimeString(),step}]);
         const fail = (message) => { if (!quiet) toast({title:'Trade not sent',description:message,variant:'destructive'}); log(message); return false; };
         const token = localStorage.getItem('mt_accountId_mt5');
         if (!token) return fail('Link your MT5 account first on the MetaTrader tab.');
+        if (expectedToken && (token !== expectedToken || botSessionRef.current !== token)) return fail('Robot stopped or MT5 account changed.');
         const side = String(direction||'').toUpperCase().includes('SELL') ? 'sell' : 'buy';
         const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
         const gw = (p, method='GET', body) => fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=${encodeURIComponent(p)}`, {
@@ -5554,8 +5567,10 @@ const HomeView = ({
         try {
           const sym = String(symbol||'').trim();
           const q = await gw(`quote/${sym}`);
-          if (q?.symbol && q.symbol !== sym) return fail(`Symbol "${sym}" does not exist exactly on your broker.`);
+          if (q?.symbol !== sym) return fail(`Symbol "${sym}" does not exist exactly on your broker.`);
+          if (expectedToken && (botSessionRef.current !== token || localStorage.getItem('mt_accountId_mt5') !== token)) return fail('Robot stopped or MT5 account changed.');
           const r = await gw('order','POST',{ symbol: sym, side, volume: Number(lotSize)||0.01, sl: num(sl), tp: num(tp), comment: botSettings?.name || 'BOT', deviation: 20 });
+          if (!window.TNLocalRobot.confirmed(r)) return fail(r?.comment || r?.detail || 'Broker did not confirm order. No retry was sent.');
           log(`✅ ${side.toUpperCase()} ${sym} placed${r?.ticket?` #${r.ticket}`:''}`);
           return true;
         } catch (e) {
@@ -5569,6 +5584,7 @@ const HomeView = ({
       const executingSignalRef = useRef(new Set());
       const handleSignalExecute = async (signal) => {
         setPendingSignal(null);
+        if (!botSessionRef.current || !allowedSymbols[signal.symbol]) return;
         // Guard: never run the same signal twice (double effect / re-render / re-poll)
         const runKey = String(signal.signalId || `${signal.symbol}|${signal.direction}|${signal.tp}|${signal.sl}`);
         if (executingSignalRef.current.has(runKey)) { console.log('[SIGNALS] already executing', runKey); return; }
@@ -5590,16 +5606,12 @@ const HomeView = ({
         const count = Math.max(1, Math.min(50, parseInt(signal.numTrades, 10) || 1));
         pushStepLog(`Placing ${count} trade${count>1?'s':''} on ${signal.symbol}`);
         let successCount = 0;
-        // EXACTLY `count` trades — retry a failed slot up to 3 times, never place extras.
+        // Send each slot once; never retry an ambiguous financial order.
+        const activeToken = signal.token || botSessionRef.current;
         for (let i = 0; i < count; i++) {
-          let placed = false;
-          for (let attempt = 1; attempt <= 3 && !placed; attempt++) {
-            placed = await executeTrade({ ...signal, quiet: true });
-            if (!placed) {
-              pushStepLog(`Trade ${i+1}/${count} attempt ${attempt} failed${attempt<3?' — retrying':''}`);
-              if (attempt < 3) await new Promise(r=>setTimeout(r, 800));
-            }
-          }
+          if (!activeToken || botSessionRef.current !== activeToken || localStorage.getItem('mt_accountId_mt5') !== activeToken) break;
+          const placed = await executeTrade({ ...signal, token: activeToken, quiet: true });
+          if (!placed) { pushStepLog(`Trade ${i+1}/${count} not confirmed — batch stopped, no retry`); break; }
           if (placed) {
             successCount++;
             pushStepLog(`Trade ${i+1}/${count} placed`);
@@ -5613,7 +5625,7 @@ const HomeView = ({
           variant: successCount === count ? undefined : 'destructive'
         });
         if (successCount > 0 && signal.signalId) {
-          await markSignalRead(signal.signalId);
+          if (!signal.signalId.startsWith('local-')) await markSignalRead(signal.signalId);
           seenSignalIdsRef.current.add(String(signal.signalId));
           localStorage.setItem('seenSignalIds', JSON.stringify(Array.from(seenSignalIdsRef.current)));
         }

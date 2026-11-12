@@ -10,8 +10,9 @@ export const Route = createFileRoute('/api/public/robot')({ server: { handlers: 
       const token = request.headers.get('x-mt5-token') ?? '';
       if (!token || token.length > 4096) return Response.json({ error: 'Connect your MT5 account first.' }, { status: 401, headers: CORS });
       const input = body.parse(await request.json());
+      if (input.action === 'start') return Response.json({ error: 'Start automatic trading in the app. Cloud robot scanning is disabled.' }, { status: 409, headers: CORS });
       const m = await import('@/lib/robot.server');
-      const result = input.action === 'start' ? await m.startRobot(token, input.config) : input.action === 'stop' ? await m.stopRobot(token) : await m.robotStatus(token);
+      const result = input.action === 'stop' ? await m.stopRobot(token) : await m.robotStatus(token);
       return Response.json(result, { headers: CORS });
     } catch (e) {
       return Response.json({ error: e instanceof Error ? e.message : 'Robot request failed' }, { status: 400, headers: CORS });

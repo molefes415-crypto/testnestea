@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Move robot auto-analysis into the app with local EMA/RSI quote-trend analysis, direct MT5 verification on Start and PHP gateway orders; cloud scan jobs disabled. Controlled browser test starts with cloud endpoints unavailable and sends ten XAUUSD.m orders at 0.01 lots without errors; 17 tests pass. Real broker execution remains unverified; app must stay open, and this is not the H1 MASTER/AI/news strategy.
+
 - [x] Prevent failed robot sync from enabling local trading/countdowns; require explicit server running confirmation and distinguish server connectivity errors from browser CORS errors. Live robot session verification remains unavailable without a personal MT5 session.
 
 - [x] Resolve paused-database blocker for Automate News — Cloud resumed and healthy; private schedule/order schema applied and browser access revoked, verified through database reads; five safety tests pass. No order placed.
