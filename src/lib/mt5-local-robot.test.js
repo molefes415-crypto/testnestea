@@ -3,6 +3,11 @@ import { EMA, RSI } from 'technicalindicators';
 import '../../public/mt5-local-robot.js';
 const engine = globalThis.TNLocalRobot;
 const indicators = { ema: EMA.calculate, rsi: RSI.calculate };
+test('trade comments contain the bot name followed by -auto', () => {
+  expect(engine.tradeComment('mobi ea')).toBe('mobi ea-auto');
+  expect(engine.tradeComment('MASTER')).toBe('MASTER-auto');
+  expect(engine.tradeComment(undefined)).toBe('BOT-auto');
+});
 function market() {
   const now = Date.now();
   const samples = Array.from({length:60},(_,i)=>{const bid=100+i*0.004+(i%3===0?-0.01:0);return {bid,ask:bid+0.001,observedAt:now-(59-i)*5000};});

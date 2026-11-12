@@ -5525,7 +5525,7 @@ const HomeView = ({
             direction: params.actionType, volume: params.volume,
             stopLoss: params.stopLoss, takeProfit: params.takeProfit,
             platform: params.platform,
-            comment: botSettings?.name || 'BOT',
+            comment: window.TNLocalRobot.tradeComment(botSettings?.name),
           });
           if (!r.ok) throw new Error(r.error || 'OrderSend failed.');
           return { ticket: r.data.ticket };
@@ -5568,7 +5568,7 @@ const HomeView = ({
           const q = await gw(`quote/${sym}`);
           if (q?.symbol !== sym) return fail(`Symbol "${sym}" does not exist exactly on your broker.`);
           if (expectedToken && (botSessionRef.current !== token || localStorage.getItem('mt_accountId_mt5') !== token)) return fail('Robot stopped or MT5 account changed.');
-          const r = await gw('order','POST',{ symbol: sym, side, volume: Number(lotSize)||0.01, sl: num(sl), tp: num(tp), comment: botSettings?.name || 'BOT', deviation: 20 });
+          const r = await gw('order','POST',{ symbol: sym, side, volume: Number(lotSize)||0.01, sl: num(sl), tp: num(tp), comment: window.TNLocalRobot.tradeComment(botSettings?.name), deviation: 20 });
           if (!window.TNLocalRobot.confirmed(r)) return fail(r?.comment || r?.detail || 'Broker did not confirm order. No retry was sent.');
           log(`✅ ${side.toUpperCase()} ${sym} placed${r?.ticket?` #${r.ticket}`:''}`);
           return true;

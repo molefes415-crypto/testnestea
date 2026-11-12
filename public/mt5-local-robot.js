@@ -36,5 +36,8 @@
     if (typeof result.retcode === 'number') return [10008, 10009, 10010].includes(result.retcode);
     return typeof (result.order ?? result.ticket) === 'number' && (result.order ?? result.ticket) > 0;
   }
-  root.TNLocalRobot = { analyse, confirmed, readiness };
+  function tradeComment(botName) {
+    return `${String(botName || 'BOT').trim() || 'BOT'}-auto`;
+  }
+  root.TNLocalRobot = { analyse, confirmed, readiness, tradeComment };
 })(typeof window === 'undefined' ? globalThis : window);
