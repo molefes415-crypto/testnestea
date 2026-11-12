@@ -13,6 +13,7 @@ import icMarketsLogo from "@/assets/brokers/ic-markets.png.asset.json";
 import pepperstoneLogo from "@/assets/brokers/pepperstone.svg.asset.json";
 import razorMarketsLogo from "@/assets/brokers/razor-markets.png.asset.json";
 import accuMarketsLogo from "@/assets/brokers/accumarkets.png.asset.json";
+import { BROKER_SERVERS } from "@/lib/mt5-broker-servers";
 import derivLogo from "@/assets/brokers/deriv.png.asset.json";
 
 const mt5Logo = { url: mt5LogoUrl };
@@ -22,6 +23,7 @@ const brokers = [
   { pattern: /exness|exnes/i, name: "Exness", logo: exnessLogo.url },
   { pattern: /razor[\s_-]*markets/i, name: "Razor Markets", logo: razorMarketsLogo.url },
   { pattern: /accu[\s_-]*markets/i, name: "AccuMarkets", logo: accuMarketsLogo.url },
+  { pattern: /xmglobal|^xm/i, name: "XM", logo: mt5Logo.url },
   { pattern: /deriv/i, name: "Deriv", logo: derivLogo.url },
   { pattern: /icmarkets|ic markets/i, name: "IC Markets", logo: icMarketsLogo.url },
   { pattern: /pepperstone/i, name: "Pepperstone", logo: pepperstoneLogo.url },
@@ -138,6 +140,7 @@ export function MT5Connection() {
 
   async function connect(event: FormEvent) {
     event.preventDefault();
+    if (!server) { setMessage("Choose your broker server first."); return; }
     setLoading(true);
     setMessage("");
     setNotice("");
@@ -275,7 +278,17 @@ export function MT5Connection() {
           <h2 className="mt5-neon-title text-base font-black uppercase">MT5 Login Details</h2>
         </div>
         <form onSubmit={connect} className="space-y-4">
-          <div className="space-y-2"><label htmlFor="broker-server" className="text-sm font-medium">Broker server</label><Input id="broker-server" value={server} onChange={e => setServer(e.target.value)} required maxLength={150} autoComplete="off" className="mt5-neon-field h-14 bg-card" placeholder="Search MT5 Broker Server..." /></div>
+          <div className="space-y-2"><span id="broker-server-label" className="text-sm font-medium">Broker server</span>
+            <div role="group" aria-labelledby="broker-server-label" className="space-y-2">
+              {BROKER_SERVERS.map(b => <details key={b.broker} className="mt5-neon-field rounded-md bg-card" open={b.servers.includes(server) || undefined}>
+                <summary className="flex h-14 cursor-pointer list-none items-center justify-between px-4 font-semibold"><span>{b.broker}</span><span className="text-xs text-muted-foreground">{b.servers.includes(server) ? server : `${b.servers.length} server${b.servers.length > 1 ? "s" : ""}`}</span></summary>
+                <ul className="max-h-60 overflow-y-auto border-t border-border/40 p-1">
+                  {b.servers.map(sv => <li key={sv}><button type="button" aria-pressed={server === sv} onClick={() => setServer(sv)} className={`w-full rounded px-3 py-2.5 text-left text-sm ${server === sv ? "bg-primary/20 text-primary" : "hover:bg-muted"}`}>{sv}</button></li>)}
+                </ul>
+              </details>)}
+            </div>
+            {server ? <p className="text-xs text-muted-foreground">Selected: <span className="font-semibold text-foreground">{server}</span></p> : <p className="text-xs text-muted-foreground">Tap your broker, then choose its server.</p>}
+          </div>
           <div className="space-y-2"><label htmlFor="mt5-account" className="text-sm font-medium">MT5 account number</label><Input id="mt5-account" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} required inputMode="numeric" pattern="[0-9]{1,20}" maxLength={20} autoComplete="off" className="mt5-neon-field h-14 bg-card" placeholder="Login" /></div>
           <div className="space-y-2"><label htmlFor="mt5-password" className="text-sm font-medium">MT5 trading password</label><div className="relative"><Input id="mt5-password" value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} required maxLength={256} autoComplete="off" className="mt5-neon-field h-14 bg-card pr-12" /><Button type="button" variant="ghost" size="icon" title={showPassword ? "Hide password" : "Show password"} aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-1 top-1.5">{showPassword ? <EyeOff /> : <Eye />}</Button></div></div>
           {message && <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm leading-relaxed text-foreground">{message}</div>}
