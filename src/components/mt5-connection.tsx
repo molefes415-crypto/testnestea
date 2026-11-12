@@ -3,7 +3,7 @@ import { ArrowLeft, Eye, EyeOff, LockKeyhole, Plus, RefreshCw, ShieldCheck, Unli
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWalletMotion } from "@/hooks/use-wallet-motion";
-import { createMT5Service } from "@/lib/mt5-service";
+import { createMT5Service, isMT5SessionExpired } from "@/lib/mt5-service";
 import { type MT5Account, readExistingMT5Identity } from "@/lib/mt5-contract";
 import { ACTIVE_KEY, SAVED_KEY, parseSaved, removeSaved, upsertSaved, firstFourLoginDigits, type SavedMT5Account } from "@/lib/mt5-saved-accounts";
 import mt5LogoUrl from "@/assets/mt5-transparent.png";
@@ -35,7 +35,7 @@ function BrokerLogo({ server, large = false }: { server: string; large?: boolean
   return <img src={broker?.logo ?? mt5Logo.url} alt={broker ? `${broker.name} logo` : "MetaTrader 5"} className={large ? "mx-auto h-16 w-24 object-contain" : "mt-1 h-11 w-12 object-contain"} />;
 }
 
-type Status = "checking" | "verified" | "expired";
+type Status = "checking" | "verified" | "expired" | "unavailable";
 
 export function AccountCardFace({ login, server, info, status }: { login: number; server: string; info?: MT5Account; status: Status }) {
   const connected = status === "verified" && info?.connected !== false;
@@ -110,6 +110,41 @@ export function MT5Connection() {
     localStorage.removeItem(ACTIVE_KEY);
     localStorage.removeItem("mt_connected_mt5");
   }
+  function connectionFailed(t: string, error: unknown) {
+    const expired = isMT5SessionExpired(error);
+    setStatus(s => ({ ...s, [t]: expired ? "expired" : "unavailable" }));
+    if (localStorage.getItem(ACTIVE_KEY) === t) {
+      if (expired) clearActive();
+      else { setToken(t); localStorage.removeItem("mt_connected_mt5"); }
+    }
+    setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
+  }
+
+  useEffect(() => {
+    if (!token || status[token] !== "unavailable") return;
+    let cancelled = false;
+    let checking = false;
+    const retry = async () => {
+      if (checking || document.hidden || localStorage.getItem(ACTIVE_KEY) !== token) return;
+      checking = true;
+      try {
+        const info = await service.account(token);
+        const entry = saved.find(a => a.token === token);
+        if (entry && (info.login !== entry.login || info.server !== entry.server)) throw new Error("Gateway returned a different account.");
+        if (!cancelled && localStorage.getItem(ACTIVE_KEY) === token) {
+          activate(token, info);
+          setStatus(s => ({ ...s, [token]: "verified" }));
+          setMessage("");
+        }
+      } catch (error) { if (!cancelled) connectionFailed(token, error); }
+      finally { checking = false; }
+    };
+    const timer = window.setInterval(retry, 15000);
+    window.addEventListener("online", retry);
+    window.addEventListener("focus", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("online", retry); window.removeEventListener("focus", retry); document.removeEventListener("visibilitychange", retry); };
+  }, [token, status[token], service, saved]);
 
   // On open: verify every saved login with the gateway (session still valid?).
   useEffect(() => {
@@ -123,7 +158,7 @@ export function MT5Connection() {
         persist(list);
         setStatus(s => ({ ...s, [active]: "verified" }));
         activate(active, info);
-      }).catch(error => { clearActive(); setMessage(error instanceof Error ? error.message : "Connection could not be verified."); });
+      }).catch(error => connectionFailed(active, error));
     }
     list.forEach(a => {
       service.account(a.token)
@@ -134,9 +169,7 @@ export function MT5Connection() {
           if (a.token === active) activate(a.token, info);
         })
         .catch(error => {
-          setStatus(s => ({ ...s, [a.token]: "expired" }));
-          if (a.token === active) clearActive();
-          setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
+          connectionFailed(a.token, error);
         });
     });
   }, [service]);
@@ -184,8 +217,8 @@ export function MT5Connection() {
       activate(a.token, info);
       setNotice(`Switched to ${info.server} · ${info.login}`);
     } catch (error) {
-      setStatus(s => ({ ...s, [a.token]: "expired" }));
-      if (a.token === token) clearActive();
+      connectionFailed(a.token, error);
+      if (!isMT5SessionExpired(error)) return;
       setServer(a.server);
       setAccountNumber(String(a.login));
       setView("login");
@@ -215,7 +248,7 @@ export function MT5Connection() {
     setBusy("");
   }
 
-  const otherAccounts = saved.filter(a => a.token !== token);
+  const otherAccounts = saved.filter(a => !account || a.token !== token);
   const accountAlerts = <>{message && <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">{message}</div>}{notice && <div role="status" className="mb-4 text-sm text-primary">{notice}</div>}</>;
 
   if (view === "accounts") return (
@@ -236,9 +269,7 @@ export function MT5Connection() {
                 setStatus(s => ({ ...s, [a.token]: "verified" }));
                 if (a.token === token) activate(a.token, info);
               } catch (error) {
-                setStatus(s => ({ ...s, [a.token]: "expired" }));
-                if (a.token === token) clearActive();
-                setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
+                connectionFailed(a.token, error);
               }
             }));
             setBusy("");
@@ -260,7 +291,7 @@ export function MT5Connection() {
               <Button variant="ghost" className="mt5-account-select" disabled={Boolean(busy) || s === "checking"} onClick={() => void switchTo(a)} aria-label={`Switch to ${a.login}`}>
                 <AccountCardFace login={a.login} server={a.server} info={info} status={s} />
               </Button>
-              <div className="mt5-wallet-card-actions flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : "Verifying session"}</span><Button type="button" variant="ghost" size="sm" disabled={Boolean(busy)} onClick={() => void unlink(a)} title={`Unlink ${a.login}`} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />Unlink</Button></div>
+              <div className="mt5-wallet-card-actions flex items-center justify-between px-4 pb-2"><span className="text-xs text-muted-foreground">{s === "verified" ? "Verified" : s === "expired" ? "Log in again" : s === "unavailable" ? "Connection unavailable" : "Verifying session"}</span><Button type="button" variant="ghost" size="sm" disabled={Boolean(busy)} onClick={() => void unlink(a)} title={`Unlink ${a.login}`} aria-label={`Unlink ${a.login}`}><Unlink className="size-4" />Unlink</Button></div>
             </li>;
           })}
           </ul>

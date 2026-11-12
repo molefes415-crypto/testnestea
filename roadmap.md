@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Retain selected sessions during temporary gateway failures, automatically recheck unavailable accounts while visible and on return, and retry scanner reads once without retrying orders. Genuine token rejection still requires login; real client session remains unavailable for live verification.
+
 - [x] Align local Start with the account-read contract (optional connected flag, explicit false rejected); surface failed account checks and distinguish account/session 404 from unavailable PHP hosting. Live gateway health passes; personal account verification still requires the client's session.
 
 - [x] Move robot auto-analysis into the app with local EMA/RSI quote-trend analysis, direct MT5 verification on Start and PHP gateway orders; cloud scan jobs disabled. Controlled browser test starts with cloud endpoints unavailable and sends ten XAUUSD.m orders at 0.01 lots without errors; 17 tests pass. Real broker execution remains unverified; app must stay open, and this is not the H1 MASTER/AI/news strategy.

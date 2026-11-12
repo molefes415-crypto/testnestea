@@ -3,6 +3,23 @@ import { validateLiveMarket, hasLivePriceHistory, guardLiveAnalysis } from "./mt
 import "../../public/mt5-live-scanner.js";
 
 const now = 1800000000000;
+test("scanner retries a temporary read failure using the same session and fresh quote", async () => {
+  let calls = 0;
+  const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async (url, init) => {
+    expect(init.headers['X-MT5-Token']).toBe("fixture-token");
+    calls++;
+    if (calls === 1) return Response.json({ detail: "Unavailable" }, { status: 503 });
+    return Response.json(url.includes("p=account") ? { login: 20021234, server: "JustMarkets-Demo", balance: 200 } : { symbol: "XAUUSD.m", bid: 2500, ask: 2501 });
+  } });
+  expect((await scanner.snapshot("XAUUSD.m")).ask).toBe(2501);
+  expect(calls).toBe(3);
+});
+test("scanner does not retry an expired token", async () => {
+  let calls = 0;
+  const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async () => { calls++; return Response.json({ detail: "Invalid token" }, { status: 401 }); } });
+  await expect(scanner.snapshot("XAUUSD.m")).rejects.toThrow("Invalid token");
+  expect(calls).toBe(1);
+});
 const quote = { source: "mt5_gateway", symbol: "XAUUSD.m", server: "Broker-Live", bid: 2500, ask: 2501, spread: 1, observedAt: now, samples: [{ bid: 2500, ask: 2501, observedAt: now }] };
 test("AI live input requires the exact broker symbol, without suffix substitution", () => {
   expect(() => validateLiveMarket(quote, "XAUUSD", now)).toThrow();

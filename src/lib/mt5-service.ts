@@ -1,5 +1,9 @@
 import { MT5_GATEWAY_BASE, preserveOrderStops, validateConnection, type MT5Account, type MT5AppIdentity, type MT5ConnectionInput } from "./mt5-contract";
 
+export function isMT5SessionExpired(error: unknown) {
+  return error instanceof Error && /MT5 gateway \((401|403)\)|different account|mismatch/i.test(error.message);
+}
+
 export function createMT5Service(request: typeof fetch = fetch) {
   // A host timeout page lacks CORS headers, so the browser reports it as a network error; probe health to tell them apart.
   async function gatewayOnline() {

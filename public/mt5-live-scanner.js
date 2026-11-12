@@ -8,13 +8,27 @@
     };
     async function read(token, path) {
       assertActive(token);
-      const response = await request(`${BASE}?a=proxy&p=${encodeURIComponent(path)}`, {
-        headers: { Accept: 'application/json', 'X-MT5-Token': token }, credentials: 'omit', cache: 'no-store',
-      });
-      assertActive(token);
-      const data = await response.json();
-      if (!response.ok) throw new Error(typeof data?.detail === 'string' ? data.detail.split(token).join('[redacted]') : `Broker price request failed (${response.status}).`);
-      return data;
+      // Retry read-only requests once; never retry an order or use cached prices.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let response;
+        try {
+          response = await request(`${BASE}?a=proxy&p=${encodeURIComponent(path)}`, {
+            headers: { Accept: 'application/json', 'X-MT5-Token': token }, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(30000),
+          });
+        } catch (error) {
+          assertActive(token);
+          if (attempt === 1) throw new Error('MT5 connection temporarily unavailable. Your saved account is retained; try the scan again.');
+          continue;
+        }
+        assertActive(token);
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          if (attempt === 0 && (response.status === 404 || response.status >= 500)) continue;
+          throw new Error(typeof data?.detail === 'string' ? data.detail.split(token).join('[redacted]') : `Broker price request failed (${response.status}).`);
+        }
+        if (!data) throw new Error('MT5 returned an invalid response.');
+        return data;
+      }
     }
     async function snapshot(symbol) {
       const token = getToken();

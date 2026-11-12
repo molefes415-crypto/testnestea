@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - MT5 uses the user-supplied single-file PHP gateway contract through a browser fetch adapter, with existing profile context and personal token headers; never persist passwords or fall back to the old provider.
+- Retain selected MT5 tokens through temporary read failures, reverify on recovery, and retry only read-only scanner calls; rejected tokens or account mismatches require login so reconnecting cannot duplicate trades or fabricate live status.
 - The legacy MetaTrader tab embeds the dedicated /mt5 screen; keep gateway tokens and passwords out of legacy browser storage and direct provider calls.
 - The /mt5 workspace owns account-list and login navigation, returning only after the gateway account read verifies the submitted login; static broker assets are matched by server name with an MT5 fallback for unknown brokers.
 - Share MetaTrader appearance through same-origin parent/iframe messages carrying only accent and media URLs; verify both origin and parent source and keep account credentials out of this bridge.

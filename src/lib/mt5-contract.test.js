@@ -1,8 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { exactBrokerSymbol, preserveOrderStops, readExistingMT5Identity } from "./mt5-contract";
-import { createMT5Service } from "./mt5-service";
+import { createMT5Service, isMT5SessionExpired } from "./mt5-service";
 
 describe("MT5 gateway safety", () => {
+  test("temporary gateway errors retain sessions but rejected tokens require login", () => {
+    expect(isMT5SessionExpired(new Error("MT5 gateway (404): Not found"))).toBe(false);
+    expect(isMT5SessionExpired(new Error("MT5 gateway (500): unavailable"))).toBe(false);
+    expect(isMT5SessionExpired(new Error("Failed to fetch"))).toBe(false);
+    expect(isMT5SessionExpired(new Error("MT5 gateway (401): Invalid token"))).toBe(true);
+    expect(isMT5SessionExpired(new Error("Gateway returned a different account."))).toBe(true);
+  });
   test("account 404 is not blamed on missing PHP when gateway health succeeds", async () => {
     const service = createMT5Service(async url => url.includes("a=health") ? Response.json({ gateway_reachable: true }) : Response.json({ detail: "Not found" }, { status: 404 }));
     await expect(service.account("test-token")).rejects.toThrow("gateway is online");
