@@ -35,7 +35,11 @@ export function createMT5Service(request: typeof fetch = fetch) {
       const message = typeof detail === "string" ? detail : typeof detail?.comment === "string" ? detail.comment : `Gateway request failed (${response.status}).`;
       // Preserve broker detail without reflecting credentials into the UI.
       const safeMessage = [token, typeof body === "object" && body !== null && "password" in body ? String(body.password) : undefined].reduce<string>((text, secret) => secret ? text.split(secret).join("[redacted]") : text, message);
-      throw new Error(response.status === 404 ? "MT5 gateway not found. The supplied gateway URL returned 404." : `MT5 gateway (${response.status}): ${safeMessage}`);
+      if (response.status === 404) {
+        if (action === "proxy" && await gatewayOnline()) throw new Error(`MT5 gateway (404): The gateway is online, but this saved session or requested account endpoint is unavailable. Refresh accounts; if it persists, link the account again with its trading password.`);
+        throw new Error("MT5 gateway (404): The gateway URL is unavailable. Check the PHP gateway hosting.");
+      }
+      throw new Error(`MT5 gateway (${response.status}): ${safeMessage}`);
     }
     if (data === null) throw new Error("Gateway returned an invalid response.");
     return data;
@@ -56,6 +60,7 @@ export function createMT5Service(request: typeof fetch = fetch) {
     async account(token: string): Promise<MT5Account> {
       const data = await proxy(token, "account");
       if (typeof data.login !== "number" || typeof data.balance !== "number" || typeof data.server !== "string") throw new Error("Gateway returned incomplete account details.");
+      if (data.connected === false) throw new Error("MT5 account is disconnected. Link the account again with its trading password.");
       return data;
     },
     positions: (token: string) => proxy(token, "positions"),

@@ -21,7 +21,7 @@
       if (!token) throw new Error('Connect an MT5 account before scanning live prices.');
       if (active !== token) { samples.clear(); active = token; }
       const account = await read(token, 'account');
-      if (account.connected !== true || typeof account.server !== 'string' || !Number.isSafeInteger(account.login)) throw new Error('MT5 connection could not be verified.');
+      if (account.connected === false || typeof account.server !== 'string' || !account.server || !Number.isSafeInteger(account.login) || account.login <= 0 || !Number.isFinite(account.balance)) throw new Error('MT5 connection could not be verified.');
       const quote = await read(token, `quote/${symbol}`);
       if (quote.symbol !== symbol) throw new Error(`Symbol "${symbol}" does not exist exactly on your broker.`);
       if (!Number.isFinite(quote.bid) || !Number.isFinite(quote.ask) || quote.bid <= 0 || quote.ask < quote.bid) throw new Error('Broker returned invalid bid/ask prices.');

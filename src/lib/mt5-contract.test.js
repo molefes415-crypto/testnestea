@@ -3,6 +3,14 @@ import { exactBrokerSymbol, preserveOrderStops, readExistingMT5Identity } from "
 import { createMT5Service } from "./mt5-service";
 
 describe("MT5 gateway safety", () => {
+  test("account 404 is not blamed on missing PHP when gateway health succeeds", async () => {
+    const service = createMT5Service(async url => url.includes("a=health") ? Response.json({ gateway_reachable: true }) : Response.json({ detail: "Not found" }, { status: 404 }));
+    await expect(service.account("test-token")).rejects.toThrow("gateway is online");
+  });
+  test("explicit disconnected response does not activate a saved account", async () => {
+    const service = createMT5Service(async () => Response.json({ login: 123456, balance: 200, server: "JustMarkets-Demo", connected: false }));
+    await expect(service.account("test-token")).rejects.toThrow("disconnected");
+  });
   test("uses the existing app email and mentor ID without introducing a login", () => {
     expect(readExistingMT5Identity(JSON.stringify({ email: " CLIENT@example.test ", name: "7" }))).toEqual({ email: "client@example.test", admin_id: "7" });
     expect(readExistingMT5Identity(JSON.stringify({ email: "client@example.test", adminId: "9" }))).toEqual({ email: "client@example.test", admin_id: "9" });
@@ -46,7 +54,14 @@ describe("MT5 gateway safety", () => {
   });
   test("blocked browser requests identify allowed origins without exposing credentials", async () => {
     const service = createMT5Service(async () => { throw new TypeError("Failed to fetch"); });
-    await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("allowed_origins");
+    const previous = globalThis.window;
+    globalThis.window = {};
+    try {
+      await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("allowed_origins");
+    } finally {
+      if (previous === undefined) delete globalThis.window;
+      else globalThis.window = previous;
+    }
   });
   test("gateway rejection redacts a reflected trading password", async () => {
     const service = createMT5Service(async () => Response.json({ detail: "Login failed test-only" }, { status: 401 }));

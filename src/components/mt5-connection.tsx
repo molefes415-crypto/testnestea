@@ -123,7 +123,7 @@ export function MT5Connection() {
         persist(list);
         setStatus(s => ({ ...s, [active]: "verified" }));
         activate(active, info);
-      }).catch(() => clearActive());
+      }).catch(error => { clearActive(); setMessage(error instanceof Error ? error.message : "Connection could not be verified."); });
     }
     list.forEach(a => {
       service.account(a.token)
@@ -133,9 +133,10 @@ export function MT5Connection() {
           setDetails(d => ({ ...d, [a.token]: info }));
           if (a.token === active) activate(a.token, info);
         })
-        .catch(() => {
+        .catch(error => {
           setStatus(s => ({ ...s, [a.token]: "expired" }));
           if (a.token === active) clearActive();
+          setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
         });
     });
   }, [service]);
@@ -182,12 +183,13 @@ export function MT5Connection() {
       setStatus(s => ({ ...s, [a.token]: "verified" }));
       activate(a.token, info);
       setNotice(`Switched to ${info.server} · ${info.login}`);
-    } catch {
+    } catch (error) {
       setStatus(s => ({ ...s, [a.token]: "expired" }));
+      if (a.token === token) clearActive();
       setServer(a.server);
       setAccountNumber(String(a.login));
       setView("login");
-      setMessage(`Session for ${a.login} expired. Enter its trading password above to log in again.`);
+      setMessage(error instanceof Error ? error.message : `Session for ${a.login} could not be verified. Enter its trading password to log in again.`);
     } finally {
       setBusy("");
     }
@@ -225,6 +227,7 @@ export function MT5Connection() {
           <ShieldCheck className="size-6 text-muted-foreground" aria-label="Personal account access" />
           <Button variant="ghost" size="icon" aria-label="Refresh accounts" title="Refresh accounts" disabled={Boolean(busy) || saved.length === 0} onClick={async () => {
             setBusy("refresh");
+            setMessage("");
             await Promise.all(saved.map(async a => {
               try {
                 const info = await service.account(a.token);
@@ -232,9 +235,10 @@ export function MT5Connection() {
                 setDetails(d => ({ ...d, [a.token]: info }));
                 setStatus(s => ({ ...s, [a.token]: "verified" }));
                 if (a.token === token) activate(a.token, info);
-              } catch {
+              } catch (error) {
                 setStatus(s => ({ ...s, [a.token]: "expired" }));
                 if (a.token === token) clearActive();
+                setMessage(error instanceof Error ? error.message : "Connection could not be verified.");
               }
             }));
             setBusy("");

@@ -25,3 +25,13 @@ test("account switch discards an in-flight broker quote", async () => {
   const scanner = api.createLiveScanner({ getToken: () => token, request: async () => { token = "personal-b"; return Response.json({ login: 123, server: "Broker-Live" }); } });
   await expect(scanner.snapshot("XAUUSD.m")).rejects.toThrow("account changed");
 });
+test("verified account read without an optional connected flag can start quote sampling", async () => {
+  const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async url => Response.json(url.includes("p=account") ? { login: 20021234, server: "JustMarkets-Demo", balance: 200 } : { symbol: "XAUUSD.m", bid: 2500, ask: 2501 }) });
+  expect((await scanner.snapshot("XAUUSD.m")).bid).toBe(2500);
+});
+test("explicitly disconnected accounts cannot start quote sampling", async () => {
+  let calls = 0;
+  const scanner = globalThis.TNLiveScanner.createLiveScanner({ getToken: () => "fixture-token", request: async () => { calls++; return Response.json({ login: 20021234, server: "JustMarkets-Demo", balance: 200, connected: false }); } });
+  await expect(scanner.snapshot("XAUUSD.m")).rejects.toThrow("could not be verified");
+  expect(calls).toBe(1);
+});
