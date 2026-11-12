@@ -1,11 +1,15 @@
 (function (root) {
+  function readiness(samples) {
+    const elapsed = samples.length ? samples.at(-1).observedAt - samples[0].observedAt : 0;
+    return Math.floor(Math.max(0, Math.min(1, samples.length / 40, elapsed / 180000)) * 10);
+  }
   function analyse(market, style = 'day', indicators = root) {
     const hold = reason => ({ symbol: market.symbol, direction: 'NEUTRAL', reason });
     const now = Date.now();
     if (!Number.isFinite(market.bid) || !Number.isFinite(market.ask) || market.bid <= 0 || market.ask < market.bid || now - market.observedAt > 30000) return hold('Waiting for fresh broker prices');
     const samples = market.samples || [];
     const elapsed = samples.length ? samples.at(-1).observedAt - samples[0].observedAt : 0;
-    if (samples.length < 40 || elapsed < 180000) return hold(`Preparing signal · ${samples.length}/40 prices · ${Math.max(0, Math.ceil((180000 - elapsed) / 1000))}s minimum remaining`);
+    if (samples.length < 40 || elapsed < 180000) return hold(`Preparing signal · ${readiness(samples)}/10 readiness · ${Math.max(0, Math.ceil((180000 - elapsed) / 1000))}s minimum remaining`);
     if (samples.some((p, i) => !Number.isFinite(p.bid) || !Number.isFinite(p.ask) || p.ask < p.bid || now - p.observedAt > 600000 || (i && p.observedAt <= samples[i-1].observedAt))) return hold('Invalid price history');
     const values = samples.map(p => (p.bid + p.ask) / 2);
     const fast = indicators.ema({ period: 9, values });
@@ -32,5 +36,5 @@
     if (typeof result.retcode === 'number') return [10008, 10009, 10010].includes(result.retcode);
     return typeof (result.order ?? result.ticket) === 'number' && (result.order ?? result.ticket) > 0;
   }
-  root.TNLocalRobot = { analyse, confirmed };
+  root.TNLocalRobot = { analyse, confirmed, readiness };
 })(typeof window === 'undefined' ? globalThis : window);
