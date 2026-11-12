@@ -4,9 +4,9 @@ import { getNewsEvents, type NewsEvent } from './news.server';
 import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 
 function secret() { const value=process.env['NEWS_AUTOMATION_ENCRYPTION_KEY']; if(!value) throw new Error('News automation security is not configured.'); return value; }
-function owner(token:string) { return createHmac('sha256',secret()).update(token).digest('hex'); }
-function encrypt(token:string) { const iv=randomBytes(12); const cipher=createCipheriv('aes-256-gcm',createHash('sha256').update(secret()).digest(),iv); const data=Buffer.concat([cipher.update(token,'utf8'),cipher.final()]);return Buffer.concat([iv,cipher.getAuthTag(),data]).toString('base64'); }
-function decrypt(raw:string) {const b=Buffer.from(raw,'base64');const c=createDecipheriv('aes-256-gcm',createHash('sha256').update(secret()).digest(),b.subarray(0,12));c.setAuthTag(b.subarray(12,28));return Buffer.concat([c.update(b.subarray(28)),c.final()]).toString('utf8');}
+export function owner(token:string) { return createHmac('sha256',secret()).update(token).digest('hex'); }
+export function encrypt(token:string) { const iv=randomBytes(12); const cipher=createCipheriv('aes-256-gcm',createHash('sha256').update(secret()).digest(),iv); const data=Buffer.concat([cipher.update(token,'utf8'),cipher.final()]);return Buffer.concat([iv,cipher.getAuthTag(),data]).toString('base64'); }
+export function decrypt(raw:string) {const b=Buffer.from(raw,'base64');const c=createDecipheriv('aes-256-gcm',createHash('sha256').update(secret()).digest(),b.subarray(0,12));c.setAuthTag(b.subarray(12,28));return Buffer.concat([c.update(b.subarray(28)),c.final()]).toString('utf8');}
 export async function automationDB() { const {supabaseAdmin}=await import('@/integrations/supabase/client.server');return supabaseAdmin; }
 // Newly staged schema is not generated until the paused database is resumed and migration applied.
 export async function jobsDB() { const db=await automationDB();return db as unknown as import('@supabase/supabase-js').SupabaseClient; }

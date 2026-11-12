@@ -47,3 +47,5 @@
 - [ ] Deploy free MT5 linking — upload the corrected mt5_gateway.php to the PHP host; this workspace cannot deploy to that host.
 - [ ] Verify live JustMarkets connection and account reads — both website origins now pass; subscription-gated linking and unavailable demo credentials prevent verification.
 - [ ] Connect live trading to the main app — wait for a reachable gateway and verified demo connection; the existing app trade path remains disabled.
+- [x] Always-on server robot (start/stop from app, 5-min scans, auto-arms high-impact news)
+- [ ] Verify robot live trade — needs publish and a running client account

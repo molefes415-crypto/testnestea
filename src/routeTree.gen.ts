@@ -23,6 +23,7 @@ import { Route as ApiPublicPayfastRouteImport } from './routes/api/public/payfas
 import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
 import { Route as ApiPublicPaypalRouteImport } from './routes/api/public/paypal'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
+import { Route as ApiPublicRobotRouteImport } from './routes/api/public/robot'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +96,11 @@ const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   path: '/api/public/paypal-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRobotRoute = ApiPublicRobotRouteImport.update({
+  id: '/api/public/robot',
+  path: '/api/public/robot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
   '/api/public/paypal': typeof ApiPublicPaypalRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/robot': typeof ApiPublicRobotRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
   '/api/public/paypal': typeof ApiPublicPaypalRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/robot': typeof ApiPublicRobotRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
   '/api/public/paypal': typeof ApiPublicPaypalRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/robot': typeof ApiPublicRobotRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/api/public/payfast-itn'
     | '/api/public/paypal'
     | '/api/public/paypal-webhook'
+    | '/api/public/robot'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/api/public/payfast-itn'
     | '/api/public/paypal'
     | '/api/public/paypal-webhook'
+    | '/api/public/robot'
   id:
     | '__root__'
     | '/'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/api/public/payfast-itn'
     | '/api/public/paypal'
     | '/api/public/paypal-webhook'
+    | '/api/public/robot'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   ApiPublicPayfastItnRoute: typeof ApiPublicPayfastItnRoute
   ApiPublicPaypalRoute: typeof ApiPublicPaypalRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  ApiPublicRobotRoute: typeof ApiPublicRobotRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/robot': {
+      id: '/api/public/robot'
+      path: '/api/public/robot'
+      fullPath: '/api/public/robot'
+      preLoaderRoute: typeof ApiPublicRobotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -331,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPayfastItnRoute: ApiPublicPayfastItnRoute,
   ApiPublicPaypalRoute: ApiPublicPaypalRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  ApiPublicRobotRoute: ApiPublicRobotRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

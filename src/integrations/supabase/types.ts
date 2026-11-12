@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      auto_robot_trades: {
+        Row: {
+          created_at: string
+          detail: Json | null
+          direction: string
+          robot_id: string
+          signal_key: string
+          status: string
+          symbol: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json | null
+          direction: string
+          robot_id: string
+          signal_key: string
+          status?: string
+          symbol: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json | null
+          direction?: string
+          robot_id?: string
+          signal_key?: string
+          status?: string
+          symbol?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_robot_trades_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: false
+            referencedRelation: "auto_robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auto_robots: {
+        Row: {
+          account_login: number
+          account_server: string
+          bot_name: string
+          detail: string | null
+          id: string
+          last_run_at: string | null
+          news_enabled: boolean
+          owner_key: string
+          running: boolean
+          symbols: Json
+          token_cipher: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_login: number
+          account_server: string
+          bot_name?: string
+          detail?: string | null
+          id?: string
+          last_run_at?: string | null
+          news_enabled?: boolean
+          owner_key: string
+          running?: boolean
+          symbols?: Json
+          token_cipher?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_login?: number
+          account_server?: string
+          bot_name?: string
+          detail?: string | null
+          id?: string
+          last_run_at?: string | null
+          news_enabled?: boolean
+          owner_key?: string
+          running?: boolean
+          symbols?: Json
+          token_cipher?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       news_automation_orders: {
         Row: {
           job_id: string
