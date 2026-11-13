@@ -7,16 +7,16 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 test('failed MT5 verification never enables the robot', async () => {
   let enabled = false;
-  const start = new AsyncFunction('ea', 'robotSyncBusy', 'showDraggableIcon', 'botRunning', 'verifyRobotAccount', 'setBotRunning', 'toast', startBody.replace(/};\s*$/, ''));
-  await start({}, { current: false }, false, false, async () => { throw new Error('Disconnected'); }, () => { enabled = true; }, () => {});
+  const start = new AsyncFunction('ea', 'robotSyncBusy', 'showDraggableIcon', 'botRunning', 'verifyRobotAccount', 'setBotRunning', 'toast', 'setScanDismissed', 'setScanBanner', 'allowedSymbols', startBody.replace(/};\s*$/, ''));
+  await start({}, { current: false }, false, false, async () => { throw new Error('Disconnected'); }, () => { enabled = true; }, () => {}, () => {}, () => {}, {'XAUUSD.m':{}});
   expect(enabled).toBe(false);
 });
 
 test('verified MT5 starts locally without any cloud robot call', async () => {
   let enabled = false;
   const session = {current:''};
-  const start = new AsyncFunction('ea','robotSyncBusy','showDraggableIcon','botRunning','verifyRobotAccount','botSessionRef','setBotRunning','setShowDraggableIcon','setShowBotPopup','toast','autoScanEnabled',startBody.replace(/};\s*$/, ''));
-  await start({}, {current:false}, false, false, async () => 'fixture-token', session, v => {enabled=v;}, () => {}, () => {}, () => {}, true);
+  const start = new AsyncFunction('ea','robotSyncBusy','showDraggableIcon','botRunning','verifyRobotAccount','botSessionRef','setBotRunning','setShowDraggableIcon','setShowBotPopup','toast','autoScanEnabled','setScanDismissed','setScanBanner','allowedSymbols',startBody.replace(/};\s*$/, ''));
+  await start({}, {current:false}, false, false, async () => 'fixture-token', session, v => {enabled=v;}, () => {}, () => {}, () => {}, true, () => {}, () => {}, {'XAUUSD.m':{}});
   expect(enabled).toBe(true);
   expect(session.current).toBe('fixture-token');
 });

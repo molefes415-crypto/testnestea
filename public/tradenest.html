@@ -12,6 +12,7 @@
   <script defer src="https://unpkg.com/@babel/standalone@7.21.4/babel.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rubik+Glitch&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/scanner.css">
+  <link rel="stylesheet" href="/robot-scan.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1109,6 +1110,29 @@
 
     // ====== Still Pane pro UI ======
     // ====== INTERFACE 5 — screenshot spec: cream page, hero bot card, gradient ADD ROBOT pill ======
+    const RobotScanBox = ({ scan, image, onDismiss }) => {
+      if (!scan) return null;
+      const phase = scan.phase || 'error';
+      const stage = phase === 'connecting' ? 0 : ['executing','executed'].includes(phase) ? 2 : 1;
+      const signal = scan.signal;
+      const directional = signal && ['BUY','SELL'].includes(signal.direction);
+      const busy = ['connecting','loading','executing'].includes(phase);
+      const label = phase === 'connecting' ? 'CONNECT' : phase === 'error' ? 'UNAVAILABLE' : phase === 'executing' ? 'EXECUTING' : phase === 'executed' ? 'EXECUTED' : phase === 'paused' ? 'PAUSED' : 'READY';
+      return <section className="robot-scan-box" data-phase={phase} aria-label="Automatic trading progress" aria-live="polite">
+        <div className="robot-scan-top">
+          {directional && <span className="robot-scan-badge robot-scan-direction" data-direction={signal.direction}>{signal.direction === 'BUY' ? '↑' : '↓'} {signal.direction}</span>}
+          <span className="robot-scan-badge"><span className="robot-scan-dot"/>{label}</span>
+        </div>
+        <button className="robot-scan-dismiss" aria-label="Dismiss scanning box" onClick={onDismiss}>×</button>
+        <div className="robot-scan-main"><div><h2>{scan.symbol || 'MT5'}</h2><p className="robot-scan-label">Market scan</p></div>
+          {image ? <img className="robot-scan-logo" src={image} alt="Robot"/> : <span className="robot-scan-logo robot-scan-fallback" aria-hidden="true">◎</span>}
+        </div>
+        <p className="robot-scan-status">{busy ? <span className="robot-scan-spinner"/> : <span className="robot-scan-status-icon">{phase === 'error' ? '!' : '✓'}</span>}<span>{scan.subtitle}</span></p>
+        <div className="robot-scan-steps">{['Connect','Terminal','Execute'].map((step,i)=><div key={step} className={`robot-scan-step ${i <= stage && phase !== 'error' ? 'is-active' : ''}`}>{step}</div>)}</div>
+        {directional && <div className="robot-scan-analysis" data-direction={signal.direction}><small>LOCAL TRADE ANALYSIS</small><h3>{signal.symbol} {signal.direction}</h3><div className="robot-scan-levels"><span>Entry {signal.entry ?? '—'}</span><span>SL {signal.sl ?? 'None · Swing'}</span><span>TP {signal.tp ?? 'None · Swing'}</span></div></div>}
+      </section>;
+    };
+
     const StillPaneProHomeView = ({ eas, selectedEA, setSelectedEA, onAddEA, onRemoveEA, onStartTrading, showDraggableIcon, botSettings, onOpenSettings, onOpenChartAnalyzer, themeColor, allowedSymbols, onAllowedChange, buttonStyle, scanBanner, onDismissScan, customBgImage, customBgVideo, backgroundSrc }) => {
       const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
       const [quotesEA, setQuotesEA] = useState(null);
@@ -1137,21 +1161,6 @@
           {hasCustomBg && <div style={{position:'fixed',inset:0,background:'rgba(245,239,230,0.55)',backdropFilter:'blur(2px)',zIndex:1}}/>}
 
           <div style={{position:'relative',zIndex:10}}>
-            {/* Scanning banner (auto-analyse notification) */}
-            {scanBanner && (
-              <div style={{margin:'6px 4px 14px',background:'#0e0e0e',border:'1px solid rgba(255,255,255,0.08)',borderRadius:22,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,boxShadow:'0 8px 22px rgba(0,0,0,0.18)'}} className="animate-fade-in">
-                <div style={{position:'relative',width:38,height:38,flexShrink:0}}>
-                  <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'3px solid rgba(255,255,255,0.08)'}}/>
-                  <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'3px solid transparent',borderTopColor:'#22c55e',borderRightColor:'#22c55e',animation:'spin 1.1s linear infinite'}}/>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{color:'#fff',fontSize:13,fontWeight:700,lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{scanBanner.title || `${displayName} Scanning Markets…`}</p>
-                  <p style={{color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:2}}>{scanBanner.subtitle || 'Analysing chart'}</p>
-                </div>
-                <button onClick={onDismissScan} style={{background:'rgba(255,255,255,0.08)',border:'none',width:26,height:26,borderRadius:'50%',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>×</button>
-              </div>
-            )}
-
             {/* Hero bot card */}
             <div style={{position:'relative',borderRadius:32,padding:2,background:'linear-gradient(135deg,#ff8a3d 0%,#ff5da2 45%,#ff2d55 100%)',boxShadow:'0 22px 55px rgba(255,90,140,0.28), 0 0 0 1px rgba(255,255,255,0.4) inset'}}>
               <div style={{position:'relative',borderRadius:30,overflow:'hidden',background:'#111',aspectRatio:'1 / 1.05'}}>
@@ -5346,7 +5355,8 @@ const HomeView = ({
       const [tradeDelaySeconds, setTradeDelaySeconds] = useState(0);
 
       // ===== Auto AI-scan banner + auto-execute (opt-in from Settings) =====
-      const [scanBanner, setScanBanner] = useState(null); // { title, subtitle } | null
+      const [scanBanner, setScanBanner] = useState(null);
+      const [scanDismissed, setScanDismissed] = useState(false);
       const autoScanRanRef = useRef(false);
       const [scannerAccount, setScannerAccount] = useState(() => localStorage.getItem('mt_accountId_mt5') || '');
       useEffect(() => {
@@ -5354,7 +5364,7 @@ const HomeView = ({
           const token = localStorage.getItem('mt_accountId_mt5') || '';
           setScannerAccount(token);
           if (botSessionRef.current && botSessionRef.current !== token) {
-            botSessionRef.current = ''; setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false);
+            botSessionRef.current = ''; setBotRunning(false); setScanBanner(null); setPendingSignal(null); setShowDraggableIcon(false); setScanBanner(null);
           }
         };
         const timer = setInterval(check, 1000);
@@ -5406,22 +5416,22 @@ const HomeView = ({
           if (!current() || sampling) return;
           sampling = true;
           try { for (const symbol of FOCUS) { if (!current()) break; await liveBrokerScanner.snapshot(symbol); } }
-          catch (error) { if (current()) setScanBanner({title:'Broker prices unavailable',subtitle:error.message}); }
+          catch (error) { if (current()) setScanBanner({phase:'error',subtitle:error.message}); }
           finally { sampling = false; }
         };
 
         const scanOne = async (base) => {
           const rawSymbol = applyBrokerSuffix(base, broker);
-          setScanBanner({ title: `${botName} · ${base}`, subtitle: 'Analysing live quote trend locally' });
+          setScanBanner({ phase:'loading', symbol:base, subtitle:'Loading symbol' });
           try {
             const liveMarket = await liveBrokerScanner.snapshot(base);
             if (!current()) return false;
-            setScanBanner({ title: `${botName} · ${base}`, subtitle: `Bid ${liveMarket.bid} · Ask ${liveMarket.ask} · Spread ${liveMarket.spread}` });
+            setScanBanner({ phase:'ready', symbol:base, subtitle:`Bid ${liveMarket.bid} · Ask ${liveMarket.ask} · Spread ${liveMarket.spread}` });
             const cfg = allowedSymbols[base] || {};
             const style = cfg.style || 'day';
             const data = window.TNLocalRobot.analyse(liveMarket, style);
             if (!current()) return false;
-            setScanBanner({ title: `${botName} · ${base}`, subtitle: data.reason || `${data.strategy} · ${data.direction}` });
+            setScanBanner({ phase:'ready', symbol:base, signal:data, subtitle:data.reason || `${data.strategy} · ${data.direction}` });
             if (data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL')) {
               const r = await fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=positions`, { headers: {'X-MT5-Token':scannerAccount}, credentials:'omit' });
               const positions = await r.json();
@@ -5443,6 +5453,7 @@ const HomeView = ({
               setPendingSignal({
                 symbol: rawSymbol,
                 direction: data.direction,
+                entry: data.entry,
                 tp: data.tp, sl: data.sl,
                 orderType: data.orderType || 'instant',
                 trailStart: data.trailStart, trailStep: data.trailStep,
@@ -5454,7 +5465,7 @@ const HomeView = ({
               });
               return true;
             }
-          } catch(error) { if (current()) setScanBanner({title:'Scan unavailable',subtitle:error.message}); }
+          } catch(error) { if (current()) setScanBanner({phase:'error',symbol:base,subtitle:error.message}); }
           return false;
         };
 
@@ -5488,17 +5499,21 @@ const HomeView = ({
         robotSyncBusy.current = true;
         try {
           if (showDraggableIcon || botRunning) { handleFullStop(); return; }
+          setScanDismissed(false);
+          setScanBanner({phase:'connecting',symbol:Object.keys(allowedSymbols || {})[0],subtitle:'Connecting…'});
           const token = await verifyRobotAccount(ea);
+          setScanBanner({phase:autoScanEnabled ? 'ready' : 'paused',symbol:Object.keys(allowedSymbols || {})[0],subtitle:autoScanEnabled ? 'Loading symbol' : 'Auto Scanner is off'});
           botSessionRef.current = token;
           setBotRunning(true);
           setShowDraggableIcon(true);
-          setShowBotPopup(true);
+          setShowBotPopup(false);
           toast({title:'Robot started', description: autoScanEnabled ? 'Collecting broker prices for local automatic trading. Keep the app open.' : 'Enable Auto Scanner in Settings for local automatic trading.'});
-        } catch (e) { toast({title:'Robot not started',description:e.message}); }
+        } catch (e) { setScanBanner({phase:'error',subtitle:e.message}); toast({title:'Robot not started',description:e.message}); }
         finally { robotSyncBusy.current = false; }
       };
       const handleFullStop = () => {
         botSessionRef.current = '';
+        setScanBanner(null);
         if(tradeDelayTimer){clearInterval(tradeDelayTimer);setTradeDelayTimer(null);setTradeDelaySeconds(0);}
         setBotRunning(false); setPendingSignal(null); setShowDraggableIcon(false); setShowBotPopup(false); setTradingEA(null);
         toast({title:'Stopped',description:'Automatic trading stopped.'});
@@ -5604,6 +5619,7 @@ const HomeView = ({
         for (const s of steps) { pushStepLog(s); await new Promise(r=>setTimeout(r,250)); }
         const count = Math.max(1, Math.min(50, parseInt(signal.numTrades, 10) || 1));
         pushStepLog(`Placing ${count} trade${count>1?'s':''} on ${signal.symbol}`);
+        setScanBanner({phase:'executing',symbol:signal.symbol,signal,subtitle:`Placing 0/${count} trades`});
         let successCount = 0;
         // Send each slot once; never retry an ambiguous financial order.
         const activeToken = signal.token || botSessionRef.current;
@@ -5613,11 +5629,13 @@ const HomeView = ({
           if (!placed) { pushStepLog(`Trade ${i+1}/${count} not confirmed — batch stopped, no retry`); break; }
           if (placed) {
             successCount++;
+            setScanBanner({phase:'executing',symbol:signal.symbol,signal,subtitle:`Placed ${successCount}/${count} trades`});
             pushStepLog(`Trade ${i+1}/${count} placed`);
             setExecutionLogs(prev => [...prev, { id: Date.now()+Math.random(), time: new Date().toLocaleTimeString(), pair: signal.symbol, action: signal.direction, tp: signal.tp, sl: signal.sl, lot: signal.lotSize, entry: 'MARKET', order: '#' + (309304330 + prev.length) }]);
           }
           if (i < count - 1) await new Promise(r=>setTimeout(r, 400));
         }
+        if (botSessionRef.current === activeToken) setScanBanner({phase:successCount === count ? 'executed' : 'error',symbol:signal.symbol,signal,subtitle:successCount === count ? `${successCount}/${count} trades confirmed` : `${successCount}/${count} confirmed · batch stopped, no retry`});
         toast({
           title: successCount === count ? `✅ ${count}/${count} trades placed` : `⚠️ ${successCount}/${count} trades placed`,
           description: `${signal.direction} ${signal.symbol} · Lot ${signal.lotSize}`,
@@ -5741,23 +5759,10 @@ const HomeView = ({
           
           <ColorPickerPanel isOpen={showColorPicker} onClose={()=>setShowColorPicker(false)} onColorChange={handleColorChange} currentColor={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect}/>
           <BotSettingsModal isOpen={isSettingsModalOpen} onClose={()=>setIsSettingsModalOpen(false)} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem("interfaceMode",m);}} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>
-          {/* Global auto-scan notification banner — shows on every interface */}
-          {scanBanner && !showChartAnalyzer && (
-            <div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:0,right:0,zIndex:400,display:'flex',justifyContent:'center',pointerEvents:'none'}}>
-              <div style={{pointerEvents:'auto',width:'min(94%,460px)',background:'rgba(14,14,14,0.94)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:22,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,boxShadow:'0 14px 40px rgba(0,0,0,0.5)'}} className="animate-fade-in">
-                <div style={{position:'relative',width:38,height:38,flexShrink:0}}>
-                  <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'3px solid rgba(255,255,255,0.08)'}}/>
-                  <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'3px solid transparent',borderTopColor:'#22c55e',borderRightColor:'#22c55e',animation:'spin 1.1s linear infinite'}}/>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{color:'#fff',fontSize:13,fontWeight:700,lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',margin:0}}>{scanBanner.title || 'AI Scanning Markets…'}</p>
-                  <p style={{color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:2,margin:0}}>{scanBanner.subtitle || 'Analysing chart'}</p>
-                </div>
-                <button onClick={()=>setScanBanner(null)} style={{background:'rgba(255,255,255,0.08)',border:'none',width:26,height:26,borderRadius:'50%',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>×</button>
-              </div>
-            </div>
-          )}
-          <div className="tn-app-page" style={{position:'relative',zIndex:2,maxWidth:480,margin:'0 auto',paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 24px)'}}>{renderContent()}</div>
+          <div className="tn-app-page" style={{position:'relative',zIndex:2,maxWidth:480,margin:'0 auto',paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 24px)'}}>
+            {!showSplash && authStep === 'done' && !showChartAnalyzer && !scanDismissed && <RobotScanBox scan={scanBanner} image={botSettings.image || selectedEA?.mentorLogo} onDismiss={()=>setScanDismissed(true)}/>}
+            {renderContent()}
+          </div>
           {!showSplash && authStep==='done' && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} tc={themeColor}/>}
 
         </div>

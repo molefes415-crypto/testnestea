@@ -1,0 +1,30 @@
+.robot-scan-box { position:relative;z-index:190;margin:12px 12px 20px;padding:18px;border:1px solid var(--scanner-foreground);border-radius:28px;background:color-mix(in oklch,var(--scanner-background) 94%,transparent);color:var(--scanner-foreground);font-family:Arial,sans-serif;letter-spacing:0;box-shadow:0 6px 22px color-mix(in oklch,var(--scanner-background) 50%,transparent); }
+.robot-scan-top { display:flex;gap:8px;align-items:center;min-height:30px;padding-right:38px;flex-wrap:wrap; }
+.robot-scan-badge { display:inline-flex;align-items:center;gap:6px;border:1px solid var(--scanner-border);border-radius:999px;padding:5px 10px;font-size:10px;font-weight:700; }
+.robot-scan-dot { width:6px;height:6px;border-radius:50%;background:var(--scanner-muted); }
+.robot-scan-box[data-phase="connecting"] .robot-scan-dot { background:var(--scanner-waiting); }
+.robot-scan-box[data-phase="error"] .robot-scan-dot { background:var(--scanner-danger); }
+.robot-scan-direction { background:var(--scanner-accent);color:var(--scanner-background);border-radius:6px; }
+.robot-scan-direction[data-direction="SELL"] { background:var(--scanner-danger);color:var(--scanner-foreground); }
+.robot-scan-dismiss { position:absolute;top:16px;right:16px;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--scanner-border);border-radius:50%;background:var(--scanner-surface);color:var(--scanner-foreground);font-size:20px;cursor:pointer; }
+.robot-scan-main { display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:12px; }
+.robot-scan-main h2 { font-size:26px;font-weight:800;line-height:1.15;overflow-wrap:anywhere;margin:0;letter-spacing:0; }
+.robot-scan-label { color:var(--scanner-muted);font-size:13px;margin-top:4px; }
+.robot-scan-logo { width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--scanner-border);flex-shrink:0; }
+.robot-scan-fallback { display:grid;place-items:center;font-size:24px;color:var(--scanner-accent); }
+.robot-scan-status { display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.45;margin:12px 0 18px;overflow-wrap:anywhere; }
+.robot-scan-status-icon { color:var(--scanner-accent); }
+.robot-scan-box[data-phase="error"] .robot-scan-status-icon { color:var(--scanner-danger); }
+.robot-scan-spinner { width:16px;height:16px;border:2px solid var(--scanner-border);border-top-color:var(--scanner-foreground);border-radius:50%;animation:spin 1.1s linear infinite;flex-shrink:0;margin-top:2px; }
+.robot-scan-steps { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));text-align:center;font-size:11px;font-weight:700; }
+.robot-scan-step { position:relative;padding-top:15px;color:var(--scanner-muted); }
+.robot-scan-step::before { content:"";position:absolute;top:3px;left:0;right:0;height:1px;background:var(--scanner-border); }
+.robot-scan-step:first-child::before { left:50%; }.robot-scan-step:last-child::before { right:50%; }
+.robot-scan-step::after { content:"";position:absolute;top:0;left:calc(50% - 4px);width:8px;height:8px;border-radius:50%;background:var(--scanner-muted); }
+.robot-scan-step.is-active { color:var(--scanner-foreground); }.robot-scan-step.is-active::after { background:var(--scanner-foreground); }
+.robot-scan-analysis { margin:16px -8px -8px;padding:14px 12px;border-radius:20px;border:1px solid var(--scanner-foreground);background:var(--scanner-background); }
+.robot-scan-analysis small { color:var(--scanner-muted);font-size:10px;font-weight:700; }
+.robot-scan-analysis h3 { font-size:21px;color:var(--scanner-accent);margin:8px 0;overflow-wrap:anywhere;letter-spacing:0; }
+.robot-scan-analysis[data-direction="SELL"] h3 { color:var(--scanner-danger); }
+.robot-scan-levels { display:flex;flex-wrap:wrap;gap:5px 10px;font-size:12px;line-height:1.5; }
+@media(prefers-reduced-motion:reduce) { .robot-scan-spinner { animation:none; } }
