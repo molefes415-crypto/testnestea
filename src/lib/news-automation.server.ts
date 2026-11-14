@@ -12,7 +12,7 @@ export async function automationDB() { const {supabaseAdmin}=await import('@/int
 export async function jobsDB() { const db=await automationDB();return db as unknown as import('@supabase/supabase-js').SupabaseClient; }
 export async function verifyAutomationOwner(token:string) {
  if(!token||token.length>4096) throw new Error('Connect a verified MT5 account first.');
- const account=await createMT5Service().account(token);
+ const account=await createMT5Service(fetch,{retryReadFailures:true}).account(token);
  if(!verifiedNewsAccount(account)) throw new Error('Reconnect your MT5 account.');
  return {account,key:owner(token)};
 }
@@ -25,7 +25,7 @@ export async function scheduleAutomation(token:string,input:AutomationInput) {
  const params=automationSchema.parse(input);const {account,key}=await verifyAutomationOwner(token);
  const event=(await getNewsEvents()).find(e=>e.id===params.eventId);if(!event) throw new Error('Event is no longer in the verified calendar. Refresh it.');
  const executeAt=executionTime(event.time_utc,params.leadSeconds,Date.now());
- const service=createMT5Service();for(const symbol of params.symbols){const q=await service.quote(token,symbol);if(q.symbol!==symbol)throw new Error(`Exact broker symbol unavailable: ${symbol}`);}
+ const service=createMT5Service(fetch,{retryReadFailures:true});for(const symbol of params.symbols){const q=await service.quote(token,symbol);if(q.symbol!==symbol)throw new Error(`Exact broker symbol unavailable: ${symbol}`);}
  const db=await jobsDB();const {data,error}=await db.from('news_automations').insert({owner_key:key,event_id:event.id,event_data:event,account_login:account.login,account_server:account.server,token_cipher:encrypt(token),symbols:[...new Set(params.symbols)],lot:params.lot,trades:params.trades,lead_seconds:params.leadSeconds,execute_at:executeAt}).select('id').single();
  if(error||!data)throw new Error(error?.code==='23505'?'This event already has a schedule for this account.':'Schedule could not be saved. The hosted database must be active.');
  try {
@@ -43,7 +43,7 @@ export async function cancelAutomation(token:string,id:string) {
 }
 export async function prepareAutomation(id:string) {
  const db=await jobsDB();const {data:job}=await db.from('news_automations').select('*').eq('id',id).in('status',['queued','scheduled']).single();if(!job)return {signals:[]};
- const token=decrypt(job.token_cipher);const service=createMT5Service();const info=await service.account(token);
+ const token=decrypt(job.token_cipher);const service=createMT5Service(fetch,{retryReadFailures:true});const info=await service.account(token);
  if(!verifiedNewsAccount(info,{login:Number(job.account_login),server:job.account_server}))throw new Error('Scheduled account verification failed.');
  const event=(await getNewsEvents()).find(e=>e.id===job.event_id);
  if(!event||event.time_utc!==(job.event_data as NewsEvent).time_utc)throw new Error('Event time changed. Schedule skipped.');

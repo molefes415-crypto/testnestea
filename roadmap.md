@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Add one transport-only recovery attempt for news arming/preparation reads, credential-free connection diagnostics and automatic removal of recovered status errors; gateway health currently passes. Live personal-account scheduling remains unverified.
+
 - [x] Switch Fundamentals to the new portal calendar with documented timestamps and SAST groups; ten calendar/automation tests pass and browser confirms the false API-key event is removed without errors.
 - [x] Verify live new-calendar events — portal and app return 357 real events; browser confirms today's 13:00 GBP speech and tomorrow's 23:30 NZD release in SAST. Fixed unzoned SAST parsing, invalidated mis-timed cache rows, and passed twelve calendar/automation tests; no trades requested.
 

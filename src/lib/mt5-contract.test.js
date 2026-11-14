@@ -3,6 +3,32 @@ import { exactBrokerSymbol, preserveOrderStops, readExistingMT5Identity } from "
 import { createMT5Service, isMT5SessionExpired } from "./mt5-service";
 
 describe("MT5 gateway safety", () => {
+  test("news account reads recover once from a temporary transport failure", async () => {
+    let calls = 0;
+    const service = createMT5Service(async () => {
+      calls++;
+      if (calls === 1) throw new TypeError("Failed to fetch");
+      return Response.json({ login: 123456, balance: 198.79, server: "JustMarkets-Demo" });
+    }, { retryReadFailures: true });
+    expect((await service.account("test-token")).login).toBe(123456);
+    expect(calls).toBe(2);
+  });
+  test("news recovery never retries a rejected personal token", async () => {
+    let calls = 0;
+    const service = createMT5Service(async () => { calls++; return Response.json({ detail: "Invalid token" }, { status: 401 }); }, { retryReadFailures: true });
+    await expect(service.account("test-token")).rejects.toThrow("401");
+    expect(calls).toBe(1);
+  });
+  test("news read recovery never replays an ambiguous order", async () => {
+    let orders = 0;
+    const service = createMT5Service(async (url, init) => {
+      if (init.method === "GET") return Response.json({ symbol: "BTCUSD.m", bid: 100, ask: 101 });
+      orders++;
+      throw new TypeError("Failed to fetch");
+    }, { retryReadFailures: true });
+    await expect(service.trade("test-token", { symbol: "BTCUSD.m", side: "buy", volume: 0.01, sl: 99, tp: 103, comment: "News AI" })).rejects.toThrow("server could not reach");
+    expect(orders).toBe(1);
+  });
   test("temporary gateway errors retain sessions but rejected tokens require login", () => {
     expect(isMT5SessionExpired(new Error("MT5 gateway (404): Not found"))).toBe(false);
     expect(isMT5SessionExpired(new Error("MT5 gateway (500): unavailable"))).toBe(false);

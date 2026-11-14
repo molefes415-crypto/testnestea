@@ -13,17 +13,17 @@ export function NewsEventAutomation({event,onClose}:{event:EventInfo|null;onClos
  const arm=useServerFn(armNewsSchedule),read=useServerFn(readNewsSchedules),cancel=useServerFn(cancelNewsSchedule);
  const [allowed,setAllowed]=useState<string[]>([]),[symbols,setSymbols]=useState<string[]>([]),[search,setSearch]=useState('');
  const [lot,setLot]=useState('0.01'),[trades,setTrades]=useState('1'),[lead,setLead]=useState('60'),[unit,setUnit]=useState('seconds');
- const [jobs,setJobs]=useState<AutomationJob[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[clock,setClock]=useState(Date.now());
+ const [jobs,setJobs]=useState<AutomationJob[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[readError,setReadError]=useState(''),[clock,setClock]=useState(Date.now());
  useEffect(()=>{
   if(!event)return;
-  setSymbols([]);setSearch('');setMessage('');setJobs([]);
+  setSymbols([]);setSearch('');setMessage('');setReadError('');setJobs([]);
   try{setAllowed(Object.keys(JSON.parse(localStorage.getItem('allowedSymbols')??'{}')));}catch{setAllowed([]);}
   let stopped=false;let poll:ReturnType<typeof setTimeout>|undefined;
   const token=localStorage.getItem(ACTIVE_KEY);
   async function refresh(){
    if(!token||stopped)return;
-   try{const result=await read({data:{token}});if(!stopped&&localStorage.getItem(ACTIVE_KEY)===token)setJobs(result as AutomationJob[]);}
-   catch(e){if(!stopped)setMessage(e instanceof Error?e.message:'Saved automation status unavailable.');}
+   try{const result=await read({data:{token}});if(!stopped&&localStorage.getItem(ACTIVE_KEY)===token){setJobs(result as AutomationJob[]);setReadError('');}}
+   catch(e){if(!stopped&&localStorage.getItem(ACTIVE_KEY)===token)setReadError(e instanceof Error?e.message:'Saved automation status unavailable.');}
    finally{if(!stopped)poll=setTimeout(()=>void refresh(),5000);}
   }
   void refresh();const timer=setInterval(()=>setClock(Date.now()),1000);
@@ -50,6 +50,7 @@ export function NewsEventAutomation({event,onClose}:{event:EventInfo|null;onClos
  {target&&<p className="text-xs text-muted-foreground text-center">Execution {new Date(target).toLocaleTimeString('en-ZA',{timeZone:'Africa/Johannesburg'})} SAST</p>}
  {existing&&<div role="status" className="text-sm"><strong className="capitalize">{existing.status}</strong><p className="text-xs text-muted-foreground">{existing.detail}</p>{['queued','scheduled','preparing'].includes(existing.status)&&<Button variant="outline" size="sm" disabled={busy} onClick={()=>void remove()}><X/>Cancel automation</Button>}</div>}
  {message&&<p role="status" className="text-sm text-center">{message}</p>}
+ {!message&&readError&&<p role="status" className="text-sm text-center">{readError}</p>}
  <Button className="automation-submit" disabled={busy||!target||!symbols.length||Boolean(existing)} onClick={()=>void submit()}><Zap/>{busy?'Saving…':'Automate news'}</Button>
  </DialogContent></Dialog>;
 }

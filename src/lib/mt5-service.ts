@@ -4,7 +4,7 @@ export function isMT5SessionExpired(error: unknown) {
   return error instanceof Error && /MT5 gateway \((401|403)\)|different account|mismatch/i.test(error.message);
 }
 
-export function createMT5Service(request: typeof fetch = fetch) {
+export function createMT5Service(request: typeof fetch = fetch, options: { retryReadFailures?: boolean } = {}) {
   // A host timeout page lacks CORS headers, so the browser reports it as a network error; probe health to tell them apart.
   async function gatewayOnline() {
     try {
@@ -26,8 +26,21 @@ export function createMT5Service(request: typeof fetch = fetch) {
     if (token) headers.set("X-MT5-Token", token);
     let response: Response;
     try {
-      response = await request(url.toString(), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(action === "link" ? 200000 : 30000), redirect: "error", credentials: "omit" });
+      const send = () => request(url.toString(), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(action === "link" ? 200000 : 30000), redirect: "error", credentials: "omit" });
+      try { response = await send(); }
+      catch (error) {
+        // Only opted-in read requests can recover; never replay a trading write or login.
+        if (!options.retryReadFailures || action !== "proxy" || method !== "GET" || !(error instanceof TypeError)) throw error;
+        await new Promise(resolve => setTimeout(resolve, 500));
+        response = await send();
+      }
     } catch (error) {
+      if (typeof window === "undefined") {
+        const cause = error instanceof Error ? error.cause : undefined;
+        const code = cause && typeof cause === "object" && "code" in cause ? String(cause.code).replace(/[^A-Z0-9_]/g, "").slice(0, 64) : "unknown";
+        // Never log URLs, headers, tokens, bodies or an upstream error's free-form message.
+        console.error("MT5 gateway transport failure", { action, method, kind: error instanceof Error ? error.name : "unknown", code });
+      }
       if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) throw new Error("MT5 gateway connection timed out. Try again and check the trading server.");
       if (action === "link" && await gatewayOnline()) throw new Error("The MT5 gateway is online, but the broker login did not finish in time. The MT5 terminal on the gateway server is starting slowly or stuck; try Connect again in a minute.");
       if (typeof window === "undefined") throw new Error("The robot server could not reach the MT5 gateway. Your app connection may still work; server trading was not confirmed. Try again shortly.");
