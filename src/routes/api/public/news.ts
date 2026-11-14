@@ -22,7 +22,8 @@ export const Route = createFileRoute("/api/public/news")({
           if (action === "calendar") {
             const impact = url.searchParams.get("impact")?.toLowerCase();
             const list = impact ? events.filter((e) => e.impact === impact) : events;
-            return json({ success: true, source: "FinanceCalendar.com", count: list.length, events: list });
+            return json({ success: true, source: "ShowMyTrades via TradeNest", timezone: { name: "Africa/Johannesburg", label: "SAST", utc_offset: "+02:00" }, count: list.length, events: list,
+              groups: { today: list.filter(e => e.day === "today"), tomorrow: list.filter(e => e.day === "tomorrow"), next_week: list.filter(e => e.day === "next_week") } });
           }
           if (action === "predict") {
             const required = process.env["SCANNER_API_KEY"];
