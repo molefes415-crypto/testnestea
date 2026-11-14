@@ -1,4 +1,4 @@
-.robot-scan-box { position:relative;z-index:190;margin:12px 12px 20px;padding:18px;border:1px solid var(--scanner-foreground);border-radius:28px;background:color-mix(in oklch,var(--scanner-background) 94%,transparent);color:var(--scanner-foreground);font-family:Arial,sans-serif;letter-spacing:0;box-shadow:0 6px 22px color-mix(in oklch,var(--scanner-background) 50%,transparent); }
+.robot-scan-box { --robot-scan-edge:var(--robot-scan-accent,var(--scanner-accent));--robot-scan-glow:0 0 18px color-mix(in oklch,var(--robot-scan-edge) 45%,transparent),0 0 36px color-mix(in oklch,var(--robot-scan-edge) 20%,transparent),inset 0 0 16px color-mix(in oklch,var(--robot-scan-edge) 12%,transparent);position:relative;z-index:190;margin:12px 12px 20px;padding:18px;border:1px solid var(--robot-scan-edge);border-radius:28px;background:color-mix(in oklch,var(--scanner-background) 94%,transparent);color:var(--scanner-foreground);font-family:Arial,sans-serif;letter-spacing:0;box-shadow:var(--robot-scan-glow);transition:border-color 180ms ease,box-shadow 180ms ease; }
 .robot-scan-top { display:flex;gap:8px;align-items:center;min-height:30px;padding-right:38px;flex-wrap:wrap; }
 .robot-scan-badge { display:inline-flex;align-items:center;gap:6px;border:1px solid var(--scanner-border);border-radius:999px;padding:5px 10px;font-size:10px;font-weight:700; }
 .robot-scan-dot { width:6px;height:6px;border-radius:50%;background:var(--scanner-muted); }
@@ -39,4 +39,4 @@
 .scanner-body > .robot-scan-box { margin:0 0 18px; }
 .robot-scan-notification { position:fixed;z-index:240;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 24px));pointer-events:none; }
 .robot-scan-notification > .robot-scan-box { margin:0;pointer-events:auto;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 100px);overflow-y:auto;overscroll-behavior:contain; }
-@media(prefers-reduced-motion:reduce) { .robot-scan-spinner { animation:none; } }
+@media(prefers-reduced-motion:reduce) { .robot-scan-spinner { animation:none; }.robot-scan-box { transition:none; } }

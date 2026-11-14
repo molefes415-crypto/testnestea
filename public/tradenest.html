@@ -4802,7 +4802,7 @@ const HomeView = ({
 
       const [themeColor, setThemeColor] = useState(()=>{try{const s=localStorage.getItem('appThemeColor');return s?JSON.parse(s):null;}catch{return null;}});
       const [themeName, setThemeName] = useState(()=>{try{return localStorage.getItem('appThemeName')||'';}catch{return '';}});
-      useEffect(()=>{ try { window.__TN_THEME_ACCENT__ = themeColor?.accent || '#8b8b8b'; } catch(_){} },[themeColor]);
+      useEffect(()=>{ try { window.__TN_THEME_ACCENT__ = themeColor?.accent || '#8b8b8b'; if(themeColor?.accent) document.documentElement.style.setProperty('--robot-scan-accent',themeColor.accent); else document.documentElement.style.removeProperty('--robot-scan-accent'); } catch(_){} },[themeColor]);
       const handleColorChange = (color,name) => { setThemeColor(color); setThemeName(name); localStorage.setItem('appThemeColor',JSON.stringify(color)); localStorage.setItem('appThemeName',name); try{window.__TN_THEME_ACCENT__ = color?.accent || '#8b8b8b';}catch(_){} };
 
       const [activeEffect, setActiveEffect] = useState(null);
