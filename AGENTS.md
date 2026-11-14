@@ -26,4 +26,4 @@
 - The economic calendar is cached server-side in a shared database row (30-minute freshness, last good copy served on feed failure) because the free feed rate-limits per IP.
 - Run automatic robot analysis in the browser using locally sampled exact-symbol broker quotes; verify the MT5 account before Start, use the PHP gateway for orders, and never require cloud robot sync. Browser automation stops when the app closes.
 - Coalesce simultaneous same-session/symbol quote reads and retain only recent in-memory samples across robot restarts; account changes clear history and strategy warm-up is never bypassed to force immediate trades.
-- Present robot progress and chart signal details/diagnostics in the shared top scan box, not separate bottom signal cards, so analysis and confirmed execution remain consistent across interfaces without requiring an image.
+- Present robot progress in a fixed top notification that never shifts interfaces; reuse its signal details/diagnostics for chart results, hide readiness counters and neutral analysis duplicates, and mark Execute active only for real execution so notification styling never fabricates trading success.

@@ -1117,6 +1117,7 @@
       const signal = scan.signal;
       const directional = signal && ['BUY','SELL'].includes(signal.direction);
       const busy = ['connecting','loading','executing'].includes(phase);
+      const subtitle = String(scan.subtitle || '').startsWith('Preparing signal') ? 'Analyzing live broker prices' : scan.subtitle;
       const fmt = value => value == null || value === '' ? '—' : String(value);
       const confidence = signal?.confidence == null ? null : Number(signal.confidence);
       const details = signal ? [
@@ -1136,9 +1137,9 @@
         <div className="robot-scan-main"><div><h2>{scan.symbol || 'MT5'}</h2><p className="robot-scan-label">Market scan</p></div>
           {image ? <img className="robot-scan-logo" src={image} alt="Robot"/> : <span className="robot-scan-logo robot-scan-fallback" aria-hidden="true">◎</span>}
         </div>
-        <p className="robot-scan-status">{busy ? <span className="robot-scan-spinner"/> : <span className="robot-scan-status-icon">{phase === 'error' ? '!' : '✓'}</span>}<span>{scan.subtitle}</span></p>
-        <div className="robot-scan-steps">{['Connect','Terminal','Execute'].map((step,i)=><div key={step} className={`robot-scan-step ${i <= stage && phase !== 'error' ? 'is-active' : ''}`}>{step}</div>)}</div>
-        {signal && <div className="robot-scan-analysis" data-direction={signal.direction}>
+        <p className="robot-scan-status">{busy ? <span className="robot-scan-spinner"/> : <span className="robot-scan-status-icon">{phase === 'error' ? '!' : '✓'}</span>}<span>{subtitle}</span></p>
+        <div className="robot-scan-steps">{['Connect','Terminal','Execute'].map((step,i)=><div key={step} title={i === 2 && stage < 2 ? 'Waiting for a valid trade signal' : step} className={`robot-scan-step ${i <= stage && phase !== 'error' ? 'is-active' : ''}`}>{step}</div>)}</div>
+        {signal && signal.direction !== 'NEUTRAL' && <div className="robot-scan-analysis" data-direction={signal.direction}>
           <div className="robot-scan-analysis-heading"><small>{signal.signalId?.startsWith('local-') || signal.strategy === 'Local quote trend' ? 'LOCAL TRADE ANALYSIS' : 'TRADE ANALYSIS'}</small>{Number.isFinite(confidence) && <span className="robot-scan-confidence">{confidence}% CONF</span>}</div>
           <h3>{signal.symbol || scan.symbol} · {signal.direction}</h3>
           {directional && <div className="robot-scan-levels">{[['Entry',signal.entry],['Take profit',signal.tp],['Stop loss',signal.sl]].map(([name,value])=><div key={name}><small>{name}</small><b>{value == null && signal.style === 'swing' && name !== 'Entry' ? 'None · Swing' : fmt(value)}</b></div>)}</div>}
@@ -5669,8 +5670,8 @@ const HomeView = ({
           
           <ColorPickerPanel isOpen={showColorPicker} onClose={()=>setShowColorPicker(false)} onColorChange={handleColorChange} currentColor={themeName} currentFont={appFont} onFontChange={handleFontChange} onEffect={setActiveEffect}/>
           <BotSettingsModal isOpen={isSettingsModalOpen} onClose={()=>setIsSettingsModalOpen(false)} interfaceMode={interfaceMode} onInterfaceModeChange={m=>{setInterfaceMode(m);localStorage.setItem("interfaceMode",m);}} buttonStyle={buttonStyle} onButtonStyleChange={s=>{setButtonStyle(s);localStorage.setItem("buttonStyle",s);}}/>
+          {!showSplash && authStep === 'done' && !showChartAnalyzer && !scanDismissed && <div className="robot-scan-notification"><RobotScanBox scan={scanBanner} image={botSettings.image || selectedEA?.mentorLogo} onDismiss={()=>setScanDismissed(true)}/></div>}
           <div className="tn-app-page" style={{position:'relative',zIndex:2,maxWidth:480,margin:'0 auto',paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 24px)'}}>
-            {!showSplash && authStep === 'done' && !showChartAnalyzer && !scanDismissed && <RobotScanBox scan={scanBanner} image={botSettings.image || selectedEA?.mentorLogo} onDismiss={()=>setScanDismissed(true)}/>}
             {renderContent()}
           </div>
           {!showSplash && authStep==='done' && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} tc={themeColor}/>}

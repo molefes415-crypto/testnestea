@@ -37,4 +37,6 @@
 .robot-scan-details dd { margin:3px 0 0;font-size:12px;font-weight:700;overflow-wrap:anywhere; }
 .robot-scan-news { margin-top:14px;padding-top:12px;border-top:1px solid var(--scanner-border); }
 .scanner-body > .robot-scan-box { margin:0 0 18px; }
+.robot-scan-notification { position:fixed;z-index:240;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 24px));pointer-events:none; }
+.robot-scan-notification > .robot-scan-box { margin:0;pointer-events:auto;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 100px);overflow-y:auto;overscroll-behavior:contain; }
 @media(prefers-reduced-motion:reduce) { .robot-scan-spinner { animation:none; } }
