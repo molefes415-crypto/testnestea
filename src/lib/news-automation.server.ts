@@ -1,5 +1,5 @@
 import { createMT5Service } from './mt5-service';
-import { automationSchema, executionTime, validNewsSignal, confirmedOrder, type AutomationInput } from './news-automation';
+import { automationSchema, executionTime, validNewsSignal, confirmedOrder, verifiedNewsAccount, type AutomationInput } from './news-automation';
 import { getNewsEvents, type NewsEvent } from './news.server';
 import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 
@@ -13,7 +13,7 @@ export async function jobsDB() { const db=await automationDB();return db as unkn
 export async function verifyAutomationOwner(token:string) {
  if(!token||token.length>4096) throw new Error('Connect a verified MT5 account first.');
  const account=await createMT5Service().account(token);
- if(account.connected!==true) throw new Error('Reconnect your MT5 account.');
+ if(!verifiedNewsAccount(account)) throw new Error('Reconnect your MT5 account.');
  return {account,key:owner(token)};
 }
 export async function listAutomation(token:string) {
@@ -44,7 +44,7 @@ export async function cancelAutomation(token:string,id:string) {
 export async function prepareAutomation(id:string) {
  const db=await jobsDB();const {data:job}=await db.from('news_automations').select('*').eq('id',id).in('status',['queued','scheduled']).single();if(!job)return {signals:[]};
  const token=decrypt(job.token_cipher);const service=createMT5Service();const info=await service.account(token);
- if(info.connected!==true||info.login!==Number(job.account_login)||info.server!==job.account_server)throw new Error('Scheduled account verification failed.');
+ if(!verifiedNewsAccount(info,{login:Number(job.account_login),server:job.account_server}))throw new Error('Scheduled account verification failed.');
  const event=(await getNewsEvents()).find(e=>e.id===job.event_id);
  if(!event||event.time_utc!==(job.event_data as NewsEvent).time_utc)throw new Error('Event time changed. Schedule skipped.');
  const key=process.env['LOVABLE_API_KEY'];if(!key)throw new Error('AI not configured.');
@@ -63,7 +63,7 @@ export async function executeAutomation(id:string,signals:unknown[]) {
  try{
   const late=Date.now()-Date.parse(job.execute_at);if(late<0||late>5000)throw new Error('Execution window missed. No late orders sent.');
   const token=decrypt(job.token_cipher),service=createMT5Service();const info=await service.account(token);
-  if(info.connected!==true||info.login!==Number(job.account_login)||info.server!==job.account_server)throw new Error('Scheduled account verification failed.');
+  if(!verifiedNewsAccount(info,{login:Number(job.account_login),server:job.account_server}))throw new Error('Scheduled account verification failed.');
   for(const symbol of job.symbols){
    for(let ordinal=1;ordinal<=job.trades;ordinal++){
     if(Date.now()>Date.parse((job.event_data as NewsEvent).time_utc))throw new Error('Release already started. Remaining orders skipped.');

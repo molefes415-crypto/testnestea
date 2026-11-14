@@ -22,7 +22,9 @@
 
 - [x] Resolve paused-database blocker for Automate News — Cloud resumed and healthy; private schedule/order schema applied and browser access revoked, verified through database reads; five safety tests pass. No order placed.
 - [x] Add tappable news-event automation panel with exact symbols, lots, trade count, seconds/minutes lead time and cancel/status controls; browser validates 10 trades, exact XAUUSD.m selection, 5-minute timing, modal closing and disconnected-account block on mobile/desktop.
-- [ ] Activate secure AI-directed closed-app news execution — database ready; published /api/public/news-workflows returns 404 and preview returns 401, so publish updated app and sync Inngest before claiming activation. No registered Inngest app, real schedule or broker trade verified; personal MT5 test session still required.
+- [x] Register the published signed Inngest news workflow — registration returned HTTP 200, Successfully registered; signed preview and production discovery both report one function. Unsigned HTTP 401 is expected SDK protection, not an offline service.
+- [x] Fix news automation rejecting account reads with omitted optional connected flags across arming, preparation and execution; explicit disconnection and account mismatches remain blocked. Added visible errors and five-second status refresh; fourteen tests and panel checks pass.
+- [ ] Verify secure AI-directed closed-app news execution — live client scheduling and broker execution still require a personal MT5 test session and publishing the correction; no live job or order created during checks.
 
 - [x] Match Fundamentals with market-session flags and calendar periods; redesign chart scanner with pill selectors and upload area, and add Fundamentals beside Performance. Two session tests pass; browser verifies real calendar, filters, image upload preview, ICT/M15 selectors, Chart/News switching, no unsolicited analysis and mobile navigation with no runtime errors. Existing live broker/AI execution is unchanged and not retested with a real account.
 

@@ -14,7 +14,21 @@ export function NewsEventAutomation({event,onClose}:{event:EventInfo|null;onClos
  const [allowed,setAllowed]=useState<string[]>([]),[symbols,setSymbols]=useState<string[]>([]),[search,setSearch]=useState('');
  const [lot,setLot]=useState('0.01'),[trades,setTrades]=useState('1'),[lead,setLead]=useState('60'),[unit,setUnit]=useState('seconds');
  const [jobs,setJobs]=useState<AutomationJob[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[clock,setClock]=useState(Date.now());
- useEffect(()=>{if(!event)return;setSymbols([]);setMessage('');setJobs([]);try{setAllowed(Object.keys(JSON.parse(localStorage.getItem('allowedSymbols')??'{}')));}catch{setAllowed([]);}const token=localStorage.getItem(ACTIVE_KEY);if(token)void read({data:{token}}).then(result=>setJobs(result as AutomationJob[])).catch(()=>{});const timer=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(timer);},[event?.id,read]);
+ useEffect(()=>{
+  if(!event)return;
+  setSymbols([]);setSearch('');setMessage('');setJobs([]);
+  try{setAllowed(Object.keys(JSON.parse(localStorage.getItem('allowedSymbols')??'{}')));}catch{setAllowed([]);}
+  let stopped=false;let poll:ReturnType<typeof setTimeout>|undefined;
+  const token=localStorage.getItem(ACTIVE_KEY);
+  async function refresh(){
+   if(!token||stopped)return;
+   try{const result=await read({data:{token}});if(!stopped&&localStorage.getItem(ACTIVE_KEY)===token)setJobs(result as AutomationJob[]);}
+   catch(e){if(!stopped)setMessage(e instanceof Error?e.message:'Saved automation status unavailable.');}
+   finally{if(!stopped)poll=setTimeout(()=>void refresh(),5000);}
+  }
+  void refresh();const timer=setInterval(()=>setClock(Date.now()),1000);
+  return()=>{stopped=true;clearInterval(timer);if(poll)clearTimeout(poll);};
+ },[event?.id,read]);
  if(!event)return null;
  const seconds=Number(lead)*(unit==='minutes'?60:1);
  let target='';try{target=executionTime(event.time_utc,seconds,clock);}catch{}

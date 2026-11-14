@@ -8,6 +8,10 @@ export const automationSchema = z.object({
 }).strict();
 export type AutomationInput = z.infer<typeof automationSchema>;
 export type AutomationJob = { id: string; event_id: string; execute_at: string; symbols: string[]; lot: number; trades: number; status: string; detail: string | null };
+export function verifiedNewsAccount(account: { connected?: boolean; login: number; server: string; balance: number }, expected?: { login: number; server: string }) {
+  return account.connected !== false && Number.isSafeInteger(account.login) && account.login > 0 && Number.isFinite(account.balance) && Boolean(account.server.trim())
+    && (!expected || account.login === expected.login && account.server === expected.server);
+}
 export function confirmedOrder(result: Record<string, unknown>) {
   if (result.success === false || result.error) return false;
   if (typeof result.retcode === 'number') return [10008,10009,10010].includes(result.retcode);
