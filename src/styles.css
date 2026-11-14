@@ -379,9 +379,16 @@
 .performance-summary { padding:28px 0 24px;margin-top:16px;border-top:1px solid var(--performance-edge); }
 .performance-net { display:flex;flex-direction:column;gap:8px;margin:20px 0 24px; }
 .performance-net strong { font-size:36px;font-weight:600;overflow-wrap:anywhere;line-height:1.2; }
-.performance-stat-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;padding:20px 0;border-block:1px solid var(--performance-edge); }
+.performance-stat-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0; }
+.performance-stat-grid>div { border:1px solid var(--performance-edge);border-radius:16px;padding:16px;background:var(--performance-surface);min-width:0; }
+.performance-breakdown { display:grid;gap:12px;margin:18px 0;font-size:12px; }
+.performance-breakdown>div { display:flex;justify-content:space-between;gap:16px; }
+.performance-breakdown dt { color:var(--muted-foreground); }
+.performance-breakdown dd { font-weight:600;font-variant-numeric:tabular-nums; }
+.performance-history-list { display:grid;gap:10px; }
+.performance-summary .performance-net { border-left:3px solid var(--primary);padding:6px 0 6px 16px; }
 .performance-stat-grid dd { font-size:24px;font-weight:600; }
-.performance-trade { display:grid;grid-template-columns:minmax(0,1fr) minmax(80px,auto);gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid color-mix(in oklch,var(--border) 60%,transparent); }
+.performance-trade { display:grid;grid-template-columns:minmax(0,1fr) minmax(80px,auto);gap:16px;align-items:center;padding:16px;border:1px solid var(--performance-edge);border-radius:16px;background:var(--performance-surface); }
 .performance-trade strong { font-size:16px;overflow-wrap:anywhere;text-align:right; }
 @media(min-width:640px) { .performance-position-list { grid-template-columns:repeat(2,minmax(0,1fr)); }.performance-stat-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 .fundamentals-event { display: grid; grid-template-columns: 110px minmax(0, 1fr) 260px; gap: 16px; align-items: center; }
