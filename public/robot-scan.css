@@ -22,9 +22,19 @@
 .robot-scan-step:first-child::before { left:50%; }.robot-scan-step:last-child::before { right:50%; }
 .robot-scan-step::after { content:"";position:absolute;top:0;left:calc(50% - 4px);width:8px;height:8px;border-radius:50%;background:var(--scanner-muted); }
 .robot-scan-step.is-active { color:var(--scanner-foreground); }.robot-scan-step.is-active::after { background:var(--scanner-foreground); }
-.robot-scan-analysis { margin:16px -8px -8px;padding:14px 12px;border-radius:20px;border:1px solid var(--scanner-foreground);background:var(--scanner-background); }
+.robot-scan-analysis { margin-top:16px;padding-top:14px;border-top:1px solid var(--scanner-border); }
 .robot-scan-analysis small { color:var(--scanner-muted);font-size:10px;font-weight:700; }
 .robot-scan-analysis h3 { font-size:21px;color:var(--scanner-accent);margin:8px 0;overflow-wrap:anywhere;letter-spacing:0; }
 .robot-scan-analysis[data-direction="SELL"] h3 { color:var(--scanner-danger); }
-.robot-scan-levels { display:flex;flex-wrap:wrap;gap:5px 10px;font-size:12px;line-height:1.5; }
+.robot-scan-levels { display:flex;flex-wrap:wrap;gap:10px;font-size:12px;line-height:1.5;margin-top:12px; }
+.robot-scan-levels > div { flex:1;min-width:90px;display:flex;flex-direction:column;gap:4px; }
+.robot-scan-levels b { overflow-wrap:anywhere;font-size:14px; }
+.robot-scan-analysis-heading { display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap; }
+.robot-scan-confidence { color:var(--scanner-accent);font-size:12px;font-weight:800; }
+.robot-scan-copy,.robot-scan-news p { font-size:12px;line-height:1.6;overflow-wrap:anywhere;margin:12px 0; }
+.robot-scan-details { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 0; }
+.robot-scan-details dt { color:var(--scanner-muted);font-size:10px; }
+.robot-scan-details dd { margin:3px 0 0;font-size:12px;font-weight:700;overflow-wrap:anywhere; }
+.robot-scan-news { margin-top:14px;padding-top:12px;border-top:1px solid var(--scanner-border); }
+.scanner-body > .robot-scan-box { margin:0 0 18px; }
 @media(prefers-reduced-motion:reduce) { .robot-scan-spinner { animation:none; } }

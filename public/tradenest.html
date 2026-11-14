@@ -1117,19 +1117,36 @@
       const signal = scan.signal;
       const directional = signal && ['BUY','SELL'].includes(signal.direction);
       const busy = ['connecting','loading','executing'].includes(phase);
+      const fmt = value => value == null || value === '' ? '—' : String(value);
+      const confidence = signal?.confidence == null ? null : Number(signal.confidence);
+      const details = signal ? [
+        ['Strategy', signal.strategy], ['Timeframe', signal.timeframe],
+        ['Trade style', signal.tradeTypeLabel || signal.style], ['Expected hold', signal.expectedHold],
+        ['Bias', signal.bias || (directional ? signal.direction === 'BUY' ? 'Bullish' : 'Bearish' : null)],
+        ['Structure', signal.structure], ['Volatility', signal.volatility], ['Momentum', signal.momentum],
+        ['Lot size', signal.lotSize], ['Trades', signal.numTrades], ['Direction source', signal.directionSource],
+      ].filter(([, value]) => value != null && value !== '') : [];
       const label = phase === 'connecting' ? 'CONNECT' : phase === 'error' ? 'UNAVAILABLE' : phase === 'executing' ? 'EXECUTING' : phase === 'executed' ? 'EXECUTED' : phase === 'paused' ? 'PAUSED' : 'READY';
       return <section className="robot-scan-box" data-phase={phase} aria-label="Automatic trading progress" aria-live="polite">
         <div className="robot-scan-top">
           {directional && <span className="robot-scan-badge robot-scan-direction" data-direction={signal.direction}>{signal.direction === 'BUY' ? '↑' : '↓'} {signal.direction}</span>}
           <span className="robot-scan-badge"><span className="robot-scan-dot"/>{label}</span>
         </div>
-        <button className="robot-scan-dismiss" aria-label="Dismiss scanning box" onClick={onDismiss}>×</button>
+        {onDismiss && <button className="robot-scan-dismiss" aria-label="Dismiss scanning box" onClick={onDismiss}>×</button>}
         <div className="robot-scan-main"><div><h2>{scan.symbol || 'MT5'}</h2><p className="robot-scan-label">Market scan</p></div>
           {image ? <img className="robot-scan-logo" src={image} alt="Robot"/> : <span className="robot-scan-logo robot-scan-fallback" aria-hidden="true">◎</span>}
         </div>
         <p className="robot-scan-status">{busy ? <span className="robot-scan-spinner"/> : <span className="robot-scan-status-icon">{phase === 'error' ? '!' : '✓'}</span>}<span>{scan.subtitle}</span></p>
         <div className="robot-scan-steps">{['Connect','Terminal','Execute'].map((step,i)=><div key={step} className={`robot-scan-step ${i <= stage && phase !== 'error' ? 'is-active' : ''}`}>{step}</div>)}</div>
-        {directional && <div className="robot-scan-analysis" data-direction={signal.direction}><small>LOCAL TRADE ANALYSIS</small><h3>{signal.symbol} {signal.direction}</h3><div className="robot-scan-levels"><span>Entry {signal.entry ?? '—'}</span><span>SL {signal.sl ?? 'None · Swing'}</span><span>TP {signal.tp ?? 'None · Swing'}</span></div></div>}
+        {signal && <div className="robot-scan-analysis" data-direction={signal.direction}>
+          <div className="robot-scan-analysis-heading"><small>{signal.signalId?.startsWith('local-') || signal.strategy === 'Local quote trend' ? 'LOCAL TRADE ANALYSIS' : 'TRADE ANALYSIS'}</small>{Number.isFinite(confidence) && <span className="robot-scan-confidence">{confidence}% CONF</span>}</div>
+          <h3>{signal.symbol || scan.symbol} · {signal.direction}</h3>
+          {directional && <div className="robot-scan-levels">{[['Entry',signal.entry],['Take profit',signal.tp],['Stop loss',signal.sl]].map(([name,value])=><div key={name}><small>{name}</small><b>{value == null && signal.style === 'swing' && name !== 'Entry' ? 'None · Swing' : fmt(value)}</b></div>)}</div>}
+          {(signal.analysis || signal.reason) && <p className="robot-scan-copy">{signal.analysis || signal.reason}</p>}
+          {details.length > 0 && <dl className="robot-scan-details">{details.map(([name,value])=><div key={name}><dt>{name}</dt><dd>{fmt(value)}</dd></div>)}</dl>}
+          {(signal.newsHeadline || signal.newsBias) && <div className="robot-scan-news"><small>NEWS INTEL{signal.newsBias ? ` · ${String(signal.newsBias).toUpperCase()}` : ''}</small>{signal.newsHeadline && <p>{signal.newsHeadline}</p>}</div>}
+          {signal.market && <div className="robot-scan-levels"><span>Price {fmt(signal.market.price)}</span><span>24H {fmt(signal.market.change24h)}%</span></div>}
+        </div>}
       </section>;
     };
 
@@ -3561,6 +3578,7 @@ const HomeView = ({
           <div className="scanner-header"><div><h2>TRADENEST SCANNER</h2><p>AI VISION · LIVE BROKER PRICES</p></div><button className="scanner-close" aria-label="Close scanner" onClick={onClose}><XIcon size={22}/></button></div>
           <div style={{flex:1,overflowY:'auto'}}>
             <div className="scanner-body">
+              {(analyzing || result) && <RobotScanBox scan={{phase:analyzing ? 'loading' : 'ready',symbol,signal:result ? {...result,symbol,strategy:result.strategy || (strategy === 'master' ? 'MASTER STRATEGY' : strategy),timeframe:result.timeframe || timeframe,style:tradeStyle,numTrades:tradeCount,lotSize:customLot && parseFloat(customLot)>0 ? parseFloat(customLot) : result.lotSize} : null,subtitle:analyzing ? 'Analyzing live market' : 'Analysis complete'}}/>}
               <div className="scanner-field"><label>SYMBOL</label><div className="scanner-pills">{allowedList.map(s=><button key={s} aria-pressed={symbol===s} className={symbol===s?'selected':''} onClick={()=>{setSymbol(s);setResult(null);}}>{s}</button>)}</div>{!allowedList.length && <p>No allowed symbols selected.</p>}</div>
               <div className="scanner-field"><label>STRATEGY</label><div className="scanner-pills">{[{id:'master',label:'MASTER STRATEGY'},{id:'ict',label:'ICT'},{id:'smc',label:'SMC'},{id:'crt',label:'Candlestick Patterns'},{id:'trend_following',label:'Trend Following'},{id:'liquidity_sweep',label:'Liquidity Sweeps'},{id:'order_blocks',label:'Order Blocks'},{id:'fvg',label:'Fair Value Gaps'}].map(st=><button key={st.id} aria-pressed={strategy===st.id} className={strategy===st.id?'selected':''} onClick={()=>{setStrategy(st.id);setVaultStrategies([]);}}>{st.label}</button>)}</div></div>
               <div className="scanner-field"><label>TIMEFRAME</label><div className="scanner-pills">{[...TIMEFRAMES,{id:'auto',label:'AUTO'}].map(tf=><button key={tf.id} aria-pressed={timeframe===tf.id} className={timeframe===tf.id?'selected':''} onClick={()=>setTimeframe(tf.id)}>{tf.label}</button>)}</div></div>
@@ -3891,114 +3909,6 @@ const HomeView = ({
 
 
 
-                  {/* === Signal generated card === */}
-                  {(() => {
-                    const isBuy = result.direction === 'BUY';
-                    const conf = Math.max(0, Math.min(100, Number(result.confidence) || 0));
-                    const tier = conf >= 75 ? 'HIGH' : conf >= 55 ? 'MEDIUM' : 'LOW';
-                    const dir = isBuy ? 'buy' : result.direction === 'SELL' ? 'sell' : 'neutral';
-                    const fmt = v => v == null || v === '' ? '—' : String(v);
-                    return (
-                      <div className={`scanner-signal scanner-signal-${dir}`}>
-                        <div className="scanner-signal-top">
-                          <div><p className="scanner-signal-kicker">SIGNAL GENERATED · LIVE</p><h3>{symbol}</h3><p className="scanner-signal-meta">{result.strategy || (strategy==='master'?'MASTER STRATEGY':'Mobi AI')} · {result.timeframe || 'AUTO'} · {tier}</p></div>
-                          <div className="scanner-signal-ring" style={{'--conf':conf}}><span>{conf}%</span><small>CONF</small></div>
-                        </div>
-                        <div className="scanner-signal-dir">{isBuy ? '▲' : dir==='sell' ? '▼' : '■'} {result.direction}</div>
-                        <div className="scanner-signal-levels">
-                          <div><small>ENTRY</small><b>{fmt(result.entry)}</b></div>
-                          <div className="tp"><small>TAKE PROFIT</small><b>{fmt(result.tp)}</b></div>
-                          <div className="sl"><small>STOP LOSS</small><b>{fmt(result.sl)}</b></div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* === Chart Diagnostics (like reference downside-bias card) === */}
-                  {(() => {
-                    const isBuy = result.direction === 'BUY';
-                    const accent = isBuy ? '#22c55e' : '#ef4444';
-                    const accentSoft = isBuy ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)';
-                    const titleA = isBuy ? 'UP' : 'DOWN';
-                    const titleB = isBuy ? 'SIDE' : 'SIDE';
-                    const titleC = 'BIAS';
-                    const conf = result.confidence || 0;
-                    const vol = result.volatility || 'High';
-                    const struct = result.structure || (isBuy?'Uptrend':'Downtrend');
-                    const momentum = result.momentum || 'Stable';
-                    const bias = isBuy ? 'Bullish' : 'Bearish';
-                    return (
-                      <div style={{background:'rgba(10,8,12,0.9)',border:`1px solid ${accent}`,borderRadius:18,padding:18,boxShadow:`0 0 30px ${accentSoft}, inset 0 0 30px ${accentSoft}`,position:'relative',overflow:'hidden'}}>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-                          <p style={{fontSize:9,color:`${accent}aa`,letterSpacing:3,fontWeight:800,fontFamily:'Orbitron',margin:0}}>CHART DIAGNOSTICS</p>
-                          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                            {result.tradeTypeLabel && <span style={{fontSize:9,padding:'3px 9px',borderRadius:999,fontFamily:'Orbitron',fontWeight:900,letterSpacing:1.5,color:accent,background:accentSoft,border:`1px solid ${accent}66`}}>{result.tradeTypeLabel}{result.expectedHold?` · ${result.expectedHold}`:''}</span>}
-                            {result.directionSource==='news-led' && <span style={{fontSize:9,padding:'3px 9px',borderRadius:999,fontFamily:'Orbitron',fontWeight:900,letterSpacing:1.5,color:'#eab308',background:'rgba(234,179,8,0.12)',border:'1px solid rgba(234,179,8,0.5)'}}>NEWS-LED</span>}
-                          </div>
-                        </div>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,marginBottom:14}}>
-                          <div>
-                            <h3 style={{fontFamily:'Orbitron',color:accent,fontWeight:900,fontSize:30,lineHeight:1,letterSpacing:1,textShadow:`0 0 14px ${accent}`,margin:0}}>{titleA}<br/>{titleB}<br/>{titleC}</h3>
-                            <p style={{fontSize:9,color:`${accent}cc`,letterSpacing:2,fontWeight:800,fontFamily:'Orbitron',marginTop:8}}>{vol.toUpperCase()} VOL · {struct.toUpperCase()}</p>
-                          </div>
-                          <div style={{width:90,height:90,borderRadius:'50%',border:`3px solid ${accent}`,boxShadow:`0 0 18px ${accent}, inset 0 0 18px ${accentSoft}`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.5)'}}>
-                            <span style={{color:accent,fontFamily:'Orbitron',fontWeight:900,fontSize:24,textShadow:`0 0 10px ${accent}`}}>{conf}</span>
-                            <span style={{color:`${accent}99`,fontSize:8,fontFamily:'Orbitron',letterSpacing:2,fontWeight:700}}>CONF</span>
-                          </div>
-                        </div>
-                        {result.analysis && <p style={{fontSize:12,color:'rgba(255,255,255,0.78)',lineHeight:1.5,marginBottom:10}}>{result.analysis}</p>}
-                        {(() => {
-                          // Market open detection (forex: closed weekends UTC; crypto always open)
-                          const sym = String(symbol||'').toUpperCase();
-                          const isCrypto = /BTC|ETH|XRP|SOL|DOGE|USDT|BNB|ADA/.test(sym);
-                          const d = new Date();
-                          const day = d.getUTCDay(); // 0 Sun, 6 Sat
-                          const hr = d.getUTCHours();
-                          // Forex closes Fri 21:00 UTC – Sun 22:00 UTC
-                          const forexClosed = !isCrypto && ((day===6) || (day===0 && hr<22) || (day===5 && hr>=21));
-                          if (!forexClosed) return null;
-                          return (
-                            <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',marginBottom:10,borderRadius:10,background:'rgba(234,179,8,0.10)',border:'1px solid rgba(234,179,8,0.5)'}}>
-                              <span style={{fontSize:14}}>⚠</span>
-                              <span style={{fontSize:11,color:'#eab308',fontFamily:'Orbitron',fontWeight:800,letterSpacing:1.5}}>MARKET CLOSED · Forex resumes Sunday 22:00 UTC</span>
-                            </div>
-                          );
-                        })()}
-                        {(result.newsHeadline || result.newsBias) && (
-                          <div style={{padding:'10px 12px',marginBottom:10,borderRadius:10,background:'rgba(0,0,0,0.4)',border:`1px solid ${accent}33`}}>
-                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:result.newsHeadline?6:0}}>
-                              <span style={{fontSize:9,letterSpacing:2,fontFamily:'Orbitron',fontWeight:800,color:`${accent}cc`}}>NEWS INTEL</span>
-                              {result.newsBias && <span style={{fontSize:9,padding:'2px 8px',borderRadius:999,fontFamily:'Orbitron',fontWeight:800,letterSpacing:1,color:result.newsBias==='bullish'?'#22c55e':result.newsBias==='bearish'?'#ef4444':'#eab308',background:result.newsBias==='bullish'?'rgba(34,197,94,0.12)':result.newsBias==='bearish'?'rgba(239,68,68,0.12)':'rgba(234,179,8,0.12)'}}>{result.newsBias.toUpperCase()}</span>}
-                            </div>
-                            {result.newsHeadline && <p style={{fontSize:11,color:'rgba(255,255,255,0.78)',lineHeight:1.4,margin:0}}>{result.newsHeadline}</p>}
-                            {result.market && (
-                              <div style={{display:'flex',gap:14,fontSize:9,color:'rgba(255,255,255,0.5)',fontFamily:'Orbitron',letterSpacing:1,marginTop:6}}>
-                                <span>PRICE <b style={{color:'white'}}>{Number(result.market.price).toFixed(2)}</b></span>
-                                <span>24H <b style={{color:result.market.change24h>=0?'#22c55e':'#ef4444'}}>{result.market.change24h>=0?'+':''}{Number(result.market.change24h).toFixed(2)}%</b></span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div style={{display:'flex',alignItems:'center',gap:6,fontSize:9,color:`${accent}aa`,fontFamily:'Orbitron',letterSpacing:2,fontWeight:700,paddingTop:8,borderTop:`1px solid ${accent}33`}}>
-                          ⏱ SIGNAL FRESH · LIVE
-                        </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12,fontFamily:'Orbitron'}}>
-                          {[
-                            {l:'BIAS',v:bias},
-                            {l:'STRUCTURE',v:struct},
-                            {l:'VOLATILITY',v:vol},
-                            {l:'MOMENTUM',v:momentum},
-                          ].map(d=>(
-                            <div key={d.l}>
-                              <p style={{fontSize:9,color:`${accent}99`,letterSpacing:2,fontWeight:800,marginBottom:2}}>{d.l}</p>
-                              <p style={{fontSize:13,color:'white',fontWeight:800}}>{d.v}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {/* === TradingView Live Chart (same symbol, also annotated context) === */}
                   {(() => {
                     const tvSymbol = resolveTvSymbol(symbol);
@@ -4022,7 +3932,6 @@ const HomeView = ({
 
 
 
-                  {result.analysis && <p style={{fontSize:12,color:'rgba(255,255,255,0.55)',lineHeight:1.6,padding:'0 4px'}}>{result.analysis}</p>}
 
                   {/* Custom Lot */}
                   <div>
@@ -5451,6 +5360,7 @@ const HomeView = ({
                 return false;
               }
               setPendingSignal({
+                ...data,
                 symbol: rawSymbol,
                 direction: data.direction,
                 entry: data.entry,

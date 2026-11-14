@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Consolidate chart signal levels, confidence, diagnostics and news context into the shared top scanning box; remove bottom signal and diagnostics cards without changing analysis or trading rules.
+
 - [x] Provide Android image-free automatic-trading prompt and reference-style top scanning box driven by actual Start, quote-analysis and execution states; 18 tests pass and controlled desktop/phone Start confirms visible readiness, no image requirement, dismissal and no runtime errors. Native implementation and real broker execution remain unverified.
 
 - [x] Reduce automatic scan overhead: coalesce overlapping symbol reads, remove per-symbol sleep, evaluate every five seconds, keep recent in-memory quotes across Stop/Start, and show measurable warm-up progress. Initial three-minute strategy history remains necessary; immediate historical analysis needs a documented candle endpoint from the external gateway host.
