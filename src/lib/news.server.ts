@@ -16,7 +16,7 @@ export async function getNewsEvents(): Promise<NewsEvent[]> {
     if (data) {
       // Version the cached envelope so retired-provider rows cannot masquerade as portal data.
       const envelope = data.events as unknown as { source?: string; events?: unknown[] } | null;
-      stored = envelope?.source === "tradenest-portal-v1" && Array.isArray(envelope.events)
+      stored = envelope?.source === "tradenest-portal-v2" && Array.isArray(envelope.events)
         ? envelope.events.map(e => normalizeCalendarEvent(e)).filter((e): e is NewsEvent => e !== null) : [];
       if (stored.length && Date.now() - new Date(data.fetched_at).getTime() < 30 * 60_000) {
         cache = { at: Date.now(), events: stored };
@@ -37,7 +37,7 @@ export async function getNewsEvents(): Promise<NewsEvent[]> {
   }
   cache = { at: Date.now(), events };
   try {
-    await supabaseAdmin.from("news_calendar_cache").upsert({ id: 1, events: { source: "tradenest-portal-v1", events } as any, fetched_at: new Date().toISOString() });
+    await supabaseAdmin.from("news_calendar_cache").upsert({ id: 1, events: { source: "tradenest-portal-v2", events } as any, fetched_at: new Date().toISOString() });
   } catch (e) { console.error("News cache write failed", e); }
   return events;
 }

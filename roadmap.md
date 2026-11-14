@@ -1,7 +1,7 @@
 # MT5 gateway connection
 
 - [x] Switch Fundamentals to the new portal calendar with documented timestamps and SAST groups; ten calendar/automation tests pass and browser confirms the false API-key event is removed without errors.
-- [ ] Verify live new-calendar events — external news.php host currently returns Python-wrapped text rather than valid JSON; host must correct its response before real events can load.
+- [x] Verify live new-calendar events — portal and app return 357 real events; browser confirms today's 13:00 GBP speech and tomorrow's 23:30 NZD release in SAST. Fixed unzoned SAST parsing, invalidated mis-timed cache rows, and passed twelve calendar/automation tests; no trades requested.
 
 - [x] Float robot progress over the interface without layout movement; remove visible preparation counters and duplicate neutral analysis while keeping verified connection, genuine execution states and strategy-history checks.
 - [ ] Analyze immediately on a first-ever Start — requires a documented broker historical-price endpoint; current quote-only gateway cannot supply the strategy's existing minimum history immediately.

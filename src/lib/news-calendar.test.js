@@ -32,3 +32,13 @@ test("malformed Python-wrapped response is rejected rather than reported as a li
 test("unsuccessful upstream payload is rejected", () => {
   expect(() => parseCalendarPayload({ success: false, events: [] })).toThrow();
 });
+test("live gateway timestamps outrank unzoned SAST labels and keep tomorrow at 23:30", () => {
+  const [event] = parseCalendarPayload({ success: true, events: [{ title: "Business NZ PSI", ts: 1794778200, datetime_sast: "2026-11-15 23:30:00" }] }, now);
+  expect(event.time_utc).toBe("2026-11-15T21:30:00.000Z");
+  expect(event.time).toBe("23:30");
+  expect(event.day).toBe("tomorrow");
+});
+test("SAST-only timestamps are interpreted in Johannesburg rather than the host timezone", () => {
+  const [event] = parseCalendarPayload({ success: true, events: [{ title: "Business NZ PSI", datetime_sast: "2026-11-15 23:30:00" }] }, now);
+  expect(event.time_utc).toBe("2026-11-15T21:30:00.000Z");
+});

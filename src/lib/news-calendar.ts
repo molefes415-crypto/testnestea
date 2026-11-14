@@ -33,7 +33,9 @@ export function normalizeCalendarEvent(input: unknown, now = Date.now()): NewsEv
   const e = parsed.data;
   const title = e.title || e.name;
   if (!title?.trim() || /api key|financecalendar\.com\/account/i.test(title)) return null;
-  const rawTime = e.time_utc ?? e.datetime_sast ?? e.ts ?? e.timestamp;
+  const sastTime = e.datetime_sast?.replace(" ", "T");
+  const zonedSast = sastTime && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(sastTime) ? `${sastTime}+02:00` : sastTime;
+  const rawTime = e.ts ?? e.timestamp ?? e.time_utc ?? zonedSast;
   if (rawTime == null) return null;
   const numeric = typeof rawTime === "number" || /^\d+(\.\d+)?$/.test(rawTime);
   const date = new Date(numeric ? Number(rawTime) * (Number(rawTime) < 1e12 ? 1000 : 1) : rawTime);
