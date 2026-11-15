@@ -1,5 +1,8 @@
 # MT5 gateway connection
 
+- [x] Prepare Render ITN relay and hardened payment verification with tests and deployment instructions; forged payment rejected by the running receiver, relay tests pass.
+- [ ] Deploy Render ITN server and verify a real PayFast payment — requires Render deployment access and a sandbox/real transaction.
+
 - [x] Add one transport-only recovery attempt for news arming/preparation reads, credential-free connection diagnostics and automatic removal of recovered status errors; gateway health currently passes. Live personal-account scheduling remains unverified.
 
 - [x] Switch Fundamentals to the new portal calendar with documented timestamps and SAST groups; ten calendar/automation tests pass and browser confirms the false API-key event is removed without errors.

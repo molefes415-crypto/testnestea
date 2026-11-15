@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { payfastNotifyUrl } from '@/lib/payfast-itn'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -102,7 +103,7 @@ export const Route = createFileRoute('/api/public/payfast')({
             // own flag or the ITN status). notify_url stays server-to-server.
             const returnUrl = `${origin}/payfast-return.html?m=${encodeURIComponent(paymentId)}`
             const cancelUrl = returnUrl
-            const notifyUrl = `${origin}/api/public/payfast-itn`
+            const notifyUrl = payfastNotifyUrl(origin, process.env['PAYFAST_NOTIFY_URL'])
 
             // Field ORDER matters for the PayFast signature.
             const ordered: Array<[string, string]> = [

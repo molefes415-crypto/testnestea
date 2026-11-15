@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tradenest-payfast-itn
+    runtime: node
+    rootDir: hosting/payfast-itn
+    plan: starter
+    buildCommand: node --version
+    startCommand: node start.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: TRADENEST_ITN_RECEIVER_URL
+        value: https://tradnestea.app/api/public/payfast-itn

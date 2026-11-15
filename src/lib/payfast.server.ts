@@ -37,7 +37,7 @@ export function payfastConfig() {
 
 /** PayFast encodes with PHP's urlencode (spaces as '+', uppercase hex). */
 function pfEncode(value: string): string {
-  return encodeURIComponent(value).replace(/%20/g, '+').replace(/%[0-9a-f]{2}/g, (m) => m.toUpperCase())
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`).replace(/%20/g, '+').replace(/%[0-9a-f]{2}/g, (m) => m.toUpperCase())
 }
 
 /**
@@ -74,11 +74,13 @@ export async function payfastValidate(rawBody: string): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: rawBody,
+      signal: AbortSignal.timeout(15_000),
     })
     const text = (await r.text()).trim().toUpperCase()
-    return r.ok && text.startsWith('VALID')
+    if (!r.ok) throw new Error(`PayFast validation unavailable (${r.status})`)
+    return text === 'VALID'
   } catch {
-    return false
+    throw new Error('PayFast validation unavailable')
   }
 }
 
@@ -116,9 +118,9 @@ function md5(input: string): string {
       else if (j < 32) { F = (D & B) | (~D & C); g = (5 * j + 1) % 16 }
       else if (j < 48) { F = B ^ C ^ D; g = (3 * j + 5) % 16 }
       else { F = C ^ (B | ~D); g = (7 * j) % 16 }
-      F = (F + A + K[j]! + (words[i + g] || 0)) | 0
+      F = (F + A + (K[j] ?? 0) + (words[i + g] || 0)) | 0
       A = D; D = C; C = B
-      B = (B + rot(F, S[j]!)) | 0
+      B = (B + rot(F, S[j] ?? 0)) | 0
     }
     a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0
   }
