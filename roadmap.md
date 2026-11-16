@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [ ] Activate verified PayFast clients in the mentor portal subscribed users table by email and mentor ID, and remove email-only cross-mentor activation — blocked on the existing portal subscription updater PHP source or its authenticated API contract and table schema; do not invent table columns or authorization.
+
 - [x] Replace checkout with supplied PayFast Pay Now form and receiver, R580 monthly subscription, unique references and unchanged ITN safeguards; nine checkout/ITN and four mobile-return tests pass. Real provider checkout and installed-device return remain unverified.
 
 - [x] Prepare complete PHP checkout, ITN relay, status and mobile return server, per-checkout references and native handlers; 14 tests and PHP syntax checks pass. Controlled Android/iPhone browser returns verified; installed app and real payment checks remain blocked below.
