@@ -4306,7 +4306,7 @@ const HomeView = ({
           const r = await fetch('/api/public/payfast?action=create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, user_ref: adminId || email }),
+            body: JSON.stringify({ email, admin_id: adminId, user_ref: String(adminId || '') }),
           });
           const d = await r.json().catch(()=>({}));
           if (!d || !d.process_url || !d.fields || !d.payment_id) {

@@ -78,8 +78,9 @@ interface PayFastApiService {
 data class CreatePaymentRequest(
     /** Customer email — also used to match the payment to their license. */
     val email: String,
-    /** Portal/admin id or the email again; stored as custom_str1. */
+    /** Numeric mentor ID; never substitute the email. */
     val user_ref: String? = null,
+    val admin_id: Int? = null,
 )
 
 data class CreatePaymentResponse(
@@ -119,8 +120,11 @@ object PayFastCheckout {
     private val api = PayFastApiService.create()
 
     /** Step 1: ask our server for a signed payment. */
-    suspend fun start(email: String, userRef: String? = null): CreatePaymentResponse =
-        api.createPayment(CreatePaymentRequest(email = email, user_ref = userRef ?: email))
+    suspend fun start(email: String, userRef: String? = null): CreatePaymentResponse {
+        val mentorId = userRef?.toIntOrNull()
+        require(mentorId != null && mentorId > 0) { "The current mentor ID is required for payment" }
+        return api.createPayment(CreatePaymentRequest(email = email, user_ref = mentorId.toString(), admin_id = mentorId))
+    }
 
     /**
      * Step 2: open PayFast. We open the server-hosted launcher on the SAME

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { payfastConfig, payfastItnSignature, payfastValidate } from '@/lib/payfast.server'
 import { parsePayfastItn, payfastAmountMatches } from '@/lib/payfast-itn'
+import { paymentMentorId } from '@/lib/payfast-mentor'
 
 export const Route = createFileRoute('/api/public/payfast-itn')({
   server: {
@@ -30,24 +31,34 @@ export const Route = createFileRoute('/api/public/payfast-itn')({
           // Only a verified provider notification may access privileged payment records.
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
           const { data: existing, error: readError } = await supabaseAdmin
-            .from('payments').select('id,status,amount,currency,paypal_capture_id')
+            .from('payments').select('id,status,amount,currency,paypal_capture_id,email,raw')
             .eq('paypal_order_id', data.m_payment_id).eq('provider', 'payfast').maybeSingle()
           if (readError) throw new Error('Payment lookup failed')
           if (!existing) return new Response('Unknown payment', { status: 400 })
           if (existing.currency !== 'ZAR' || !payfastAmountMatches(data.amount_gross, Number(existing.amount))) {
             return new Response('Payment amount mismatch', { status: 400 })
           }
-          if (existing.status === 'paid') {
-            return new Response(existing.paypal_capture_id === data.pf_payment_id ? 'ok' : 'Recurring notification acknowledged')
-          }
           const next = data.payment_status === 'COMPLETE' ? 'paid'
             : data.payment_status === 'CANCELLED' ? 'cancelled'
             : data.payment_status === 'FAILED' ? 'failed' : 'pending'
+          const raw = existing.raw && typeof existing.raw === 'object' && !Array.isArray(existing.raw) ? existing.raw : {}
+          if (next === 'paid') {
+            const { activateMentorPayment } = await import('@/lib/payfast-mentor.server')
+            // Use stored checkout identity, not editable labels from the notification.
+            await activateMentorPayment({
+              payment_id: data.m_payment_id, provider_payment_id: data.pf_payment_id,
+              admin_id: paymentMentorId(raw), email: existing.email,
+              amount: '580.00', currency: 'ZAR', status: 'paid',
+            })
+          } else if (existing.status === 'paid') {
+            return new Response('ok')
+          }
           const { error } = await supabaseAdmin.from('payments').update({
             paypal_capture_id: data.pf_payment_id,
             status: next,
             verified_at: next === 'paid' ? new Date().toISOString() : null,
-          }).eq('id', existing.id).neq('status', 'paid')
+            raw: next === 'paid' ? { ...raw, mentor_activated: true } : raw,
+          }).eq('id', existing.id)
           if (error) throw new Error('Payment update failed')
           return new Response('ok')
         } catch {

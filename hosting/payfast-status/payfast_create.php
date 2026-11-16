@@ -9,9 +9,11 @@ if (!is_array($input) || !is_string($input['email'] ?? null) || !filter_var($inp
     tn_json(['success' => false, 'error' => 'Valid customer email required'], 400);
 }
 $email = strtolower(trim($input['email']));
-$ref = $input['user_ref'] ?? $email;
+$ref = $input['user_ref'] ?? '';
 if (!is_string($ref) || strlen($ref) > 120) tn_json(['success' => false, 'error' => 'Invalid customer reference'], 400);
-[$code, $body] = tn_cloud('payfast?action=create', 'POST', json_encode(['email' => $email, 'user_ref' => $ref]));
+$mentor = filter_var($input['admin_id'] ?? $ref, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+if ($mentor === false) tn_json(['success' => false, 'error' => 'Valid mentor ID required'], 400);
+[$code, $body] = tn_cloud('payfast?action=create', 'POST', json_encode(['email' => $email, 'admin_id' => $mentor, 'user_ref' => (string)$mentor]));
 $data = $body !== null ? json_decode($body, true) : null;
 if ($code !== 200 || !is_array($data) || !tn_reference($data['payment_id'] ?? null)) {
     tn_json(['success' => false, 'error' => 'Checkout unavailable. Please try again.'], 503);

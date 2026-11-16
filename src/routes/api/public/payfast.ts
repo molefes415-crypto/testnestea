@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { payfastNotifyUrl } from '@/lib/payfast-itn'
 import { z } from 'zod'
 import { payfastPayNowFields, PAYFAST_PAYNOW_URL } from '@/lib/payfast-checkout'
+import { mentorIdSchema } from '@/lib/payfast-mentor'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -66,14 +67,15 @@ export const Route = createFileRoute('/api/public/payfast')({
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
           let q = supabaseAdmin
             .from('payments')
-            .select('paypal_order_id,status,amount,currency,verified_at')
+            .select('paypal_order_id,status,amount,currency,verified_at,raw')
             .eq('provider', 'payfast')
             .order('created_at', { ascending: false })
             .limit(1)
           q = paymentId ? q.eq('paypal_order_id', paymentId) : q.eq('email', email)
           const { data } = await q.maybeSingle()
 
-          const status = data?.status ?? 'pending'
+          const raw = data?.raw && typeof data.raw === 'object' && !Array.isArray(data.raw) ? data.raw : {}
+          const status = data?.status === 'paid' && raw.mentor_activated !== true ? 'pending' : data?.status ?? 'pending'
           return json({ status, paid: status === 'paid', payment_id: data?.paypal_order_id || paymentId })
         } catch (e: any) {
           return json({ status: 'pending', paid: false, error: e?.message || 'server error' }, 500)
@@ -84,12 +86,14 @@ export const Route = createFileRoute('/api/public/payfast')({
         try {
           const u = new URL(request.url)
           const action = u.searchParams.get('action') || ''
-          const body = z.object({ email: z.string().email().max(254).optional(), user_ref: z.string().max(120).optional(), payment_id: z.string().regex(/^[A-Za-z0-9_-]{1,120}$/).optional() }).parse(await request.json())
+          const body = z.object({ email: z.string().email().max(254).optional(), admin_id: mentorIdSchema.optional(), user_ref: z.string().max(120).optional(), payment_id: z.string().regex(/^[A-Za-z0-9_-]{1,120}$/).optional() }).parse(await request.json())
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
           if (action === 'create') {
             const email = String(body.email || '').trim().toLowerCase()
-            const userRef = String(body.user_ref || email || '').trim()
+            // Numeric user_ref is accepted for existing Android callers only.
+            const mentorId = mentorIdSchema.parse(body.admin_id ?? body.user_ref)
+            const userRef = String(mentorId)
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid email' }, 400)
 
             const { PAYFAST_PRODUCT } = await import('@/lib/payfast.server')
@@ -110,7 +114,7 @@ export const Route = createFileRoute('/api/public/payfast')({
                 amount: Number(PAYFAST_PRODUCT.amount),
                 currency: PAYFAST_PRODUCT.currency,
                 status: 'pending',
-                raw: { fields, process_url: PAYFAST_PAYNOW_URL },
+                raw: { fields, process_url: PAYFAST_PAYNOW_URL, mentor_id: mentorId },
               },
               { onConflict: 'paypal_order_id' },
             )
