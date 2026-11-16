@@ -32,3 +32,4 @@
 
 - PHP payment relays preserve signed ITN bytes; Cloud verifies PayFast then signs an idempotent portal activation callback using stored mentor/email identity. Portal receipts distinguish direct payments; only acknowledge success after portal activation. Mobile returns reverify the checkout; access checks use the mentor portal, never email-only payment fallbacks.
 - Generate PayFast Pay Now checkout fields through a shared validated helper, with no merchant key in checkout; retain separate signed-ITN validation because submitting a form or returning to the app does not prove payment.
+- The native subscription replacement uses a named Compose palette and external PayFast checkout; persist checkout identity before leaving and verify exact payment plus mentor access before the existing navigation callback, never browser success alone.

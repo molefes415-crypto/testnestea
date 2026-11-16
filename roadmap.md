@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Prepare red-glass native SubscriptionScreen.kt replacement with R580 PayFast browser checkout, saved email/mentor/payment reference and verified access checks. Native compilation, installed-device rendering and real payment verification require the complete Android Studio project and an installed device.
+
 - [x] Prepare mentor-specific paid-client activation without slot consumption, signed idempotent PHP callback, separate Paid Emails count, mandatory checkout mentor identity and portal-only access checks. Eleven payment tests, four mobile tests and PHP signature/isolation/zero-slot tests pass; running app rejects incomplete ITNs.
 - [ ] Deploy the new PHP callback and updated mentor page, run portal-payments.sql, configure the matching shared signing secret, publish and verify a real PayFast payment/installed mobile return — requires hosting access, shared secret setup and a real payment; full live activation is not yet verified.
 
