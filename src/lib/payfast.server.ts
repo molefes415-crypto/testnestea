@@ -6,6 +6,8 @@
  * Docs: https://developers.payfast.co.za/docs
  */
 
+import { PAYFAST_RECEIVER } from './payfast-checkout'
+
 export const PAYFAST_PRODUCT = {
   name: 'TradeNest EA',
   item_name: 'TradeNest EA Subscription',
@@ -20,11 +22,8 @@ export function payfastConfig() {
   const sandbox = String(process.env['PAYFAST_ENV'] || '').toLowerCase() === 'sandbox'
   return {
     sandbox,
-    // Merchant id/key are posted in the browser form by design (not private
-    // credentials). Pinned to the live account so a stale stored value can't
-    // break the signature.
-    merchantId: '36249167',
-    merchantKey: 'uqdzaa8kxtwsg',
+    // Receiver is public; Pay Now checkout needs no merchant key.
+    merchantId: PAYFAST_RECEIVER,
     passphrase: process.env['PAYFAST_PASSPHRASE'] || '',
     processUrl: sandbox
       ? 'https://sandbox.payfast.co.za/eng/process'

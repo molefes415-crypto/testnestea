@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Replace checkout with supplied PayFast Pay Now form and receiver, R580 monthly subscription, unique references and unchanged ITN safeguards; nine checkout/ITN and four mobile-return tests pass. Real provider checkout and installed-device return remain unverified.
+
 - [x] Prepare complete PHP checkout, ITN relay, status and mobile return server, per-checkout references and native handlers; 14 tests and PHP syntax checks pass. Controlled Android/iPhone browser returns verified; installed app and real payment checks remain blocked below.
 - [ ] Deploy PHP payment files and test installed Android/iOS payment return — requires hosting upload access, installed mobile apps and a real/sandbox PayFast payment.
 

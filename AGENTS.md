@@ -31,3 +31,4 @@
 - Host the optional Render PayFast ITN relay in hosting/payfast-itn; forward unchanged signed notifications to the Cloud receiver, which alone validates PayFast and updates existing payments, so Render needs no database credentials.
 
 - Keep PHP mobile payment hosting in hosting/payfast-status as a credential-free Cloud relay; preserve signed ITN bytes, generate per-checkout return references, and reverify matching payment IDs on app resume because deep links are not payment proof.
+- Generate PayFast Pay Now checkout fields through a shared validated helper, with no merchant key in checkout; retain separate signed-ITN validation because submitting a form or returning to the app does not prove payment.

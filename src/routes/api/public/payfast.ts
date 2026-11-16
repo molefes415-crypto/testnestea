@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { payfastNotifyUrl } from '@/lib/payfast-itn'
 import { z } from 'zod'
+import { payfastPayNowFields, PAYFAST_PAYNOW_URL } from '@/lib/payfast-checkout'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +16,7 @@ const esc = (s: string) =>
   String(s).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>')
 
 /**
- * PayFast subscription checkout (server-signed).
+ * PayFast Pay Now subscription checkout (server-generated, provider-verified).
  *
  * ?action=create  POST { email, user_ref } -> { payment_id, process_url, fields }
  * ?action=status  GET  payment_id | email  -> { status, paid }
@@ -35,7 +36,7 @@ export const Route = createFileRoute('/api/public/payfast')({
           const action = u.searchParams.get('action') || ''
 
           // Hosted PayFast launcher — the single link the app/browser opens.
-          // Serves a self-submitting POST form with the server-signed fields,
+          // Serves a self-submitting POST form with the server-generated fields,
           // so native apps don't need to build a data: URL (blocked by Chrome)
           // or hold the signed fields themselves.
           if (action === 'launch') {
@@ -91,45 +92,14 @@ export const Route = createFileRoute('/api/public/payfast')({
             const userRef = String(body.user_ref || email || '').trim()
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid email' }, 400)
 
-            const { payfastConfig, payfastSignature, PAYFAST_PRODUCT } = await import('@/lib/payfast.server')
-            const cfg = payfastConfig()
-            if (!cfg.merchantId || !cfg.merchantKey) {
-              return json({ error: 'payfast_not_configured' }, 500)
-            }
+            const { PAYFAST_PRODUCT } = await import('@/lib/payfast.server')
 
             // Use the canonical (non-www) origin: www 307-redirects to apex and
             // PayFast/CloudFront can reject redirected return/notify hops.
             const origin = new URL(request.url).origin.replace('://www.', '://')
             const paymentId = `tnea${crypto.randomUUID().replaceAll('-', '')}`
-            // One link handles both success and cancel (cancel is signalled by PayFast's
-            // own flag or the ITN status). notify_url stays server-to-server.
-            const returnUrl = `https://tradenestea.com/admin/api/payfast_return.php?m=${encodeURIComponent(paymentId)}`
-            const cancelUrl = `${returnUrl}&cancel=1`
             const notifyUrl = payfastNotifyUrl(origin, process.env['PAYFAST_NOTIFY_URL'] || 'https://tradenestea.com/admin/api/payfast_itn.php')
-
-            // Field ORDER matters for the PayFast signature.
-            const ordered: Array<[string, string]> = [
-              ['merchant_id', cfg.merchantId],
-              ['merchant_key', cfg.merchantKey],
-              ['return_url', returnUrl],
-              ['cancel_url', cancelUrl],
-              ['notify_url', notifyUrl],
-              ['name_first', 'TradeNest'],
-              ['name_last', 'Trader'],
-              ['email_address', email],
-              ['m_payment_id', paymentId],
-              ['amount', PAYFAST_PRODUCT.amount],
-              ['item_name', PAYFAST_PRODUCT.item_name],
-              ['item_description', PAYFAST_PRODUCT.item_description],
-              ['custom_str1', userRef.slice(0, 120)],
-              ['custom_str2', email],
-              ['subscription_type', '1'],
-              ['recurring_amount', PAYFAST_PRODUCT.amount],
-              ['frequency', PAYFAST_PRODUCT.frequency],
-              ['cycles', PAYFAST_PRODUCT.cycles],
-            ]
-            const signature = await payfastSignature(ordered, cfg.passphrase)
-            const fields = Object.fromEntries([...ordered, ['signature', signature]])
+            const fields = payfastPayNowFields({ paymentId, email, userRef, notifyUrl })
 
             const { error: saveError } = await supabaseAdmin.from('payments').upsert(
               {
@@ -140,7 +110,7 @@ export const Route = createFileRoute('/api/public/payfast')({
                 amount: Number(PAYFAST_PRODUCT.amount),
                 currency: PAYFAST_PRODUCT.currency,
                 status: 'pending',
-                raw: { fields, process_url: cfg.processUrl },
+                raw: { fields, process_url: PAYFAST_PAYNOW_URL },
               },
               { onConflict: 'paypal_order_id' },
             )
@@ -149,7 +119,7 @@ export const Route = createFileRoute('/api/public/payfast')({
 
             return json({
               payment_id: paymentId,
-              process_url: cfg.processUrl,
+              process_url: PAYFAST_PAYNOW_URL,
               fields,
               // Same-apex hosted launch page — the only link the app opens.
               launch_url: `${origin}/api/public/payfast?action=launch&payment_id=${encodeURIComponent(paymentId)}`,
