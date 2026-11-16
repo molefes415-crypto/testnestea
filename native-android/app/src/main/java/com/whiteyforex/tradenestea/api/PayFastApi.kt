@@ -131,6 +131,7 @@ object PayFastCheckout {
      */
     fun open(context: Context, payment: CreatePaymentResponse) {
         val launchUrl = payment.launch_url ?: return
+        PayFastReturnHandler(context).rememberCheckout(payment)
         context.startActivity(
             Intent(Intent.ACTION_VIEW, Uri.parse(launchUrl))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

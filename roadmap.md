@@ -1,5 +1,8 @@
 # MT5 gateway connection
 
+- [x] Prepare complete PHP checkout, ITN relay, status and mobile return server, per-checkout references and native handlers; 14 tests and PHP syntax checks pass. Controlled Android/iPhone browser returns verified; installed app and real payment checks remain blocked below.
+- [ ] Deploy PHP payment files and test installed Android/iOS payment return — requires hosting upload access, installed mobile apps and a real/sandbox PayFast payment.
+
 - [x] Prepare Render ITN relay and hardened payment verification with tests and deployment instructions; forged payment rejected by the running receiver, relay tests pass.
 - [ ] Deploy Render ITN server and verify a real PayFast payment — requires Render deployment access and a sandbox/real transaction.
 

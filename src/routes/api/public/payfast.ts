@@ -1,11 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { payfastNotifyUrl } from '@/lib/payfast-itn'
+import { z } from 'zod'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Accept',
   'Content-Type': 'application/json',
+  'Cache-Control': 'no-store',
 }
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: CORS })
@@ -37,7 +39,7 @@ export const Route = createFileRoute('/api/public/payfast')({
           // so native apps don't need to build a data: URL (blocked by Chrome)
           // or hold the signed fields themselves.
           if (action === 'launch') {
-            const paymentId = (u.searchParams.get('payment_id') || '').trim()
+            const paymentId = z.string().regex(/^[A-Za-z0-9_-]{1,120}$/).parse(u.searchParams.get('payment_id'))
             if (!paymentId) return json({ error: 'missing payment_id' }, 400)
             const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
             const { data } = await supabaseAdmin
@@ -81,7 +83,7 @@ export const Route = createFileRoute('/api/public/payfast')({
         try {
           const u = new URL(request.url)
           const action = u.searchParams.get('action') || ''
-          const body = (await request.json().catch(() => ({}))) as Record<string, any>
+          const body = z.object({ email: z.string().email().max(254).optional(), user_ref: z.string().max(120).optional(), payment_id: z.string().regex(/^[A-Za-z0-9_-]{1,120}$/).optional() }).parse(await request.json())
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
           if (action === 'create') {
@@ -98,12 +100,12 @@ export const Route = createFileRoute('/api/public/payfast')({
             // Use the canonical (non-www) origin: www 307-redirects to apex and
             // PayFast/CloudFront can reject redirected return/notify hops.
             const origin = new URL(request.url).origin.replace('://www.', '://')
-            const paymentId = `tnea${Date.now()}${Math.floor(Math.random() * 1000)}`
+            const paymentId = `tnea${crypto.randomUUID().replaceAll('-', '')}`
             // One link handles both success and cancel (cancel is signalled by PayFast's
             // own flag or the ITN status). notify_url stays server-to-server.
-            const returnUrl = `${origin}/payfast-return.html?m=${encodeURIComponent(paymentId)}`
-            const cancelUrl = returnUrl
-            const notifyUrl = payfastNotifyUrl(origin, process.env['PAYFAST_NOTIFY_URL'])
+            const returnUrl = `https://tradenestea.com/admin/api/payfast_return.php?m=${encodeURIComponent(paymentId)}`
+            const cancelUrl = `${returnUrl}&cancel=1`
+            const notifyUrl = payfastNotifyUrl(origin, process.env['PAYFAST_NOTIFY_URL'] || 'https://tradenestea.com/admin/api/payfast_itn.php')
 
             // Field ORDER matters for the PayFast signature.
             const ordered: Array<[string, string]> = [
@@ -129,7 +131,7 @@ export const Route = createFileRoute('/api/public/payfast')({
             const signature = await payfastSignature(ordered, cfg.passphrase)
             const fields = Object.fromEntries([...ordered, ['signature', signature]])
 
-            await supabaseAdmin.from('payments').upsert(
+            const { error: saveError } = await supabaseAdmin.from('payments').upsert(
               {
                 user_ref: userRef.slice(0, 120) || email,
                 email,
@@ -142,6 +144,8 @@ export const Route = createFileRoute('/api/public/payfast')({
               },
               { onConflict: 'paypal_order_id' },
             )
+
+            if (saveError) return json({ error: 'Could not save checkout. Please try again.' }, 503)
 
             return json({
               payment_id: paymentId,

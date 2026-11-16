@@ -29,3 +29,5 @@
 - Coalesce simultaneous same-session/symbol quote reads and retain only recent in-memory samples across robot restarts; account changes clear history and strategy warm-up is never bypassed to force immediate trades.
 - Present robot progress in a fixed top notification that never shifts interfaces; reuse its signal details/diagnostics for chart results, hide readiness counters and neutral analysis duplicates, and mark Execute active only for real execution so notification styling never fabricates trading success.
 - Host the optional Render PayFast ITN relay in hosting/payfast-itn; forward unchanged signed notifications to the Cloud receiver, which alone validates PayFast and updates existing payments, so Render needs no database credentials.
+
+- Keep PHP mobile payment hosting in hosting/payfast-status as a credential-free Cloud relay; preserve signed ITN bytes, generate per-checkout return references, and reverify matching payment IDs on app resume because deep links are not payment proof.

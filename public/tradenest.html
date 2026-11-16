@@ -4289,43 +4289,6 @@ const HomeView = ({
       </div>
     );
 
-    const PayFastCheckout = ({ adminId, email, onClose, onPaid }) => {
-      const formRef = useRef(null);
-      // Sanitize → PayFast requires clean alphanumeric on most fields. Empty/funky values cause 500.
-      const safeId = (adminId || 'guest').toString().replace(/[^a-zA-Z0-9]/g, '').slice(0, 20) || 'guest';
-      const safeEmail = (email || '').toString().trim();
-      const payId = `mobi${safeId}${Date.now()}`.slice(0, 100);
-      const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || 'https://tradenestea.com';
-      useEffect(()=>{ const t=setTimeout(()=>formRef.current?.submit(),80); return ()=>clearTimeout(t); },[]);
-      return (
-        <div style={{position:'fixed',inset:0,zIndex:500,background:'#000',display:'flex',flexDirection:'column'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#0a0a0a',borderBottom:'1px solid #222'}}>
-            <div style={{color:'white',fontSize:12,fontWeight:800,letterSpacing:3}}>PAYFAST · R580</div>
-            <button onClick={onClose} style={{background:'transparent',color:'#bbb',border:'1px solid #333',borderRadius:8,padding:'6px 12px',fontSize:11,cursor:'pointer'}}>CLOSE</button>
-          </div>
-          <form ref={formRef} action="https://www.payfast.co.za/eng/process" method="post" target="pf-frame" style={{display:'none'}} acceptCharset="utf-8">
-            <input type="hidden" name="merchant_id" value="24791875"/>
-            <input type="hidden" name="merchant_key" value="2z9cx1tb1vgik"/>
-            <input type="hidden" name="return_url" value={`${origin}/?pay=success`}/>
-            <input type="hidden" name="cancel_url" value={`${origin}/?pay=cancel`}/>
-            <input type="hidden" name="notify_url" value="https://tradenestea.com/admin/api/payfast_itn.php"/>
-            <input type="hidden" name="name_first" value="EA"/>
-            <input type="hidden" name="name_last" value="Power"/>
-            <input type="hidden" name="email_address" value={safeEmail}/>
-            <input type="hidden" name="m_payment_id" value={payId}/>
-            <input type="hidden" name="amount" value="580.00"/>
-            <input type="hidden" name="item_name" value="TradeNest EA Subscription"/>
-            <input type="hidden" name="item_description" value="Monthly access to TradeNest EA"/>
-            <input type="hidden" name="custom_str1" value={safeId}/>
-          </form>
-          <iframe name="pf-frame" title="PayFast" style={{flex:1,width:'100%',background:'#fff',border:'none'}}/>
-          <div style={{display:'flex',justifyContent:'center',alignItems:'center',padding:'12px 16px',background:'#0a0a0a',borderTop:'1px solid #222'}}>
-            <span style={{color:'#888',fontSize:11,textAlign:'center'}}>After payment, close this window and sign in again with the same email to unlock the app.</span>
-          </div>
-        </div>
-      );
-    };
-
     // ===== PayFast Subscription Paywall =====
     // Shown when the mentor portal reports the email as NOT active.
     // Payment is created + signed server-side and only unlocked once PayFast's
@@ -4395,7 +4358,7 @@ const HomeView = ({
             const qs = pid ? `payment_id=${encodeURIComponent(pid)}` : `email=${encodeURIComponent(email)}`;
             const r = await fetch(`/api/public/payfast?action=status&${qs}`, { headers: { accept: 'application/json' } });
             const d = await r.json().catch(()=>({}));
-            if (d && d.paid) {
+            if (d && d.paid === true && d.status === 'paid' && (!pid || d.payment_id === pid)) {
               try {
                 localStorage.setItem('mobi_activated','1');
                 localStorage.setItem('tn_open_add_robot','1');
@@ -4418,6 +4381,26 @@ const HomeView = ({
         setMsg('Payment could not be verified yet. If you paid, tap CHECK PAYMENT STATUS again in a moment.');
         return false;
       };
+
+      // Browser/home-screen return can omit URL parameters: recheck the saved checkout.
+      useEffect(() => {
+        let checking = false;
+        const resumePayment = async () => {
+          let saved = '';
+          try { saved = localStorage.getItem('tn_payfast_payment') || ''; } catch(_) {}
+          if (!saved || checking || document.hidden) return;
+          checking = true;
+          setOpened(true);
+          try { await checkPayFast(4); } finally { checking = false; }
+        };
+        window.addEventListener('focus', resumePayment);
+        document.addEventListener('visibilitychange', resumePayment);
+        resumePayment();
+        return () => {
+          window.removeEventListener('focus', resumePayment);
+          document.removeEventListener('visibilitychange', resumePayment);
+        };
+      }, []);
 
       // Handle the return from PayFast, backend-verified only.
       useEffect(() => {
