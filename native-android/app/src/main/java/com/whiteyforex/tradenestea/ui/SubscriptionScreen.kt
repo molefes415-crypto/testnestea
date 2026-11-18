@@ -6,14 +6,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,11 +18,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -45,15 +40,16 @@ import java.util.concurrent.TimeUnit
 
 // Native semantic palette: no WebView, third-party checkout HTML, or merchant secrets.
 private object SubscriptionPalette {
-    val Background = Color(0xFF090A0E)
-    val Surface = Color(0xFF18151B)
-    val Primary = Color(0xFFFF4058)
-    val PrimaryContainer = Color(0xFF36151F)
+    val Background = Color(0xFFEAF0F6)
+    val Surface = Color(0xFFFFFFFF)
+    val Primary = Color(0xFF635BFF)
+    val PrimaryContainer = Color(0xFFF5F4FF)
     val OnPrimary = Color(0xFFFFFFFF)
-    val Foreground = Color(0xFFF5F3F6)
-    val Muted = Color(0xFFB2A9B2)
-    val Outline = Color(0xFF61313E)
-    val Error = Color(0xFFFF9FAB)
+    val Foreground = Color(0xFF182735)
+    val Muted = Color(0xFF64748B)
+    val Outline = Color(0xFFDCE3EA)
+    val Positive = Color(0xFF249A59)
+    val Error = Color(0xFFB42338)
 }
 
 /** Replace the uploaded SubscriptionScreen.kt with this file. Keep the existing
@@ -146,81 +142,69 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
     }
     LaunchedEffect(email, mentor) { latestCheck() }
 
-    Box(
-        Modifier.fillMaxSize().background(colors.Background).safeDrawingPadding()
-    ) {
+    Box(Modifier.fillMaxSize().background(colors.Background).safeDrawingPadding()) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 28.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(Modifier.widthIn(max = 440.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                MobiLogo(size = 44.dp, cornerRadius = 12.dp)
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text("TRADENEST EA", color = colors.Foreground, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                    Text("MEMBERSHIP", color = colors.Muted, fontSize = 11.sp)
-                }
-                Spacer(Modifier.weight(1f))
-                Icon(Icons.Default.Lock, "Subscription locked", tint = colors.Primary, modifier = Modifier.size(20.dp))
-            }
-            Spacer(Modifier.height(36.dp))
-            Column(Modifier.widthIn(max = 440.dp).fillMaxWidth()) {
-                Text("YOUR NEXT CHAPTER", color = colors.Primary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                Text("TradeNest EA\nSubscription", color = colors.Foreground, fontSize = 34.sp,
-                    lineHeight = 39.sp, fontWeight = FontWeight.Black)
-                Spacer(Modifier.height(12.dp))
-                Text("Your account. Your mentor. Your access.", color = colors.Muted, fontSize = 14.sp)
-            }
-            Spacer(Modifier.height(28.dp))
             Surface(
-                modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth()
-                    .shadow(22.dp, RoundedCornerShape(28.dp), ambientColor = colors.Primary.copy(alpha = 0.18f),
-                        spotColor = colors.Primary.copy(alpha = 0.25f)),
-                shape = RoundedCornerShape(28.dp), color = colors.Surface.copy(alpha = 0.94f),
-                border = BorderStroke(1.dp, Brush.linearGradient(listOf(
-                    colors.Primary.copy(alpha = 0.8f), colors.Outline, colors.Primary.copy(alpha = 0.35f)
-                )))
+                modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth()
+                    .shadow(12.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp), color = colors.Surface
             ) {
-                Column(Modifier.background(Brush.linearGradient(listOf(
-                    colors.PrimaryContainer.copy(alpha = 0.7f), colors.Surface.copy(alpha = 0.25f)
-                ))).padding(24.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("MONTHLY ACCESS", color = colors.Foreground, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.Lock, null, tint = colors.Primary, modifier = Modifier.size(18.dp))
+                Column(Modifier.padding(20.dp)) {
+                    Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 24.dp),
+                        contentAlignment = Alignment.Center) {
+                        MobiLogo(size = 100.dp, cornerRadius = 20.dp)
                     }
-                    Spacer(Modifier.height(20.dp))
-                    Text("R580", color = colors.Foreground, fontSize = 50.sp, fontWeight = FontWeight.Black)
-                    Text("per month · PayFast subscription", color = colors.Muted, fontSize = 13.sp)
+                    Text("Purchase Subscription Access", color = colors.Muted, fontSize = 11.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Unlock TradeNest EA", color = colors.Foreground, fontSize = 30.sp,
+                        lineHeight = 35.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Your trading. Your access.", color = colors.Foreground,
+                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Subscribe to TradeNest EA with secure PayFast checkout.",
+                        color = colors.Foreground, fontSize = 14.sp, lineHeight = 22.sp)
+                    Spacer(Modifier.height(22.dp))
+                    SubscriptionDetail("TradeNest EA membership")
+                    SubscriptionDetail("R580 monthly subscription")
+                    SubscriptionDetail("Activated under your selected mentor")
+                    SubscriptionDetail("Secure payment with PayFast")
                     Spacer(Modifier.height(24.dp))
-                    HorizontalDivider(color = colors.Outline.copy(alpha = 0.7f))
-                    Spacer(Modifier.height(20.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Mail, null, tint = colors.Primary, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("SUBSCRIBING AS", color = colors.Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(4.dp))
-                            Text(email.ifBlank { "Select your email" }, color = colors.Foreground, fontSize = 13.sp,
-                                maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text("Mentor ID: ${mentor.ifBlank { "Not selected" }}", color = colors.Muted, fontSize = 12.sp)
+                    Text("Your access period", color = colors.Muted, fontSize = 11.sp)
+                    Spacer(Modifier.height(8.dp))
+                    // Only the existing monthly plan is offered; reference prices are not our prices.
+                    Surface(shape = RoundedCornerShape(10.dp), color = colors.PrimaryContainer,
+                        border = BorderStroke(1.dp, colors.Primary), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 14.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("1 Month", color = colors.Foreground, fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(4.dp))
+                                Text("Monthly subscription", color = colors.Muted, fontSize = 11.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text("R580.00", color = colors.Foreground, fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold)
                         }
                     }
-                    Spacer(Modifier.height(22.dp))
-                    SubscriptionDetail("Activated under your selected mentor")
-                    SubscriptionDetail("Secure checkout with PayFast")
-                    SubscriptionDetail("Access after confirmed payment")
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(email.ifBlank { "Select your email" }, color = colors.Foreground,
+                        fontSize = 12.sp, lineHeight = 18.sp)
+                    Text("Mentor ID: ${mentor.ifBlank { "Not selected" }}", color = colors.Muted, fontSize = 11.sp)
+                    Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = agreed, onCheckedChange = { agreed = it }, enabled = !busy,
                             colors = CheckboxDefaults.colors(checkedColor = colors.Primary,
-                                uncheckedColor = colors.Muted, checkmarkColor = colors.OnPrimary))
-                        Text("I authorise the R580 monthly subscription.", color = colors.Muted,
-                            fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                uncheckedColor = colors.Outline, checkmarkColor = colors.OnPrimary))
+                        Text("I authorise the R580 monthly subscription.", color = colors.Foreground,
+                            fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                     Button(
                         onClick = {
                             if (!busy && agreed) {
@@ -255,16 +239,18 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
                             }
                         },
                         enabled = agreed && !busy && email.isNotBlank() && mentor.toIntOrNull()?.let { it > 0 } == true,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = colors.Primary, contentColor = colors.OnPrimary,
                             disabledContainerColor = colors.Outline.copy(alpha = 0.5f), disabledContentColor = colors.Muted)
                     ) {
                         if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = colors.OnPrimary, strokeWidth = 2.dp)
                         else {
-                            Text("Subscribe with PayFast", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(20.dp))
+                            Text("Pay R580.00", fontWeight = FontWeight.Bold)
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Opens secure PayFast checkout", color = colors.Muted, fontSize = 10.sp,
+                        modifier = Modifier.align(Alignment.CenterHorizontally))
                     TextButton(onClick = checkAccess, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         colors = ButtonDefaults.textButtonColors(contentColor = colors.Foreground, disabledContentColor = colors.Muted)) {
                         Icon(Icons.Default.Refresh, null, modifier = Modifier.size(17.dp))
@@ -277,8 +263,11 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
                 }
             }
             Spacer(Modifier.height(20.dp))
-            Text("Access stays locked until your subscription is verified.", color = colors.Muted, fontSize = 12.sp,
-                modifier = Modifier.widthIn(max = 440.dp))
+            Row(Modifier.widthIn(max = 480.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Lock, null, tint = colors.Muted, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Access after verified payment", color = colors.Muted, fontSize = 11.sp)
+            }
             TextButton(onClick = { viewModel.onBackToWelcome() }, enabled = !busy,
                 colors = ButtonDefaults.textButtonColors(contentColor = colors.Muted)) {
                 Text("Change email or mentor")
@@ -290,11 +279,11 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
 @Composable
 private fun SubscriptionDetail(label: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(shape = CircleShape, color = SubscriptionPalette.Primary.copy(alpha = 0.12f)) {
-            Icon(Icons.Default.Check, null, tint = SubscriptionPalette.Primary, modifier = Modifier.padding(4.dp).size(13.dp))
-        }
+        Icon(Icons.Default.Check, null, tint = SubscriptionPalette.Positive,
+            modifier = Modifier.size(17.dp))
         Spacer(Modifier.width(10.dp))
-        Text(label, color = SubscriptionPalette.Foreground, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(label, color = SubscriptionPalette.Foreground, fontSize = 12.sp,
+            lineHeight = 18.sp, modifier = Modifier.weight(1f))
     }
 }
 

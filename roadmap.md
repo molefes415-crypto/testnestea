@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Match the supplied light subscription-page reference in the native Android replacement, retaining the existing R580 monthly PayFast plan and verified mentor activation; additional reference plans and prices are not introduced. Android compilation and device rendering require the complete Android Studio project.
+
 - [x] Prepare red-glass native SubscriptionScreen.kt replacement with R580 PayFast browser checkout, saved email/mentor/payment reference and verified access checks. Native compilation, installed-device rendering and real payment verification require the complete Android Studio project and an installed device.
 
 - [x] Prepare mentor-specific paid-client activation without slot consumption, signed idempotent PHP callback, separate Paid Emails count, mandatory checkout mentor identity and portal-only access checks. Eleven payment tests, four mobile tests and PHP signature/isolation/zero-slot tests pass; running app rejects incomplete ITNs.
