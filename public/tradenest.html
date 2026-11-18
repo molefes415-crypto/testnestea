@@ -5304,6 +5304,7 @@ const HomeView = ({
         let sampleTimer;
         let sampling = false;
         let terminal = false;
+        const reversalGuard = window.TNLocalRobot.createReversalGuard();
         const current = () => !cancelled && botSessionRef.current === scannerAccount && localStorage.getItem('mt_accountId_mt5') === scannerAccount;
         const samplePrices = async () => {
           if (!current() || sampling) return;
@@ -5325,6 +5326,7 @@ const HomeView = ({
             const data = window.TNLocalRobot.analyse(liveMarket, style);
             if (!current()) return false;
             setScanBanner({ phase:'ready', symbol:base, signal:data, subtitle:data.reason || `${data.strategy} · ${data.direction}` });
+            reversalGuard.observe(base, data.symbol === base ? data.direction : 'NEUTRAL');
             if (data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL')) {
               const r = await fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=positions`, { headers: {'X-MT5-Token':scannerAccount}, credentials:'omit' });
               const positions = await r.json();
@@ -5335,14 +5337,15 @@ const HomeView = ({
               if (existing.length) {
                 if (style === 'swing') for (const p of existing) {
                   const side = String(p.side ?? p.type).toLowerCase();
-                  if (p.comment !== (botSettings?.name || 'BOT') || !Number.isSafeInteger(p.ticket) || !(['buy','sell','0','1'].includes(side))) continue;
-                  const opposite = (side === 'buy' || side === '0') ? data.direction === 'SELL' : data.direction === 'BUY';
-                  if (!opposite || !current()) continue;
+                  if (!window.TNLocalRobot.ownsPosition(p.comment, botSettings?.name) || !Number.isSafeInteger(p.ticket) || !(['buy','sell','0','1'].includes(side))) continue;
+                  const positionSide = (side === 'buy' || side === '0') ? 'BUY' : 'SELL';
+                  if (!reversalGuard.canClose(p, positionSide, data.direction) || !current()) continue;
                   const closed = await fetch('https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=close', { method:'POST', credentials:'omit', headers:{'Content-Type':'application/json','X-MT5-Token':scannerAccount}, body:JSON.stringify({ticket:p.ticket}) });
                   if (!closed.ok) throw new Error('Broker did not confirm swing close.');
                 }
                 return false;
               }
+              if (!reversalGuard.canEnter(base, data.direction)) return false;
               setPendingSignal({
                 ...data,
                 symbol: rawSymbol,

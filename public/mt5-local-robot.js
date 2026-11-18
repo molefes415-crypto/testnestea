@@ -39,5 +39,54 @@
   function tradeComment(botName) {
     return `${String(botName || 'BOT').trim() || 'BOT'}-auto`;
   }
-  root.TNLocalRobot = { analyse, confirmed, readiness, tradeComment };
+  // Stops flip-flopping: a direction must repeat before entering, and an open
+  // position is only closed on a sustained reversal, after a minimum hold, and never while in profit.
+  function createReversalGuard({ entryConfirmations = 2, closeConfirmations = 3, minHoldMs = 300000, now = Date.now } = {}) {
+    const streaks = new Map();
+    const firstSeen = new Map();
+    function observe(symbol, direction) {
+      const d = direction === 'BUY' || direction === 'SELL' ? direction : 'NEUTRAL';
+      const prev = streaks.get(symbol);
+      const count = d === 'NEUTRAL' ? 0 : (prev && prev.direction === d ? prev.count + 1 : 1);
+      streaks.set(symbol, { direction: d, count });
+      return count;
+    }
+    function canEnter(symbol, direction) {
+      const s = streaks.get(symbol);
+      return !!s && s.direction === direction && s.count >= entryConfirmations;
+    }
+    function canClose(position, positionSide, direction) {
+      const key = `${position.symbol}:${position.ticket}`;
+      if (!firstSeen.has(key)) firstSeen.set(key, now());
+      const s = streaks.get(position.symbol);
+      const opposite = (positionSide === 'BUY' && direction === 'SELL') || (positionSide === 'SELL' && direction === 'BUY');
+      if (!opposite || !s || s.direction !== direction || s.count < closeConfirmations) return false;
+      if (now() - firstSeen.get(key) < minHoldMs) return false;
+      return !(Number(position.profit) > 0);
+    }
+    return { observe, canEnter, canClose };
+  }
+  function ownsPosition(comment, botName) {
+    const c = String(comment || '');
+    const name = String(botName || 'BOT').trim() || 'BOT';
+    const full = tradeComment(name);
+    return c === name || c === full || (c.length >= 4 && full.startsWith(c));
+  }
+  // Converts broker tick history into evenly spaced samples ending at the live quote.
+  function seedFromTicks(payload, symbol, observedNow, stepMs = 5000) {
+    if (!payload || payload.symbol !== symbol || !Array.isArray(payload.ticks)) return [];
+    const last = Number(payload.last_msc);
+    if (!Number.isFinite(last)) return [];
+    const buckets = new Map();
+    for (const t of payload.ticks) {
+      if (!Array.isArray(t)) continue;
+      const [msc, bid, ask] = t.map(Number);
+      if (![msc, bid, ask].every(Number.isFinite) || bid <= 0 || ask < bid || msc > last) continue;
+      buckets.set(Math.floor(msc / stepMs), { bid, ask, msc });
+    }
+    return [...buckets.values()].sort((a, b) => a.msc - b.msc)
+      .map(p => ({ bid: p.bid, ask: p.ask, observedAt: observedNow - (last - p.msc) - 1 }))
+      .filter(p => observedNow - p.observedAt <= 600000);
+  }
+  root.TNLocalRobot = { analyse, confirmed, readiness, tradeComment, createReversalGuard, ownsPosition, seedFromTicks };
 })(typeof window === 'undefined' ? globalThis : window);

@@ -17,7 +17,7 @@ define('ADMIN_KEY', (string) $CFG['admin_key']);
 define('ALLOWED_ORIGINS', (array) $CFG['allowed_origins']);
 
 // Gateway paths a user token may reach (everything else is refused)
-const PROXY_PATH_REGEX = '#^(account|positions|history|order|modify|close|close_all|me|quote/[A-Za-z0-9._+\#-]{1,24})$#';
+const PROXY_PATH_REGEX = '#^(account|positions|history|order|modify|close|close_all|me|quote/[A-Za-z0-9._+\#-]{1,24}|ticks/[A-Za-z0-9._+\#-]{1,24})$#';
 
 // ====== CORS ======
 function origin_allowed(string $origin): bool {

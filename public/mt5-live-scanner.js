@@ -4,6 +4,7 @@
     let active = '';
     const samples = new Map();
     const pending = new Map();
+    const seeded = new Set();
     const assertActive = token => {
       if (!token || token !== getToken()) throw new Error('MT5 account changed. Scan discarded.');
     };
@@ -34,7 +35,7 @@
     async function sample(symbol) {
       const token = getToken();
       if (!token) throw new Error('Connect an MT5 account before scanning live prices.');
-      if (active !== token) { samples.clear(); active = token; }
+      if (active !== token) { samples.clear(); seeded.clear(); active = token; }
       const account = await read(token, 'account');
       if (account.connected === false || typeof account.server !== 'string' || !account.server || !Number.isSafeInteger(account.login) || account.login <= 0 || !Number.isFinite(account.balance)) throw new Error('MT5 connection could not be verified.');
       const quote = await read(token, `quote/${symbol}`);
@@ -42,7 +43,18 @@
       if (!Number.isFinite(quote.bid) || !Number.isFinite(quote.ask) || quote.bid <= 0 || quote.ask < quote.bid) throw new Error('Broker returned invalid bid/ask prices.');
       const observedAt = now();
       const point = { bid: quote.bid, ask: quote.ask, observedAt };
-      const history = [...(samples.get(symbol) || []), point].filter(p => observedAt - p.observedAt <= 600000).slice(-120);
+      let previous = samples.get(symbol) || [];
+      if (!seeded.has(symbol)) {
+        seeded.add(symbol);
+        // Instant warm-up from the broker's own recent ticks; older gateways without /ticks keep normal sampling.
+        try {
+          const ticks = await read(token, `ticks/${symbol}`);
+          const seed = root.TNLocalRobot?.seedFromTicks(ticks, symbol, observedAt) || [];
+          const firstKept = previous[0]?.observedAt ?? Infinity;
+          previous = [...seed.filter(p => p.observedAt < firstKept), ...previous];
+        } catch (error) { assertActive(token); }
+      }
+      const history = [...previous.filter(p => p.observedAt < observedAt), point].filter(p => observedAt - p.observedAt <= 600000).slice(-120);
       samples.set(symbol, history);
       // Send price data only: never account login, name, password, or token to AI.
       return { source: 'mt5_gateway', symbol, server: account.server, bid: quote.bid, ask: quote.ask,
@@ -56,7 +68,7 @@
       pending.set(key, task);
       return task;
     }
-    return { snapshot, reset() { samples.clear(); active = ''; } };
+    return { snapshot, reset() { samples.clear(); seeded.clear(); active = ''; } };
   }
   root.TNLiveScanner = { createLiveScanner };
 })(typeof window === 'undefined' ? globalThis : window);

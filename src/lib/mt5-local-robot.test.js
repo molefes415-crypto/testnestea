@@ -35,4 +35,40 @@ test('local breakout keeps exact symbol and day stops',()=>{
   expect(result.sl).toBeLessThan(m.bid);
   expect(result.tp).toBeGreaterThan(m.ask);
   expect(engine.analyse(m,'swing',fixed).sl).toBe(null);
+});test('broker tick history fills readiness instantly and keeps the exact symbol', () => {
+  const now = Date.now(); const last = 1_700_000_600_000;
+  const ticks = Array.from({length: 600}, (_, i) => [last - (599 - i) * 1000, 100 + i * 0.001, 100.001 + i * 0.001]);
+  const seed = engine.seedFromTicks({symbol:'XAUUSD.m', last_msc:last, ticks}, 'XAUUSD.m', now);
+  expect(seed.length).toBeGreaterThanOrEqual(40);
+  expect(now - seed[0].observedAt).toBeGreaterThanOrEqual(180000);
+  expect(engine.seedFromTicks({symbol:'XAUUSD', last_msc:last, ticks}, 'XAUUSD.m', now)).toEqual([]);
+});
+test('a single opposite reading never closes a position', () => {
+  let t = 0; const g = engine.createReversalGuard({now: () => t});
+  const p = {symbol:'XAUUSD.m', ticket: 1, profit: -2};
+  g.observe('XAUUSD.m','SELL'); expect(g.canClose(p,'BUY','SELL')).toBe(false);
+});
+test('reversal closes only after 3 confirmations and 5 minutes held', () => {
+  let t = 0; const g = engine.createReversalGuard({now: () => t});
+  const p = {symbol:'XAUUSD.m', ticket: 1, profit: -2};
+  g.canClose(p,'BUY','NEUTRAL');
+  for (let i = 0; i < 3; i++) g.observe('XAUUSD.m','SELL');
+  t = 299000; expect(g.canClose(p,'BUY','SELL')).toBe(false);
+  t = 300000; expect(g.canClose(p,'BUY','SELL')).toBe(true);
+});
+test('profitable position is never closed on a reversal', () => {
+  let t = 0; const g = engine.createReversalGuard({now: () => t});
+  const p = {symbol:'XAUUSD.m', ticket: 1, profit: 5};
+  g.canClose(p,'BUY','NEUTRAL'); for (let i = 0; i < 5; i++) g.observe('XAUUSD.m','SELL');
+  t = 999999; expect(g.canClose(p,'BUY','SELL')).toBe(false);
+});
+test('entry needs the same direction twice in a row', () => {
+  const g = engine.createReversalGuard();
+  g.observe('US30','BUY'); expect(g.canEnter('US30','BUY')).toBe(false);
+  g.observe('US30','BUY'); expect(g.canEnter('US30','BUY')).toBe(true);
+  g.observe('US30','NEUTRAL'); expect(g.canEnter('US30','BUY')).toBe(false);
+});
+test('robot recognises its own -auto trade comments', () => {
+  expect(engine.ownsPosition('mobi ea-auto','mobi ea')).toBe(true);
+  expect(engine.ownsPosition('other-auto','mobi ea')).toBe(false);
 });
