@@ -18,6 +18,7 @@ import { Route as ApiPublicAiVisionRouteImport } from './routes/api/public/ai-vi
 import { Route as ApiPublicAnalyzeChartRouteImport } from './routes/api/public/analyze-chart'
 import { Route as ApiPublicCheckSubscriptionRouteImport } from './routes/api/public/check-subscription'
 import { Route as ApiPublicNewsRouteImport } from './routes/api/public/news'
+import { Route as ApiPublicNewsAutomationRouteImport } from './routes/api/public/news-automation'
 import { Route as ApiPublicNewsWorkflowsRouteImport } from './routes/api/public/news-workflows'
 import { Route as ApiPublicPayfastRouteImport } from './routes/api/public/payfast'
 import { Route as ApiPublicPayfastItnRouteImport } from './routes/api/public/payfast-itn'
@@ -71,6 +72,11 @@ const ApiPublicNewsRoute = ApiPublicNewsRouteImport.update({
   path: '/api/public/news',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNewsAutomationRoute = ApiPublicNewsAutomationRouteImport.update({
+  id: '/api/public/news-automation',
+  path: '/api/public/news-automation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicNewsWorkflowsRoute = ApiPublicNewsWorkflowsRouteImport.update({
   id: '/api/public/news-workflows',
   path: '/api/public/news-workflows',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
   '/api/public/news': typeof ApiPublicNewsRoute
+  '/api/public/news-automation': typeof ApiPublicNewsAutomationRoute
   '/api/public/news-workflows': typeof ApiPublicNewsWorkflowsRoute
   '/api/public/payfast': typeof ApiPublicPayfastRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
   '/api/public/news': typeof ApiPublicNewsRoute
+  '/api/public/news-automation': typeof ApiPublicNewsAutomationRoute
   '/api/public/news-workflows': typeof ApiPublicNewsWorkflowsRoute
   '/api/public/payfast': typeof ApiPublicPayfastRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/api/public/analyze-chart': typeof ApiPublicAnalyzeChartRoute
   '/api/public/check-subscription': typeof ApiPublicCheckSubscriptionRoute
   '/api/public/news': typeof ApiPublicNewsRoute
+  '/api/public/news-automation': typeof ApiPublicNewsAutomationRoute
   '/api/public/news-workflows': typeof ApiPublicNewsWorkflowsRoute
   '/api/public/payfast': typeof ApiPublicPayfastRoute
   '/api/public/payfast-itn': typeof ApiPublicPayfastItnRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
     | '/api/public/news'
+    | '/api/public/news-automation'
     | '/api/public/news-workflows'
     | '/api/public/payfast'
     | '/api/public/payfast-itn'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
     | '/api/public/news'
+    | '/api/public/news-automation'
     | '/api/public/news-workflows'
     | '/api/public/payfast'
     | '/api/public/payfast-itn'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/api/public/analyze-chart'
     | '/api/public/check-subscription'
     | '/api/public/news'
+    | '/api/public/news-automation'
     | '/api/public/news-workflows'
     | '/api/public/payfast'
     | '/api/public/payfast-itn'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   ApiPublicAnalyzeChartRoute: typeof ApiPublicAnalyzeChartRoute
   ApiPublicCheckSubscriptionRoute: typeof ApiPublicCheckSubscriptionRoute
   ApiPublicNewsRoute: typeof ApiPublicNewsRoute
+  ApiPublicNewsAutomationRoute: typeof ApiPublicNewsAutomationRoute
   ApiPublicNewsWorkflowsRoute: typeof ApiPublicNewsWorkflowsRoute
   ApiPublicPayfastRoute: typeof ApiPublicPayfastRoute
   ApiPublicPayfastItnRoute: typeof ApiPublicPayfastItnRoute
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNewsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/news-automation': {
+      id: '/api/public/news-automation'
+      path: '/api/public/news-automation'
+      fullPath: '/api/public/news-automation'
+      preLoaderRoute: typeof ApiPublicNewsAutomationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/news-workflows': {
       id: '/api/public/news-workflows'
       path: '/api/public/news-workflows'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAnalyzeChartRoute: ApiPublicAnalyzeChartRoute,
   ApiPublicCheckSubscriptionRoute: ApiPublicCheckSubscriptionRoute,
   ApiPublicNewsRoute: ApiPublicNewsRoute,
+  ApiPublicNewsAutomationRoute: ApiPublicNewsAutomationRoute,
   ApiPublicNewsWorkflowsRoute: ApiPublicNewsWorkflowsRoute,
   ApiPublicPayfastRoute: ApiPublicPayfastRoute,
   ApiPublicPayfastItnRoute: ApiPublicPayfastItnRoute,

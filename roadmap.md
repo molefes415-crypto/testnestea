@@ -1,5 +1,7 @@
 # MT5 gateway connection
 
+- [x] Deliver standalone Android Kotlin News-only Fundamentals kit with tappable event automation panel, flags, SAST calendar, personal-token PHP gateway, 200-second linking timeout and local scanner; core Kotlin compiles, 15 Kotlin and 10 server regression tests pass. Clean source ZIP prepared. Compose compilation/device rendering and live trading remain unverified without the complete Android project/demo session; publish the new automation adapter before using it from Android.
+
 - [x] Match the supplied light subscription-page reference in the native Android replacement, retaining the existing R580 monthly PayFast plan and verified mentor activation; additional reference plans and prices are not introduced. Android compilation and device rendering require the complete Android Studio project.
 
 - [x] Prepare red-glass native SubscriptionScreen.kt replacement with R580 PayFast browser checkout, saved email/mentor/payment reference and verified access checks. Native compilation, installed-device rendering and real payment verification require the complete Android Studio project and an installed device.
