@@ -1,5 +1,5 @@
 (function (root) {
-  const BASE = 'https://tradenestea.com/admin/api/mt5_gateway.php';
+  const BASE = 'https://tradenestea.com/admin/api/mt5_gateways.php';
   function createLiveScanner({ request = fetch, getToken, now = Date.now }) {
     let active = '';
     const samples = new Map();

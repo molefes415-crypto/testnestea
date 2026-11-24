@@ -1,4 +1,4 @@
-export const MT5_GATEWAY_BASE = "https://tradenestea.com/admin/api/mt5_gateway.php";
+export const MT5_GATEWAY_BASE = "https://tradenestea.com/admin/api/mt5_gateways.php";
 
 export type MT5AppIdentity = { email: string; admin_id: string };
 

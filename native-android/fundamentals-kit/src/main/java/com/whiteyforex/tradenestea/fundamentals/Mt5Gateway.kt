@@ -24,7 +24,7 @@ class AmbiguousOrder: IOException("Order outcome is unknown. Scanner stopped; ch
 
 /** No admin key, passwords in URLs, logging interceptor, provider fallback, redirect or mutation retry. */
 class Mt5Gateway {
-    companion object { const val BASE = "https://tradenestea.com/admin/api/mt5_gateway.php" }
+    companion object { const val BASE = "https://tradenestea.com/admin/api/mt5_gateways.php" }
     private val gson = Gson()
     private fun client(seconds: Long) = OkHttpClient.Builder()
         .connectTimeout(RequestTimeouts.CONNECT_SECONDS, TimeUnit.SECONDS)

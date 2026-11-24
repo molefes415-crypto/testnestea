@@ -62,7 +62,7 @@ describe("MT5 gateway safety", () => {
     let sent;
     const service = createMT5Service(async (url, init) => { sent = { url, init }; return Response.json({ account_id: "test", token: "test-token", account: { connected: true, login: 123456 } }); });
     await service.connect({ server: "JustMarkets-Demo", accountNumber: "123456", password: "test-only" }, { email: "client@example.test", admin_id: "7" });
-    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateway.php?a=link");
+    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateways.php?a=link");
     expect(JSON.parse(sent.init.body)).toEqual({ login: 123456, password: "test-only", server: "JustMarkets-Demo", email: "client@example.test", adminId: "7" });
     expect(sent.url.includes("test-only")).toBe(false);
   });
@@ -70,7 +70,7 @@ describe("MT5 gateway safety", () => {
     let sent;
     const service = createMT5Service(async (url, init) => { sent = { url, init }; return Response.json({ login: 123456, balance: 1000, server: "JustMarkets-Demo" }); });
     expect((await service.account("test-token")).balance).toBe(1000);
-    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=account");
+    expect(sent.url).toBe("https://tradenestea.com/admin/api/mt5_gateways.php?a=proxy&p=account");
     expect(sent.init.headers.get("X-MT5-Token")).toBe("test-token");
   });
   test("offline errors are clear and unsuccessful links never fabricate success", async () => {

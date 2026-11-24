@@ -1,6 +1,6 @@
 <?php
 /**
- * mt5_gateway.php  — upload to  /admin/api/  on tradenestea.com
+ * mt5_gateways.php  — upload to  /admin/api/  on tradenestea.com
  *
  * Portal proxy between your app and the self-hosted MT5 gateway.
  *   GET  ?a=health            check portal -> gateway connection and admin key (no secrets shown)

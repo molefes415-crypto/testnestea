@@ -48,7 +48,7 @@ Call `gateway.link(login, tradingPassword, exactServer, Mt5Identity(existingEmai
 
 ## Correct APIs
 
-Base: `https://tradenestea.com/admin/api/mt5_gateway.php`
+Base: `https://tradenestea.com/admin/api/mt5_gateways.php`
 
 | Request | Method | Body / header |
 |---|---|---|

@@ -42,7 +42,7 @@ ALLOWED_GET = {
 }
 ```
 
-## 3. Website file `admin/api/mt5_gateway.php`
+## 3. Website file `admin/api/mt5_gateways.php`
 
-Upload the updated `hosting/mt5/mt5_gateway.php` (it now allows `ticks/<SYMBOL>`).
+Upload the updated `hosting/mt5/mt5_gateways.php` (it now allows `ticks/<SYMBOL>`).
 It is read-only; orders are unchanged.

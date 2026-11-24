@@ -8,7 +8,7 @@ When the client taps Start, immediately show the top scanning box described belo
 
 ## Existing gateway contract
 
-Base: `https://tradenestea.com/admin/api/mt5_gateway.php`
+Base: `https://tradenestea.com/admin/api/mt5_gateways.php`
 
 Pass `X-MT5-Token: <client personal token>` and `Accept: application/json`. Keep the token in Android Keystore-backed encrypted storage. Never embed the gateway admin key or retain the trading password.
 

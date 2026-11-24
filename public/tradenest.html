@@ -802,7 +802,7 @@
         setError('');
         try {
           const deviceId = getDeviceId();
-          const resp = await fetch(`https://tradenestea.com/admin/api/validate_licensekey.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
+          const resp = await fetch(`https://tradenestea.com/admin/api/validate_licensekeys.php?key=${encodeURIComponent(key.trim())}&device_id=${encodeURIComponent(deviceId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: key.trim(), device_id: deviceId })
@@ -4860,7 +4860,7 @@ const HomeView = ({
               if (!ea?.licenseKey) return ea;
               try {
                 const dId = getDeviceId();
-                const r = await fetch(`https://tradenestea.com/admin/api/validate_licensekey.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
+                const r = await fetch(`https://tradenestea.com/admin/api/validate_licensekeys.php?key=${encodeURIComponent(ea.licenseKey)}&device_id=${encodeURIComponent(dId)}&_=${Date.now()}`);
                 const d = await r.json();
                 // Expiry check — treat past expires_at as expired even if server still says valid
                 let expired = false;
@@ -5039,8 +5039,8 @@ const HomeView = ({
       const processSignals = useCallback(async (ea) => {
         if (!ea?.licenseKey) return;
         try {
-          console.log('[SIGNALS] Polling validate_licensekey.php for licence key', String(ea.licenseKey).slice(0,6)+'...');
-          const resp = await fetch('https://tradenestea.com/admin/api/validate_licensekey.php', {
+          console.log('[SIGNALS] Polling validate_licensekeys.php for licence key', String(ea.licenseKey).slice(0,6)+'...');
+          const resp = await fetch('https://tradenestea.com/admin/api/validate_licensekeys.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: ea.licenseKey, device_id: getDeviceId() }),
@@ -5055,7 +5055,7 @@ const HomeView = ({
             return;
           }
 
-          // validate_licensekey.php returns unread signals as { signals: { SYMBOL: [ ... ] } }
+          // validate_licensekeys.php returns unread signals as { signals: { SYMBOL: [ ... ] } }
           // Also accept legacy shapes so old portals still work.
           let list = [];
           if (Array.isArray(data)) list = data;
@@ -5079,7 +5079,7 @@ const HomeView = ({
           }
 
           if (list.length === 0) {
-            console.log('[SIGNALS] No unread signals returned by validate_licensekey.php');
+            console.log('[SIGNALS] No unread signals returned by validate_licensekeys.php');
             return;
           }
 
@@ -5333,7 +5333,7 @@ const HomeView = ({
             setScanBanner({ phase:'ready', symbol:base, signal:data, subtitle:data.reason || `${data.strategy} · ${data.direction}` });
             reversalGuard.observe(base, data.symbol === base ? data.direction : 'NEUTRAL');
             if (data.symbol === base && (data.direction === 'BUY' || data.direction === 'SELL')) {
-              const r = await fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=positions`, { headers: {'X-MT5-Token':scannerAccount}, credentials:'omit' });
+              const r = await fetch(`https://tradenestea.com/admin/api/mt5_gateways.php?a=proxy&p=positions`, { headers: {'X-MT5-Token':scannerAccount}, credentials:'omit' });
               const positions = await r.json();
               if (!r.ok || !current()) return false;
               const list = Array.isArray(positions) ? positions : positions.positions;
@@ -5345,7 +5345,7 @@ const HomeView = ({
                   if (!window.TNLocalRobot.ownsPosition(p.comment, botSettings?.name) || !Number.isSafeInteger(p.ticket) || !(['buy','sell','0','1'].includes(side))) continue;
                   const positionSide = (side === 'buy' || side === '0') ? 'BUY' : 'SELL';
                   if (!reversalGuard.canClose(p, positionSide, data.direction) || !current()) continue;
-                  const closed = await fetch('https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=close', { method:'POST', credentials:'omit', headers:{'Content-Type':'application/json','X-MT5-Token':scannerAccount}, body:JSON.stringify({ticket:p.ticket}) });
+                  const closed = await fetch('https://tradenestea.com/admin/api/mt5_gateways.php?a=proxy&p=close', { method:'POST', credentials:'omit', headers:{'Content-Type':'application/json','X-MT5-Token':scannerAccount}, body:JSON.stringify({ticket:p.ticket}) });
                   if (!closed.ok) throw new Error('Broker did not confirm swing close.');
                 }
                 return false;
@@ -5476,7 +5476,7 @@ const HomeView = ({
         if (expectedToken && (token !== expectedToken || botSessionRef.current !== token)) return fail('Robot stopped or MT5 account changed.');
         const side = String(direction||'').toUpperCase().includes('SELL') ? 'sell' : 'buy';
         const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
-        const gw = (p, method='GET', body) => fetch(`https://tradenestea.com/admin/api/mt5_gateway.php?a=proxy&p=${encodeURIComponent(p)}`, {
+        const gw = (p, method='GET', body) => fetch(`https://tradenestea.com/admin/api/mt5_gateways.php?a=proxy&p=${encodeURIComponent(p)}`, {
           method, credentials:'omit', headers:{Accept:'application/json','X-MT5-Token':token,...(body?{'Content-Type':'application/json'}:{})},
           body: body ? JSON.stringify(body) : undefined,
         }).then(async r => { const d = await r.json().catch(()=>null); if (!r.ok) { const det = d?.detail; throw new Error(typeof det==='string'?det:(det?.comment||`Gateway error ${r.status}`)); } return d; });
