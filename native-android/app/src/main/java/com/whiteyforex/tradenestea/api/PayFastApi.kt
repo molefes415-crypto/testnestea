@@ -17,13 +17,12 @@ import java.util.concurrent.TimeUnit
 /**
  * PayFast subscription API (TradeNest EA) — R580 / month.
  *
- * Base URL: https://tradnestea.app/   (apex on purpose: the www host 307-redirects
- * and a redirect would drop the POST body)
+ * Base URL: https://tradenestea.com/admin/api/
  *
  * Flow used by the native app:
- *  1. POST /api/public/payfast?action=create  -> payment_id + process_url + signed fields
+ *  1. POST payfast_create.php -> payment_id + launch_url + fields
  *  2. Open PayFast in the browser (see [PayFastCheckout.open]) — the user pays there
- *  3. Poll GET /api/public/payfast?action=status until paid
+ *  3. Poll GET payfast_status.php until the exact checkout is paid
  *     (only PayFast's server-to-server ITN can mark a payment paid; the app never decides)
  *  4. On paid -> send the user to the license-key / add-robot screen
  *
@@ -32,20 +31,21 @@ import java.util.concurrent.TimeUnit
  */
 interface PayFastApiService {
 
-    @POST("api/public/payfast?action=create")
+    @POST("payfast_create.php")
     suspend fun createPayment(@Body body: CreatePaymentRequest): CreatePaymentResponse
 
-    @GET("api/public/payfast?action=status")
+    @GET("payfast_status.php")
     suspend fun status(
         @Query("payment_id") paymentId: String? = null,
         @Query("email") email: String? = null,
     ): PaymentStatusResponse
 
-    @POST("api/public/payfast?action=cancel")
+    // No PHP cancellation API exists; this optional operation keeps its existing Cloud endpoint.
+    @POST("https://tradnestea.app/api/public/payfast?action=cancel")
     suspend fun cancel(@Body body: CancelPaymentRequest): PaymentStatusResponse
 
     companion object {
-        private const val BASE_URL = "https://tradnestea.app/"
+        private const val BASE_URL = "https://tradenestea.com/admin/api/"
 
         fun create(): PayFastApiService {
             val client = OkHttpClient.Builder()
@@ -57,8 +57,13 @@ interface PayFastApiService {
                             .build()
                     )
                 }
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .callTimeout(40, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false)
+                .followRedirects(false)
+                .followSslRedirects(false)
                 .build()
 
             return Retrofit.Builder()
@@ -91,7 +96,7 @@ data class CreatePaymentResponse(
     val fields: Map<String, String>? = null,
     /**
      * The single link the app opens — a hosted self-submitting form on the
-     * same apex URL the ITN status uses (https://tradnestea.app/api/public/payfast
+     * trusted Cloud URL returned by PHP (https://tradnestea.app/api/public/payfast
      * ?action=launch). This is the payment gate link for the native app.
      */
     val launch_url: String? = null,
@@ -127,8 +132,8 @@ object PayFastCheckout {
     }
 
     /**
-     * Step 2: open PayFast. We open the server-hosted launcher on the SAME
-     * apex URL the ITN status uses (https://tradnestea.app/api/public/payfast
+     * Step 2: open PayFast. We open the server-hosted launcher returned by PHP
+     * (https://tradnestea.app/api/public/payfast
      * ?action=launch), which serves a self-submitting POST form with the
      * server-signed fields. This avoids the data: URL that Android Chrome
      * blocks from top-level navigation (the cause of the black screen).

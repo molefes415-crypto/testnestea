@@ -93,7 +93,7 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
                         prefs.getString("pending_mentor_id", null) == mentor
                     if (id != null && sameCheckout) {
                         val result = SubscriptionRequests.get(
-                            "payfast?action=status&payment_id=${Uri.encode(id)}"
+                            "payfast_status.php?payment_id=${Uri.encode(id)}"
                         )
                         val paid = result.optBoolean("paid", false) &&
                             result.optString("status") == "paid" && result.optString("payment_id") == id
@@ -107,7 +107,7 @@ fun SubscriptionScreen(viewModel: MainViewModel) {
                         }
                     }
                     val access = SubscriptionRequests.get(
-                        "check-subscription?admin_id=${Uri.encode(mentor)}&email=${Uri.encode(email)}"
+                        "check_subscription.php?admin_id=${Uri.encode(mentor)}&email=${Uri.encode(email)}"
                     )
                     if (!identityStillMatches()) return@launch
                     if (access.opt("active") == true) {
@@ -288,16 +288,18 @@ private fun SubscriptionDetail(label: String) {
 }
 
 private object SubscriptionRequests {
-    private const val Base = "https://tradnestea.app/api/public/"
+    private const val Base = "https://tradenestea.com/admin/api/"
     private val client = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS).callTimeout(40, TimeUnit.SECONDS).build()
+        .readTimeout(30, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(40, TimeUnit.SECONDS).retryOnConnectionFailure(false)
+        .followRedirects(false).followSslRedirects(false).build()
 
     suspend fun get(path: String): JSONObject = execute(Request.Builder().url(Base + path).get().build())
 
     suspend fun create(email: String, mentor: Int): JSONObject {
         val body = JSONObject().put("email", email).put("admin_id", mentor).put("user_ref", mentor.toString())
             .toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-        return execute(Request.Builder().url(Base + "payfast?action=create").post(body).build())
+        return execute(Request.Builder().url(Base + "payfast_create.php").post(body).build())
     }
 
     private suspend fun execute(request: Request): JSONObject = withContext(Dispatchers.IO) {

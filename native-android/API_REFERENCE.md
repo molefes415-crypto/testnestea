@@ -115,16 +115,17 @@ Trade comment = the bot's name only.
 
 ## PayFast subscription (native Android)
 
-Base URL: `https://tradnestea.app` (apex — `www` 307-redirects and would drop POST bodies)
+Base URL: `https://tradenestea.com/admin/api/`
 
 Kotlin: `com.whiteyforex.tradenestea.api.PayFastApi` (`PayFastApiService` + `PayFastCheckout`)
 
 | Call | Endpoint | Purpose |
 | --- | --- | --- |
-| Create | `POST /api/public/payfast?action=create` body `{ "email": "...", "user_ref": "..." }` | Returns `payment_id`, `process_url`, server-signed `fields` (R580/month) |
-| Status | `GET /api/public/payfast?action=status&payment_id=...` (or `&email=...`) | `{ "status": "pending\|paid\|cancelled\|failed", "paid": true/false }` |
-| Cancel | `POST /api/public/payfast?action=cancel` body `{ "payment_id": "..." }` | Marks an abandoned pending payment cancelled |
-| ITN (server only) | `POST /api/public/payfast-itn` | PayFast → our server. The **only** thing that can mark a payment paid |
+| Create | `POST payfast_create.php` body `{ "email": "...", "admin_id": 17, "user_ref": "17" }` | Returns `payment_id`, `launch_url`, `process_url`, `fields` (R580/month) |
+| Status | `GET payfast_status.php?payment_id=...` | `{ "payment_id": "...", "status": "pending\|paid\|cancelled\|failed", "paid": true/false }` |
+| Access | `GET check_subscription.php?admin_id=17&email=...` | Mentor-scoped `{ "active": true/false }` |
+| Cancel (optional) | `POST https://tradnestea.app/api/public/payfast?action=cancel` body `{ "payment_id": "..." }` | Existing Cloud operation; no PHP cancellation endpoint was supplied |
+| ITN (server only) | `POST payfast_itn.php` | Signed PayFast notification → PHP → Cloud verification |
 
 No API key needed — merchant credentials and the passphrase stay on the server.
 
@@ -133,7 +134,9 @@ No API key needed — merchant credentials and the passphrase stay on the server
 1. `PayFastCheckout.start(email, userRef)` → keep `payment_id` in SharedPreferences.
 2. `PayFastCheckout.open(context, payment)` → self-submitting form opens PayFast in the system browser.
 3. `PayFastCheckout.awaitPaid(paymentId)` (or `isPaid(...)` on resume) → poll until the ITN lands.
-4. On `paid == true` → navigate to the license-key / ADD ROBOT screen.
+4. Confirm `paid == true`, `status == "paid"`, and the exact remembered `payment_id`; refresh mentor access before navigation. The two subscription screens perform both checks. Payment-return and polling helpers alone are not access authorization.
+
+PHP relays checkout creation and status verification to Cloud. Open the returned `launch_url` unchanged; it legitimately uses `https://tradnestea.app/api/public/payfast?action=launch`.
 
 The web return page deep-links back as `tradenest://payfast/success`; add this to
 `AndroidManifest.xml` so the app is brought to the front after payment:

@@ -183,26 +183,29 @@ private object PopupPalette {
     val Positive = Color(0xFF249A59); val Error = Color(0xFFB42338)
 }
 
-/** TradeNest payment API. No merchant key or passphrase in the app. */
+/** Portal payment APIs. PHP relays verification to Cloud; no payment secrets in the app. */
 object PayFastPopupApi {
-    private const val BASE = "https://tradnestea.app/api/public/" // apex: www redirect drops POST bodies
+    private const val BASE = "https://tradenestea.com/admin/api/"
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
-        .callTimeout(40, TimeUnit.SECONDS).followRedirects(false).build()
+        .writeTimeout(30, TimeUnit.SECONDS).callTimeout(40, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
 
-    /** POST payfast?action=create → { payment_id, launch_url, ... } */
+    /** POST payfast_create.php → { success, payment_id, launch_url, ... }
+     * launch_url still points to the trusted Cloud checkout; open it unchanged in the browser.
+     */
     suspend fun create(email: String, mentor: Int): JSONObject = run(
-        Request.Builder().url(BASE + "payfast?action=create").post(
+        Request.Builder().url(BASE + "payfast_create.php").post(
             JSONObject().put("email", email).put("admin_id", mentor).put("user_ref", mentor.toString())
                 .toString().toRequestBody("application/json; charset=utf-8".toMediaType())).build())
 
-    /** GET payfast?action=status → { payment_id, status: pending|paid|cancelled|failed, paid } */
+    /** GET payfast_status.php → { payment_id, status: pending|paid|cancelled|failed, paid } */
     suspend fun status(paymentId: String): JSONObject =
-        run(Request.Builder().url(BASE + "payfast?action=status&payment_id=" + Uri.encode(paymentId)).build())
+        run(Request.Builder().url(BASE + "payfast_status.php?payment_id=" + Uri.encode(paymentId)).build())
 
-    /** GET check-subscription → { active: true|false } from the mentor portal */
+    /** GET check_subscription.php → { success, active: true|false } from the mentor portal */
     suspend fun access(mentor: String, email: String): JSONObject = run(Request.Builder()
-        .url(BASE + "check-subscription?admin_id=" + Uri.encode(mentor) + "&email=" + Uri.encode(email)).build())
+        .url(BASE + "check_subscription.php?admin_id=" + Uri.encode(mentor) + "&email=" + Uri.encode(email)).build())
 
     private suspend fun run(req: Request): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(req.newBuilder().header("Accept", "application/json").build()).execute().use {
