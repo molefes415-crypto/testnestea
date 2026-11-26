@@ -8,6 +8,11 @@ test('MT5 linking does not require an active app subscription', () => {
   expect(source).toContain("gw('POST', '/admin/accounts', $adminHdr, $payload, 220)");
 });
 
+test('browser preflight accepts the MT5 token and both v2 app headers', () => {
+  expect(source).toContain("header('Access-Control-Allow-Headers: Content-Type, X-MT5-Token, X-App-Signature, X-App-Version');");
+  expect(source).toContain("if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') { http_response_code(204); exit; }");
+});
+
 test('re-linking replaces a terminal only after the broker verifies the password', () => {
   const block = source.slice(source.indexOf('if ($st === 409)'));
   const check = block.indexOf('broker_password_ok(');

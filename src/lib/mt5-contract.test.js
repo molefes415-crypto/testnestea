@@ -85,12 +85,15 @@ describe("MT5 gateway safety", () => {
     await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("MT5 gateway (409): Account already linked by another user");
     expect(calls).toBe(1);
   });
-  test("blocked browser requests identify allowed origins without exposing credentials", async () => {
+  test("blocked browser requests identify allowed origins and v2 headers without exposing credentials", async () => {
     const service = createMT5Service(async () => { throw new TypeError("Failed to fetch"); });
     const previous = globalThis.window;
     globalThis.window = {};
     try {
-      await expect(service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" })).rejects.toThrow("allowed_origins");
+      const attempt = service.connect({ server: "Demo", accountNumber: "123", password: "test-only" }, { email: "client@example.test", admin_id: "7" });
+      await expect(attempt).rejects.toThrow("allowed_origins");
+      await expect(attempt).rejects.toThrow("X-App-Signature and X-App-Version");
+      await expect(attempt).rejects.not.toThrow("test-only");
     } finally {
       if (previous === undefined) delete globalThis.window;
       else globalThis.window = previous;
